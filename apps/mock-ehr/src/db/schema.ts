@@ -1,4 +1,4 @@
-// Tables follow NOM-004-SSA3-2012 and NOM-024-SSA3-2012; see docs/data-model.md for the section
+// Tables follow NOM-004-SSA3-2012 and NOM-024-SSA3-2012; see apps/mock-ehr/docs/data-model.md for the section
 // behind each column. FHIR mapping lives in src/fhir/, never here.
 import { boolean, date, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 

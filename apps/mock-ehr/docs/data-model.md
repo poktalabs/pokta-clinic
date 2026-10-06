@@ -23,17 +23,17 @@ An AI agent is not health personnel (4.4) and cannot sign a note (5.10), so its 
 
 | Concept (source) | Table: key columns | FHIR R4 |
 |---|---|---|
-| Patient identity (024 Table 1; 004 5.2.3) | `patient`: id, curp (unique, nullable, never generated), folio, nombre, primer_apellido, segundo_apellido, fecha_nacimiento, sexo (H/M), entidad_nacimiento, telefono, domicilio, cp, entidad/municipio/localidad (INEGI) | `Patient`: identifier (CURP system, folio system), name.given, name.family with fathers-family and mothers-family extensions, birthDate, gender (H→male, M→female, raw value kept in an extension), telecom, address |
+| Patient identity (024 Table 1; 004 5.2.3) | `patient`: id, curp (unique, nullable, never generated), folio, nombre, primer_apellido, segundo_apellido, fecha_nacimiento, curp_validada, sexo (H/M), telefono, domicilio, codigo_postal, retain_until; planned: entidad_nacimiento and INEGI entidad/municipio/localidad | `Patient`: identifier (CURP system, folio system), name.given, name.family with fathers-family and mothers-family extensions, birthDate, gender (H→male, M→female, raw value kept in an extension), telecom, address |
 | Establishment (004 5.2.1, 5.2.2; CLUES) | `establishment`: id, clues, tipo, nombre, razon_social, domicilio | `Organization`: identifier (CLUES) |
 | Physician (004 5.10) | `practitioner`: id, nombre, primer_apellido, segundo_apellido, cedula_profesional, especialidad | `Practitioner`: identifier (cédula profesional), qualification |
 | Intake definition | `questionnaire`: id, version, items (JSONB) | `Questionnaire` |
 | Pre-visit intake (004 5.18, raw input to 6.1.1) | `intake`: id, patient_id, questionnaire_id, conversation_id, items (JSONB), status (pending_validation, validated, rejected), author_device, validated_by, validated_at | `QuestionnaireResponse`: status, source = Patient, author = Device (the agent), extension for the Conversation ID |
-| Historia clínica (004 6.1) | `historia_clinica`: id, patient_id, intake_id, sections (JSONB), author_practitioner_id, signed_at, signature | `Composition` (validated output; console only in the demo) |
-| Privacy consent (LFPDPPP; 024 6.6.6) | `consent`: id, patient_id, tipo (privacidad), granted, method (voice), conversation_id, recorded_at | `Consent`: scope patient-privacy, sourceReference to the Conversation |
+| Historia clínica (004 6.1) | planned, not in the schema yet: `historia_clinica`: id, patient_id, intake_id, sections (JSONB), author_practitioner_id, signed_at, signature | `Composition` (validated output; console only in the demo) |
+| Privacy consent (LFPDPPP; 024 6.6.6) | `consent`: id, patient_id, tipo (privacidad), granted, method (voice), conversation_id, recorded_at | `Consent`: scope patient-privacy, identifier `urn:elevenlabs:conversation` with the Conversation ID, consent-method extension |
 | Appointment | `appointment`: id, patient_id, practitioner_id, start, end, status, calendar_event_id | `Appointment` |
-| Audit log (024 3.42, 6.6.1) | `audit_event`: id, at, actor (client or user), action, resource_type, resource_id, before_hash, after_hash; append-only | `AuditEvent` (console only in the demo) |
+| Audit log (024 3.42, 6.6.1) | `audit_event`: id, at, actor (client or user), action, resource_type, resource_id, detail (JSONB); append-only, enforced by a trigger | `AuditEvent` (console only in the demo) |
 | Diagnoses (024 Apéndice A, CIE-10) | out of scope: the intake records no diagnoses | `Condition.code` (future) |
-| Retention (004 5.4) | `retain_until` = last act + 5 years, soft delete only | n/a |
+| Retention (004 5.4) | `patient.retain_until` = last act + 5 years, soft delete only | n/a |
 
 ## What the demo deliberately does not do
 
