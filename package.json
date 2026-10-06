@@ -6,15 +6,25 @@
     "dev:web": "pnpm --filter @pokta-clinic/web dev",
     "dev:ehr": "pnpm --filter @pokta-clinic/mock-ehr dev",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck",
-    "agent:push": "dotenv -e .env.local -- elevenlabs agents push --dry-run",
-    "agent:push:apply": "dotenv -e .env.local -- elevenlabs agents push",
-    "agent:pull": "dotenv -e .env.local -- elevenlabs agents pull",
-    "agent:test": "dotenv -e .env.local -- elevenlabs agents test",
-    "render": "dotenv -e .env.local -- render"
+    "typecheck": "pnpm -r typecheck && pnpm agent:typecheck",
+    "render": "dotenv -e .env.local -- render",
+    "agent:typecheck": "tsc -p agent/tsconfig.json",
+    "agent:build": "dotenv -e .env.local -- tsx agent/src/build.ts",
+    "agent:validate": "tsx agent/src/validate.ts",
+    "agent:secret": "dotenv -e .env.local -e .env.production.local -- tsx agent/scripts/create-tool-secret.ts",
+    "agent:tools:push": "pnpm agent:build && pnpm agent:validate && dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs tools push --dry-run'",
+    "agent:tools:push:apply": "pnpm agent:build --strict && pnpm agent:validate && dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs tools push'",
+    "agent:push": "pnpm agent:build && pnpm agent:validate && dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents push --dry-run'",
+    "agent:push:apply": "pnpm agent:build --strict --agent && pnpm agent:validate && dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents push'",
+    "agent:pull": "dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents pull'",
+    "agent:test": "dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents test'"
   },
   "devDependencies": {
     "@elevenlabs/cli": "^1.4.0",
-    "dotenv-cli": "^11.0.0"
+    "@types/node": "^22.20.5",
+    "ajv": "^8.20.0",
+    "dotenv-cli": "^11.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   }
 }

@@ -1,0 +1,15 @@
+{
+  "agent_name": "pokta-clinic",
+  "practice_name": "Consultorio de Reumatología Dra. Elena Ruiz",
+  "language": "es",
+  "llm": "gemini-3.5-flash",
+  "llm_reasoning_effort": "low",
+  "llm_temperature": 0.3,
+  "tts_model_id": "eleven_v4_turbo",
+  "voice_id": "m7yTemJqdIqrcNleANfX",
+  "allowlist": ["localhost", "localhost:3000"],
+  "tool_secret_name": "tool_secret",
+  "tool_secret_id": "",
+  "tool_timeout_secs": 10,
+  "max_duration_seconds": 900
+}

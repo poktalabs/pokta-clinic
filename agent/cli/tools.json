@@ -1,0 +1,16 @@
+{
+    "tools": [
+        {
+            "type": "webhook",
+            "config": "tool_configs/record_consent.json"
+        },
+        {
+            "type": "webhook",
+            "config": "tool_configs/find_patient.json"
+        },
+        {
+            "type": "webhook",
+            "config": "tool_configs/save_patient.json"
+        }
+    ]
+}
