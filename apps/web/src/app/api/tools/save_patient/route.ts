@@ -36,7 +36,7 @@ export const POST = tool("save_patient", Input, async (input) => {
     folio: patient.folio,
     already_registered: !created,
     message: created
-      ? "Patient registered. Continue with the clinical history questions."
+      ? "Patient registered. Tell the caller their record is ready, then follow the instructions of your current stage."
       : `This phone already belongs to ${patient.givenName}. Confirm the name with the caller before you continue.`,
   };
 });
