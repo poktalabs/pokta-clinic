@@ -7,7 +7,7 @@ import { env } from "./env.js";
 // OAuth2 client credentials, the shape of SMART Backend Services without the signed-JWT client
 // assertion (a named production gap). Tokens are short-lived HS256 JWTs.
 const TOKEN_TTL_SECONDS = 3600;
-export const SCOPE = "system/Patient.rw system/Questionnaire.r system/QuestionnaireResponse.rw system/Consent.rw system/Appointment.rw";
+export const SCOPE = "system/Patient.rw system/Practitioner.r system/Questionnaire.r system/QuestionnaireResponse.rw system/Consent.rw system/Appointment.rw system/Communication.rw";
 
 function safeEqual(a: string, b: string): boolean {
   const left = Buffer.from(a);

@@ -1,8 +1,16 @@
 import { Hono } from "hono";
-import { FHIR_VERSION, operationOutcome } from "@pokta-clinic/fhir";
+import { operationOutcome } from "@pokta-clinic/fhir";
 import { requireToken, tokenEndpoint, type AuthVars } from "./auth.js";
+import { capabilityStatement } from "./capability.js";
+import { RootPage } from "./pages/root.js";
+import { appointmentRoutes } from "./routes/appointment.js";
+import { communicationRoutes } from "./routes/communication.js";
+import { consoleRoutes } from "./routes/console.js";
 import { consentRoutes } from "./routes/consent.js";
 import { patientRoutes } from "./routes/patient.js";
+import { practitionerRoutes } from "./routes/practitioner.js";
+import { questionnaireResponseRoutes } from "./routes/questionnaire-response.js";
+import { questionnaireRoutes } from "./routes/questionnaire.js";
 
 // "Expediente Demo": a mock third-party EHR. pokta-clinic reaches it only over FHIR R4.
 export const app = new Hono<AuthVars>();
@@ -10,51 +18,18 @@ export const app = new Hono<AuthVars>();
 app.get("/healthz", (c) => c.json({ ok: true }));
 app.post("/oauth/token", tokenEndpoint);
 
-// The CapabilityStatement is how a FHIR client discovers what this server supports; it is public.
-app.get("/fhir/metadata", (c) =>
-  c.json({
-    resourceType: "CapabilityStatement",
-    status: "active",
-    date: "2026-10-05",
-    kind: "instance",
-    software: { name: "Expediente Demo", version: "0.1.0" },
-    fhirVersion: FHIR_VERSION,
-    format: ["json"],
-    rest: [
-      {
-        mode: "server",
-        security: {
-          service: [{ text: "OAuth2 client credentials" }],
-          extension: [
-            {
-              url: "http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris",
-              extension: [{ url: "token", valueUri: "/oauth/token" }],
-            },
-          ],
-        },
-        resource: [
-          {
-            type: "Patient",
-            interaction: [{ code: "read" }, { code: "search-type" }, { code: "create" }],
-            searchParam: [
-              { name: "phone", type: "token" },
-              { name: "identifier", type: "token" },
-            ],
-          },
-          {
-            type: "Consent",
-            interaction: [{ code: "create" }, { code: "search-type" }, { code: "update" }],
-            searchParam: [{ name: "identifier", type: "token" }],
-          },
-        ],
-      },
-    ],
-  }),
-);
+app.get("/", async (c) => c.html(`<!DOCTYPE html>${await RootPage()}`));
+app.get("/fhir/metadata", (c) => c.json(capabilityStatement()));
+app.route("/console", consoleRoutes);
 
 app.use("/fhir/*", requireToken);
 app.route("/fhir/Patient", patientRoutes);
+app.route("/fhir/Practitioner", practitionerRoutes);
+app.route("/fhir/Questionnaire", questionnaireRoutes);
+app.route("/fhir/QuestionnaireResponse", questionnaireResponseRoutes);
 app.route("/fhir/Consent", consentRoutes);
+app.route("/fhir/Appointment", appointmentRoutes);
+app.route("/fhir/Communication", communicationRoutes);
 
 app.notFound((c) => c.json(operationOutcome("not-found", `No route for ${c.req.method} ${c.req.path}`), 404));
 app.onError((err, c) => {

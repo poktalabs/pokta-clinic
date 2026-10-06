@@ -58,7 +58,9 @@ patientRoutes.post("/", async (c) => {
     c.header("Location", `/fhir/Patient/${row.id}`);
     return c.json(toFhir(row), 201);
   } catch (err) {
-    if ((err as { code?: string }).code === "23505") return c.json(operationOutcome("duplicate", "CURP already registered"), 409);
+    // drizzle wraps the driver error, so the Postgres code sits on `cause`.
+    const e = err as { code?: string; cause?: { code?: string } };
+    if ((e.code ?? e.cause?.code) === "23505") return c.json(operationOutcome("duplicate", "CURP already registered"), 409);
     throw err;
   }
 });

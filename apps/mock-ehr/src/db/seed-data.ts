@@ -1,6 +1,7 @@
 // The demo practice. All data is fictional. Safe to run on every boot: an existing CLUES is left alone.
+import { QUESTIONNAIRE_TITLE, QUESTIONNAIRE_URL, QUESTIONNAIRE_VERSION, RHEUM_FIRST_VISIT_ITEMS } from "@pokta-clinic/fhir";
 import { db } from "./client.js";
-import { establishment, practitioner } from "./schema.js";
+import { establishment, practitioner, questionnaire } from "./schema.js";
 
 export async function seedDemoPractice(): Promise<boolean> {
   const [org] = await db
@@ -24,4 +25,16 @@ export async function seedDemoPractice(): Promise<boolean> {
     especialidad: "Reumatologia",
   });
   return true;
+}
+
+// The first-visit Questionnaire definition (items as JSONB). Idempotent: an existing canonical url is left alone.
+export async function seedQuestionnaire(): Promise<boolean> {
+  const [org] = await db.select({ id: establishment.id }).from(establishment).limit(1);
+  if (!org) return false;
+  const rows = await db
+    .insert(questionnaire)
+    .values({ establishmentId: org.id, url: QUESTIONNAIRE_URL, version: QUESTIONNAIRE_VERSION, title: QUESTIONNAIRE_TITLE, items: RHEUM_FIRST_VISIT_ITEMS })
+    .onConflictDoNothing()
+    .returning({ id: questionnaire.id });
+  return rows.length > 0;
 }

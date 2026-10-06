@@ -56,8 +56,11 @@ export const patient = pgTable("patient", {
 export const questionnaire = pgTable("questionnaire", {
   id: id(),
   establishmentId: uuid("establishment_id").notNull().references(() => establishment.id),
+  // Canonical url: how a client finds the definition (`GET /fhir/Questionnaire?url=`).
+  url: text("url").notNull().unique(),
   version: text("version").notNull(),
   title: text("title").notNull(),
+  status: text("status").notNull().default("active"),
   items: jsonb("items").notNull(),
   createdAt: createdAt(),
 });
@@ -65,17 +68,22 @@ export const questionnaire = pgTable("questionnaire", {
 // NOM-004 5.18: a complementary, patient-reported document. The agent is not health personnel
 // (4.4) and cannot sign (5.10), so it stays pending until the Practitioner's Validation.
 export const intakeStatusEnum = pgEnum("intake_status", ["pending_validation", "validated", "rejected"]);
+export const intakeCompletionEnum = pgEnum("intake_completion", ["in_progress", "completed"]);
 export const intake = pgTable("intake", {
   id: id(),
   patientId: uuid("patient_id").notNull().references(() => patient.id),
   questionnaireId: uuid("questionnaire_id").notNull().references(() => questionnaire.id),
-  conversationId: text("conversation_id").notNull(),
+  // One response per Conversation; later answers replace it.
+  conversationId: text("conversation_id").notNull().unique(),
   items: jsonb("items").notNull(),
+  // Whether the call finished the Questionnaire. Separate from `status`, which is the Practitioner's Validation.
+  completion: intakeCompletionEnum("completion").notNull().default("in_progress"),
   status: intakeStatusEnum("status").notNull().default("pending_validation"),
   authorDevice: text("author_device").notNull(),
   validatedBy: uuid("validated_by").references(() => practitioner.id),
   validatedAt: timestamp("validated_at", { withTimezone: true }),
   createdAt: createdAt(),
+  updatedAt: now("updated_at"),
 });
 
 // LFPDPPP express consent for sensitive data; NOM-024 6.6.6 gives the patient control over consents.
@@ -99,6 +107,22 @@ export const appointment = pgTable("appointment", {
   status: appointmentStatusEnum("status").notNull().default("booked"),
   calendarEventId: text("calendar_event_id"),
   conversationId: text("conversation_id"),
+  description: text("description"),
+  createdAt: createdAt(),
+});
+
+// An Escalation for a Red flag: the Practitioner is notified, the exact words are kept as said.
+export const redFlagSeverityEnum = pgEnum("red_flag_severity", ["emergencia", "urgencia"]);
+export const communication = pgTable("communication", {
+  id: id(),
+  // Null when the Escalation happens before the caller is identified.
+  patientId: uuid("patient_id").references(() => patient.id),
+  practitionerId: uuid("practitioner_id").notNull().references(() => practitioner.id),
+  severity: redFlagSeverityEnum("severity").notNull(),
+  conversationId: text("conversation_id").notNull(),
+  patientWords: text("patient_words").notNull(),
+  instruction: text("instruction"),
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: createdAt(),
 });
 

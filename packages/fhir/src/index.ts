@@ -27,3 +27,9 @@ export function operationOutcome(
 
 export * from "./patient.ts";
 export * from "./consent.ts";
+export * from "./reference.ts";
+export * from "./practitioner.ts";
+export * from "./questionnaire.ts";
+export * from "./questionnaire-response.ts";
+export * from "./appointment.ts";
+export * from "./communication.ts";

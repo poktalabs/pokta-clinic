@@ -1,6 +1,6 @@
 # @pokta-clinic/fhir
 
-Shared FHIR R4 contract for pokta-clinic. Both [apps/web](../../apps/web/README.md) (the client side) and [apps/mock-ehr](../../apps/mock-ehr/README.md) (the server side) import it, so the two cannot drift apart. It holds zod schemas and TypeScript types for `Patient` and `Consent`, builders, the identifier systems and the extension URLs. The package is private and exports TypeScript source directly (`"exports": { ".": "./src/index.ts" }`); there is no build step.
+Shared FHIR R4 contract for pokta-clinic. Both [apps/web](../../apps/web/README.md) (the client side) and [apps/mock-ehr](../../apps/mock-ehr/README.md) (the server side) import it, so the two cannot drift apart. It holds zod schemas and TypeScript types for `Patient`, `Practitioner`, `Questionnaire`, `QuestionnaireResponse`, `Consent`, `Appointment` and `Communication`, builders, the identifier systems and the extension URLs. The package is private and exports TypeScript source directly (`"exports": { ".": "./src/index.ts" }`); there is no build step.
 
 ## Exports
 
@@ -20,6 +20,17 @@ Everything is re-exported from [src/index.ts](src/index.ts).
 | `Consent` | zod schema + type | [consent.ts](src/consent.ts) | `provision.type` (`permit` or `deny`) carries the answer; at least one `identifier`. |
 | `CONSENT_METHOD_EXT` | const | [consent.ts](src/consent.ts) | Extension URL recording how consent was given (`voice`). |
 | `consentResource({ conversationId, granted, patientId?, id?, dateTime? })` | function | [consent.ts](src/consent.ts) | Builds a Consent: scope `patient-privacy`, category LOINC `59284-0`, `status` active or rejected, `provision.type` permit or deny. |
+| `reference(type)`, `ref(type, id)`, `TextExtension` | helpers | [reference.ts](src/reference.ts) | zod schema for a literal `Type/<id>` reference, a reference builder, and a `{ url, valueString }` extension schema. |
+| `Practitioner`, `practitionerResource({ id, nombre, primerApellido, segundoApellido?, cedulaProfesional, especialidad })` | zod schema + builder | [practitioner.ts](src/practitioner.ts) | Read-only resource: cedula identifier, name, qualification. |
+| `QUESTIONNAIRE_URL`, `QUESTIONNAIRE_VERSION`, `QUESTIONNAIRE_TITLE` | consts | [questionnaire.ts](src/questionnaire.ts) | Canonical url `urn:pokta-clinic:questionnaire:rheum-first-visit`, version, Spanish title. |
+| `LINK_ID`, `RHEUM_FIRST_VISIT_ITEMS`, `requiredLinkIds(items)` | consts + function | [questionnaire.ts](src/questionnaire.ts) | The 11 stable linkIds (`chief-complaint`, `onset-duration`, `joints-involved`, `morning-stiffness-min`, `joint-swelling`, `systemic-symptoms`, `extra-articular`, `current-medications`, `allergies`, `prior-dx-tests`, `family-history`), the item definitions (all required), and a helper that returns the required ones. |
+| `Questionnaire`, `QuestionnaireItem`, `questionnaireResource({ id?, url, version, title, status?, items })` | zod schemas + builder | [questionnaire.ts](src/questionnaire.ts) | Item types are `string`, `integer` or `boolean`. |
+| `VALIDATION_STATUS_EXT`, `AGENT_AUTHOR` | consts | [questionnaire-response.ts](src/questionnaire-response.ts) | `urn:pokta-clinic:extension:validation-status` and `"pokta-clinic voice agent"`. |
+| `QuestionnaireResponse`, `QuestionnaireResponseItem`, `questionnaireResponseResource({ id?, questionnaire, status, patientId, conversationId, authored?, items, validationStatus? })` | zod schemas + builder | [questionnaire-response.ts](src/questionnaire-response.ts) | `status` is `in-progress` or `completed`; each answer is one of `valueString`, `valueInteger`, `valueBoolean`; validation status defaults to `pending`. |
+| `CALENDAR_EVENT_SYSTEM`, `FIRST_VISIT_SERVICE`, `FIRST_VISIT_MINUTES` | consts | [appointment.ts](src/appointment.ts) | `urn:google:calendar:event`, `"Primera consulta de reumatologia"`, `60`. |
+| `Appointment`, `appointmentResource({ id?, patientId, practitionerId, start, end, calendarEventId, conversationId?, description? })` | zod schema + builder | [appointment.ts](src/appointment.ts) | `start` and `end` are ISO 8601 with offset; `minutesDuration` is derived. |
+| `RED_FLAG_SEVERITY_EXT`, `RED_FLAG_CATEGORY`, `RED_FLAG_SEVERITY`, `PRIORITY_BY_SEVERITY`, `RedFlagSeverity` | consts + type | [communication.ts](src/communication.ts) | `urn:pokta-clinic:extension:red-flag-severity`, `"red-flag"`, `["emergencia", "urgencia"]`, and the map to `stat` and `urgent`. |
+| `Communication`, `communicationResource({ id?, conversationId, severity, patientId?, practitionerId, sent?, patientWords, instruction? })` | zod schema + builder | [communication.ts](src/communication.ts) | `subject` is optional; `payload[0]` is the exact words, `payload[1]` the instruction. |
 
 ## Why `.ts` import suffixes
 

@@ -31,3 +31,6 @@ services:
         sync: false
       - key: EHR_CLIENT_SECRET
         sync: false
+      # Optional: enables the read-only /console (user admin). Set it by hand in the Render dashboard; unset means 404.
+      - key: EHR_CONSOLE_PASSWORD
+        sync: false
