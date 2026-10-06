@@ -1,0 +1,33 @@
+# Render Blueprint: mock EHR (Docker web service) + Postgres, same region.
+# Names are stable on purpose: the app suspends/resumes them by name via the Render API.
+databases:
+  - name: pokta-clinic-ehr-db
+    plan: free
+    region: ohio
+    databaseName: ehr
+    user: ehr
+    ipAllowList: [] # internal connections only; the connectionString below is the internal URL
+
+services:
+  - name: pokta-clinic-ehr
+    type: web
+    runtime: docker
+    plan: free
+    region: ohio
+    # Build context is the repo root: the image needs packages/fhir.
+    dockerfilePath: ./apps/mock-ehr/Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pokta-clinic-ehr-db
+          property: connectionString
+      - key: EHR_JWT_SECRET
+        generateValue: true
+      # Prompted at first Blueprint creation; values come from scripts/gen-secrets.sh.
+      - key: EHR_CLIENT_ID
+        sync: false
+      - key: EHR_CLIENT_SECRET
+        sync: false

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Exercises the agent tools against a running apps/web (default http://localhost:3000) and EHR.
-# Usage: scripts/tools-smoke.sh [base-url]. Reads TOOL_SECRET from apps/web/.env.local.
+# Usage: scripts/tools-smoke.sh [base-url]. TOOL_SECRET comes from the environment, else apps/web/.env.local.
 set -uo pipefail
 BASE="${1:-http://localhost:3000}"
-SECRET="$(grep '^TOOL_SECRET=' "$(dirname "$0")/../apps/web/.env.local" | cut -d= -f2-)"
+SECRET="${TOOL_SECRET:-$(grep '^TOOL_SECRET=' "$(dirname "$0")/../apps/web/.env.local" | cut -d= -f2-)}"
 CONV="smoke-$(date +%s)"
 PHONE="55$(printf '%08d' $((RANDOM * RANDOM % 100000000)))"
 FAIL=0
