@@ -6,7 +6,7 @@
     "dev:web": "pnpm --filter @pokta-clinic/web dev",
     "dev:ehr": "pnpm --filter @pokta-clinic/mock-ehr dev",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck && pnpm agent:typecheck",
+    "typecheck": "pnpm -r typecheck && pnpm agent:typecheck && pnpm scripts:typecheck",
     "render": "dotenv -e .env.local -- render",
     "agent:typecheck": "tsc -p agent/tsconfig.json",
     "agent:build": "dotenv -e .env.local -- tsx agent/src/build.ts",
@@ -17,6 +17,8 @@
     "agent:push": "pnpm agent:build && pnpm agent:validate && dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents push --dry-run'",
     "agent:push:apply": "pnpm agent:build --strict --agent && pnpm agent:validate && dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents push'",
     "agent:pull": "dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents pull'",
+    "scripts:typecheck": "tsc -p scripts/tsconfig.json",
+    "agent:converse": "dotenv -e .env.local -- tsx scripts/agent-converse.ts",
     "agent:test": "dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents test'"
   },
   "devDependencies": {
