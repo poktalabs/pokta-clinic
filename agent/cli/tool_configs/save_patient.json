@@ -4,11 +4,11 @@
   "description": "Registers a new patient. Call it only when find_patient found no record, or the caller said they are not the person on the record, and you have at least the nombre, primer apellido and phone. Pass optional fields only if the caller gave them; never invent or guess a value. Call it once per person. The response has a message field that says what to do next; follow it.",
   "response_timeout_secs": 10,
   "api_schema": {
-    "url": "https://pokta-clinic.example.vercel.app/api/tools/save_patient",
+    "url": "https://pokta-clinic-web.vercel.app/api/tools/save_patient",
     "method": "POST",
     "request_headers": {
       "x-pokta-tool-secret": {
-        "secret_id": "PENDING_SECRET_ID_run_pnpm_agent_secret"
+        "secret_id": "XbNhQLdxIOYvZIX3Ykr5"
       }
     },
     "request_body_schema": {

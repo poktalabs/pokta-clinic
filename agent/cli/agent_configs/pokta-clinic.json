@@ -108,7 +108,7 @@
         "label": "Consent",
         "additional_prompt": "# Etapa: consentimiento\n\nObjetivo: leer un resumen corto del aviso de privacidad, obtener el consentimiento expreso de la persona y registrarlo con la herramienta record_consent. Hasta que haya consentimiento no preguntes ningún dato personal ni de salud.\n\nPasos:\n1. Si la persona acepta seguir platicando, lee este resumen con tus palabras sin omitir ninguna de sus partes: \"Antes de empezar le leo un resumen del aviso de privacidad. El responsable de sus datos es el Consultorio de Reumatología Dra. Elena Ruiz. Los usaremos para preparar su primera consulta y agendar su cita. Le pediremos datos personales y datos de salud, que son datos personales sensibles. Usted tiene derechos de acceso, rectificación, cancelación y oposición, los llamados derechos ARCO, y puede pedir el aviso de privacidad completo al consultorio cuando quiera.\"\n2. Pregunta: \"¿Me da su consentimiento expreso para tratar sus datos con estos fines?\" y espera.\n3. Un \"sí\", \"acepto\" o \"de acuerdo\" claro es consentimiento. Un \"no\" claro es rechazo. Cualquier otra cosa (\"a ver\", \"depende\", un silencio, seguir hablando de otro tema) no es una respuesta: repite la pregunta con calma, sin presionar. Nunca des por hecho el consentimiento.\n4. Con una respuesta clara, llama a record_consent una sola vez: granted true si aceptó, granted false si rechazó.\n5. Si aceptó, agradece en una frase y pasa a la identificación.\n6. Si rechazó, explica con amabilidad que sin su consentimiento el consultorio no puede hacer la preconsulta por voz, ofrece que puede llamar directamente al consultorio, no pidas ningún dato y despídete.\n\nSi preguntan algo del aviso, responde solo con lo que dice el resumen y recuerda que el aviso completo está disponible en el consultorio.",
         "additional_tool_ids": [
-          "PENDING_TOOL_ID_record_consent"
+          "tool_8601m47rbgyyf1s9jktefgats0vc"
         ],
         "edge_order": [
           "consent_to_escalation",
@@ -121,13 +121,12 @@
         "label": "Identification",
         "additional_prompt": "# Etapa: identificación\n\nObjetivo: saber si la persona ya tiene registro en el consultorio o registrarla como paciente nueva. El consentimiento ya fue otorgado.\n\nPasos:\n1. Pide el teléfono: \"¿Me dice su número de teléfono a diez dígitos?\" Repítelo dígito por dígito y pide que lo confirmen. Si no son diez dígitos, pídelo de nuevo. No le pidas el código de país.\n2. Llama a find_patient con ese teléfono y sigue el campo message de la respuesta.\n3. Si hay un registro, pregunta solo por el nombre que devolvió la herramienta: \"¿Hablo con Lucía?\" No digas ningún otro dato del registro. Si la persona confirma, queda identificada como paciente que ya existía.\n4. Si no hay registro, o la persona dice que no es esa persona, regístrala como paciente nueva. Pregunta de uno en uno: nombre o nombres, primer apellido, segundo apellido (opcional, si no tiene sigue adelante), fecha de nacimiento (día, mes y año; confírmala repitiéndola) y sexo (opcional). Para el sexo pregunta con respeto: \"¿Cuál es su sexo como aparece en su identificación oficial, hombre o mujer? Si prefiere no decirlo, no hay problema.\" H es hombre, M es mujer. Si un nombre es difícil de entender, pide que lo deletreen. No pidas CURP.\n5. Con al menos nombre, primer apellido y teléfono, llama a save_patient una sola vez y sigue el campo message de la respuesta. Envía solo los datos que la persona dio.\n6. Cuando la persona quede identificada o registrada, agradécele por su nombre y cierra con estas ideas: por ahora esto es todo lo que puedo hacer en esta versión, en la siguiente continuaremos con su historia clínica y su cita, y el consultorio se pondrá en contacto. Despídete con amabilidad.\n\nSi la persona no quiere dar sus datos, respeta su decisión, explica que el consultorio puede atenderla directamente y despídete.",
         "additional_tool_ids": [
-          "PENDING_TOOL_ID_find_patient",
-          "PENDING_TOOL_ID_save_patient"
+          "tool_6201m47rbhasfh0az9bs614b8n3x",
+          "tool_1001m47rbjhfeg5rzhnnqk1rct4d"
         ],
         "edge_order": [
           "identification_to_escalation",
-          "identification_to_next",
-          "identification_to_end"
+          "identification_to_next"
         ]
       },
       "escalation": {
@@ -171,7 +170,7 @@
         "target": "end_node",
         "forward_condition": {
           "type": "llm",
-          "condition": "The caller refused consent (record_consent was called with granted false), was told the practice can call them back, and was given a goodbye."
+          "condition": "The caller refused consent (record_consent was called with granted false), was told they can call the practice directly, and was given a goodbye."
         }
       },
       "identification_to_escalation": {
@@ -187,15 +186,7 @@
         "target": "end_node",
         "forward_condition": {
           "type": "llm",
-          "condition": "The caller was identified (confirmed their name on an existing record) or was registered with save_patient, and was told the intake continues in the next version."
-        }
-      },
-      "identification_to_end": {
-        "source": "identification",
-        "target": "end_node",
-        "forward_condition": {
-          "type": "llm",
-          "condition": "The caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the practice will contact them and given a goodbye."
+          "condition": "Either: The caller was identified (confirmed their name on an existing record) or was registered with save_patient, and was told the intake continues in the next version. Or: The caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the practice will contact them and given a goodbye."
         }
       },
       "escalation_to_end": {
@@ -219,7 +210,7 @@
           "hostname": "localhost:3000"
         },
         {
-          "hostname": "pokta-clinic.example.vercel.app"
+          "hostname": "pokta-clinic-web.vercel.app"
         }
       ]
     },

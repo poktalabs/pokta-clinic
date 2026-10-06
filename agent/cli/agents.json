@@ -1,7 +1,8 @@
 {
     "agents": [
         {
-            "config": "agent_configs/pokta-clinic.json"
+            "config": "agent_configs/pokta-clinic.json",
+            "id": "agent_1701m47rjpwcfqasqaw19hph7qb4"
         }
     ]
 }

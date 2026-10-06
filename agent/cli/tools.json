@@ -2,15 +2,18 @@
     "tools": [
         {
             "type": "webhook",
-            "config": "tool_configs/record_consent.json"
+            "config": "tool_configs/record_consent.json",
+            "id": "tool_8601m47rbgyyf1s9jktefgats0vc"
         },
         {
             "type": "webhook",
-            "config": "tool_configs/find_patient.json"
+            "config": "tool_configs/find_patient.json",
+            "id": "tool_6201m47rbhasfh0az9bs614b8n3x"
         },
         {
             "type": "webhook",
-            "config": "tool_configs/save_patient.json"
+            "config": "tool_configs/save_patient.json",
+            "id": "tool_1001m47rbjhfeg5rzhnnqk1rct4d"
         }
     ]
 }
