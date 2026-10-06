@@ -1,3 +1,5 @@
+import Image from "next/image";
+import Link from "next/link";
 import { EhrPanel } from "@/components/ehr-panel";
 import { Timeline } from "@/components/timeline";
 import { VoiceWidget } from "@/components/voice-widget";
@@ -14,58 +16,81 @@ const STAGES = [
 export default function Home() {
   const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || null;
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-10">
-      <header>
-        <h1 className="text-4xl font-semibold tracking-tight">pokta-clinic</h1>
-        <p className="mt-2 max-w-3xl text-xl">Voice pre-consultation intake for Grupo Médico Articular, a rheumatology network with three branches in the Mexico City area: Del Valle, Polanco and Satélite (fictional). The agent talks to the patient and writes the result into the network&apos;s EHR over HL7 FHIR R4.</p>
-        <p role="note" className="mt-4 rounded-lg border border-warn/50 bg-warn/10 px-4 py-3">
-          <strong>All data here is fictional and the agent is an AI, not a clinician.</strong> Do not share real personal or health information. This is a take-home demo, not medical advice.
-        </p>
+    <>
+      <header className="site-header">
+        <div className="wrap">
+          <Link className="brand" href="/">
+            <Image src="/poktacare-logo.svg" alt="" width={20} height={20} priority />
+            <span className="wordmark">
+              pokta-<b>clinic</b>
+            </span>
+          </Link>
+          <span className="kicker muted">Pokta Labs demo</span>
+        </div>
       </header>
 
-      <section aria-labelledby="talk-h" className="rounded-xl border border-line bg-panel p-5">
-        <h2 id="talk-h" className="text-xl font-semibold">
-          Talk to the agent
-        </h2>
-        <p className="mt-1 text-muted">
-          Click the widget and speak Spanish; say &quot;I prefer English&quot; to switch. Allow the microphone when the browser asks. A quick path: accept the privacy notice, give a name and phone, answer the questions, book a slot.
-        </p>
-        <div className="mt-4 flex min-h-24 items-center">
-          <VoiceWidget agentId={agentId} />
+      <main className="wrap page">
+        <section aria-labelledby="intro-h">
+          <p className="kicker">Voice pre-consultation intake</p>
+          <h1 id="intro-h" className="display">
+            A patient talks, the <em>EHR</em> is written.
+          </h1>
+          <p className="lede">
+            Grupo Médico Articular is a rheumatology network with three branches in the Mexico City area: Del Valle, Polanco and Satélite (fictional). The agent talks to the patient and writes the result into the network&apos;s EHR over HL7 FHIR R4.
+          </p>
+          <p role="note" className="notice">
+            <strong>All data here is fictional and the agent is an AI, not a clinician.</strong> Do not share real personal or health information. This is a take-home demo, not medical advice.
+          </p>
+        </section>
+
+        <section aria-labelledby="talk-h" className="panel-brand talk">
+          <div>
+            <h2 id="talk-h" className="headline">
+              Talk to the agent
+            </h2>
+            <p className="sub">
+              Click the widget and speak Spanish; say &quot;I prefer English&quot; to switch. Allow the microphone when the browser asks. A quick path: accept the privacy notice, give a name and phone, answer the questions, book a slot.
+            </p>
+          </div>
+          <div className="widget-slot">
+            <VoiceWidget agentId={agentId} />
+          </div>
+        </section>
+
+        <div className="grid-2">
+          <Timeline />
+          <EhrPanel />
         </div>
-      </section>
 
-      <Timeline />
-      <EhrPanel />
+        <section aria-labelledby="how-h" className="card">
+          <h2 id="how-h" className="headline">
+            How it works
+          </h2>
+          <ol className="steps">
+            {STAGES.map((s, i) => (
+              <li key={s.name} className="step">
+                <span className="step-n">{String(i + 1).padStart(2, "0")}</span>
+                <h3>{s.name}</h3>
+                <p>{s.text}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="escalation">
+            <strong>Escalation</strong> <span className="soft">at any point: a Red flag symptom (Emergencia or Urgencia) ends the intake, the patient gets safety guidance, and a Practitioner is notified.</span>
+          </p>
+          <p className="flow">ElevenLabs agent → pokta-clinic tools on Vercel → EHR over FHIR R4 on Render + one Google Calendar per branch</p>
+        </section>
+      </main>
 
-      <section aria-labelledby="how-h" className="rounded-xl border border-line bg-panel p-5">
-        <h2 id="how-h" className="text-xl font-semibold">
-          How it works
-        </h2>
-        <ol className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {STAGES.map((s, i) => (
-            <li key={s.name} className="rounded-lg border border-line p-3">
-              <span className="font-mono text-sm text-muted">{i + 1}</span>
-              <h3 className="font-semibold">{s.name}</h3>
-              <p className="text-sm text-muted">{s.text}</p>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-3 rounded-lg border border-line p-3">
-          <strong>Escalation</strong> <span className="text-muted">at any point: a Red flag symptom (Emergencia or Urgencia) ends the intake, the patient gets safety guidance, and a Practitioner is notified.</span>
-        </p>
-        <p className="mt-4 font-mono text-sm text-muted">ElevenLabs agent → pokta-clinic tools on Vercel → EHR over FHIR R4 on Render + one Google Calendar per branch</p>
-      </section>
-
-      <footer className="flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-4 text-sm">
+      <footer className="wrap site-footer">
         <a href={EHR_URL} target="_blank" rel="noreferrer">
           EHR info page
         </a>
         <a href={`${EHR_URL}/fhir/metadata`} target="_blank" rel="noreferrer">
           FHIR metadata (CapabilityStatement)
         </a>
-        <span className="text-muted">The EHR can be switched off above; its pages load only while it is on.</span>
+        <span className="muted">The EHR can be switched off above; its pages load only while it is on.</span>
       </footer>
-    </main>
+    </>
   );
 }

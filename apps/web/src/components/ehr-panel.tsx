@@ -7,9 +7,9 @@ type Status = { state: "on" | "off" | "waking"; admin: boolean; render: { servic
 type Outbox = { count: number | null; items: { kind: string; ageSeconds: number; attempts: number }[] };
 
 const STATE_STYLE = {
-  on: "bg-ok/15 text-ok",
-  waking: "bg-warn/20 text-warn",
-  off: "bg-bad/15 text-bad",
+  on: "pill-ok",
+  waking: "pill-attn",
+  off: "pill-spot",
 } as const;
 
 const KIND_LABEL: Record<string, string> = { consent: "Consent", save_history: "History", appointment: "Appointment", escalate: "Escalation" };
@@ -51,65 +51,61 @@ export function EhrPanel() {
 
   const admin = status?.admin ?? false;
   return (
-    <section aria-labelledby="ehr-h" className="rounded-xl border border-line bg-panel p-5">
-      <h2 id="ehr-h" className="text-xl font-semibold">
+    <section aria-labelledby="ehr-h" className="card">
+      <h2 id="ehr-h" className="headline">
         EHR and outbox
       </h2>
-      <p className="mt-1 text-muted">The EHR (&quot;Expediente Demo&quot;) is a separate system. If it is off, writes wait in the outbox and sync when it returns.</p>
-      <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
-          <dt className="text-sm text-muted">EHR state</dt>
-          <dd className="mt-1" role="status">
-            {status ? <span className={`inline-block rounded-full px-3 py-1 text-lg font-semibold ${STATE_STYLE[status.state]}`}>{status.state}</span> : <span className="text-muted">checking…</span>}
-            {admin && status?.render && (
-              <span className="ml-3 text-sm text-muted">
-                Render: service {status.render.serviceSuspended ? "suspended" : "running"}, database {status.render.databaseSuspended ? "suspended" : "running"}
-              </span>
-            )}
-          </dd>
+      <p className="sub small">The EHR (&quot;Expediente Demo&quot;) is a separate system. If it is off, writes wait in the outbox and sync when it returns.</p>
+      <dl className="stats">
+        <div className="stat">
+          <dt>EHR state</dt>
+          <dd role="status">{status ? <span className={`pill pill-lg ${STATE_STYLE[status.state]}`}>{status.state}</span> : <span className="muted">checking…</span>}</dd>
         </div>
-        <div>
-          <dt className="text-sm text-muted">Outbox</dt>
-          <dd className="mt-1 text-lg font-semibold">{outbox?.count ?? "…"} queued</dd>
-          {outbox && outbox.items.length > 0 && (
-            <ul className="mt-1 text-sm text-muted">
-              {outbox.items.map((it, i) => (
-                <li key={i}>
-                  {KIND_LABEL[it.kind] ?? it.kind}, {age(it.ageSeconds)} old{it.attempts ? `, ${it.attempts} failed attempt${it.attempts > 1 ? "s" : ""}` : ""}
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="stat">
+          <dt>Outbox</dt>
+          <dd>{outbox?.count ?? "…"} queued</dd>
         </div>
       </dl>
+      {admin && status?.render && (
+        <p className="small soft" style={{ marginTop: 12 }}>
+          Render: service {status.render.serviceSuspended ? "suspended" : "running"}, database {status.render.databaseSuspended ? "suspended" : "running"}
+        </p>
+      )}
+      {outbox && outbox.items.length > 0 && (
+        <ul className="outbox-list">
+          {outbox.items.map((it, i) => (
+            <li key={i}>
+              {KIND_LABEL[it.kind] ?? it.kind}, {age(it.ageSeconds)} old{it.attempts ? `, ${it.attempts} failed attempt${it.attempts > 1 ? "s" : ""}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
       {admin && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+        <div className="actions">
           <button className="btn" disabled={!!busy} onClick={() => act("on", "/api/admin/ehr", { action: "on" })}>
             Turn EHR on
           </button>
           <button className="btn" disabled={!!busy} onClick={() => confirm("Suspend the EHR service and its database?") && act("off", "/api/admin/ehr", { action: "off" })}>
             Turn EHR off
           </button>
-          <button className="btn" disabled={!!busy} onClick={() => act("drain", "/api/outbox/drain")}>
+          <button className="btn btn-primary" disabled={!!busy} onClick={() => act("drain", "/api/outbox/drain")}>
             Drain outbox
           </button>
-          {busy && <span className="text-sm text-muted">Working…</span>}
+          {busy && <span className="small muted">Working…</span>}
         </div>
       )}
       {note && (
-        <p className="mt-3 text-sm" role="status">
+        <p className="small" style={{ marginTop: 12 }} role="status">
           {note}
         </p>
       )}
-      <p className="mt-4 text-sm text-muted">
+      <p className="small" style={{ marginTop: 16 }}>
         {admin ? (
-          <button className="underline underline-offset-2" onClick={logout}>
+          <button className="link-btn" onClick={logout}>
             Log out
           </button>
         ) : (
-          <Link className="underline underline-offset-2" href="/admin">
-            admin
-          </Link>
+          <Link href="/admin">admin</Link>
         )}
       </p>
     </section>

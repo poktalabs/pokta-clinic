@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -23,27 +24,36 @@ export default function AdminLogin() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-sm px-6 py-24">
-      <h1 className="text-2xl font-semibold">Admin</h1>
-      <p className="mt-1 text-muted">Controls the EHR on/off switch and the outbox drain.</p>
-      <form onSubmit={submit} className="mt-6 space-y-4">
-        <label className="block">
-          <span className="text-sm text-muted">Password</span>
-          <input name="password" type="password" required autoFocus autoComplete="current-password" className="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
-        </label>
-        <button className="btn" disabled={busy} type="submit">
-          Log in
-        </button>
-        {error && (
-          <p role="alert" className="text-bad">
-            {error}
-          </p>
-        )}
-      </form>
-      <p className="mt-6 text-sm">
-        <Link className="underline underline-offset-2" href="/">
-          Back to the demo
-        </Link>
+    <main className="login">
+      <Link className="brand" href="/">
+        <Image src="/poktacare-logo.svg" alt="" width={20} height={20} />
+        <span className="wordmark">
+          pokta-<b>clinic</b>
+        </span>
+      </Link>
+      <div className="card">
+        <p className="kicker">Admin</p>
+        <h1 className="headline" style={{ marginTop: 8 }}>
+          Sign in
+        </h1>
+        <p className="sub small">Controls the EHR on/off switch and the outbox drain.</p>
+        <form onSubmit={submit} style={{ marginTop: 20, display: "grid", gap: 16 }}>
+          <label className="field">
+            <span>Password</span>
+            <input name="password" type="password" required autoFocus autoComplete="current-password" />
+          </label>
+          <button className="btn btn-primary" disabled={busy} type="submit">
+            Log in
+          </button>
+          {error && (
+            <p role="alert" className="err">
+              {error}
+            </p>
+          )}
+        </form>
+      </div>
+      <p className="small" style={{ marginTop: 24 }}>
+        <Link href="/">Back to the demo</Link>
       </p>
     </main>
   );

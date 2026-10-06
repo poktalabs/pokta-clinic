@@ -38,37 +38,35 @@ export function Timeline() {
   const ordered = [...groups.entries()].sort((a, b) => b[1][b[1].length - 1].at - a[1][a[1].length - 1].at).slice(0, SHOW_CONVERSATIONS);
 
   return (
-    <section aria-labelledby="timeline-h" className="rounded-xl border border-line bg-panel p-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 id="timeline-h" className="text-xl font-semibold">
+    <section aria-labelledby="timeline-h" className="card">
+      <div className="section-head">
+        <h2 id="timeline-h" className="headline">
           Tool timeline
         </h2>
-        <span className="text-sm text-muted" role="status">
+        <span className="small muted num" role="status">
           {offline ? "Reconnecting…" : "Live, refreshes every 1.5 s"}
         </span>
       </div>
-      <p className="mt-1 text-muted">Every call the agent makes to a pokta-clinic tool. No patient answers, names or phones are shown.</p>
+      <p className="sub small">Every call the agent makes to a pokta-clinic tool. No patient answers, names or phones are shown.</p>
       {ordered.length === 0 ? (
-        <p className="mt-4 rounded-lg border border-dashed border-line p-4 text-muted">No tool calls yet. Start a conversation with the widget above.</p>
+        <p className="empty" style={{ marginTop: 20 }}>No tool calls yet. Start a conversation with the widget above.</p>
       ) : (
-        <div className="mt-4 space-y-5" aria-live="polite">
+        <div aria-live="polite">
           {ordered.map(([id, list], i) => (
-            <div key={id}>
-              <h3 className="mb-2 flex flex-wrap items-center gap-2 text-sm font-medium text-muted">
-                <span className="font-mono">{id.length > 28 ? `${id.slice(0, 28)}…` : id}</span>
-                {i === 0 && <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs text-accent">latest</span>}
+            <div key={id} className="convo">
+              <h3 className="convo-head">
+                <span>{id.length > 28 ? `${id.slice(0, 28)}…` : id}</span>
+                {i === 0 && <span className="pill pill-brand">latest</span>}
               </h3>
-              <ol className="divide-y divide-line rounded-lg border border-line">
+              <ol className="events">
                 {list.map((e) => (
-                  <li key={e.id} className="grid grid-cols-[4.5rem_1fr_auto] items-baseline gap-x-3 gap-y-1 px-3 py-2 sm:grid-cols-[5rem_11rem_1fr_auto]">
-                    <time className="font-mono text-sm text-muted">{clock(e.at)}</time>
-                    <span className="font-mono text-sm font-medium">{e.tool}</span>
-                    <span className="col-span-2 sm:col-span-1 sm:col-start-3 sm:row-start-1">{e.outcome}</span>
-                    <span className="flex items-center gap-2 justify-self-end text-sm">
-                      <span className={e.ok ? "rounded bg-ok/15 px-1.5 py-0.5 font-medium text-ok" : "rounded bg-bad/15 px-1.5 py-0.5 font-medium text-bad"}>
-                        {e.ok ? "ok" : `error ${e.status}`}
-                      </span>
-                      <span className="font-mono text-muted">{e.ms} ms</span>
+                  <li key={e.id} className="event">
+                    <time>{clock(e.at)}</time>
+                    <span className="tool">{e.tool}</span>
+                    <span className="outcome">{e.outcome}</span>
+                    <span className="result">
+                      <span className={e.ok ? "pill pill-ok" : "pill pill-spot"}>{e.ok ? "ok" : `error ${e.status}`}</span>
+                      <span className="ms">{e.ms} ms</span>
                     </span>
                   </li>
                 ))}
