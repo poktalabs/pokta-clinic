@@ -18,4 +18,16 @@ export const env = {
   get toolSecret() {
     return required("TOOL_SECRET");
   },
+  // "google" (default) or "fake" (local dev and tests only). Anything else fails closed.
+  get calendarProvider(): "google" | "fake" {
+    const value = process.env.CALENDAR_PROVIDER || "google";
+    if (value !== "google" && value !== "fake") throw new Error(`Invalid CALENDAR_PROVIDER ${value}`);
+    return value;
+  },
+  get googleServiceAccountKeyB64() {
+    return required("GOOGLE_SERVICE_ACCOUNT_KEY_B64");
+  },
+  get googleCalendarId() {
+    return required("GOOGLE_CALENDAR_ID");
+  },
 };

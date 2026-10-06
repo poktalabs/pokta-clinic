@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Exercises the agent tools against a running apps/web (default http://localhost:3000) and EHR.
 # Usage: scripts/tools-smoke.sh [base-url]. TOOL_SECRET comes from the environment, else apps/web/.env.local.
+# The golden sequence books a real first consultation (calendar event + Appointment) for a throwaway
+# patient. Set SMOKE_SKIP_BOOKING=1 to stop before the scheduling checks against a real calendar.
+# Needs jq.
 set -uo pipefail
 BASE="${1:-http://localhost:3000}"
 SECRET="${TOOL_SECRET:-$(grep '^TOOL_SECRET=' "$(dirname "$0")/../apps/web/.env.local" | cut -d= -f2-)}"
@@ -43,5 +46,57 @@ check "saved patient is found by phone"  200 '"given_name":"Lucia"'       "$(cal
 check "same phone is not duplicated"     200 '"already_registered":true'  "$(call save_patient "$SAVE_MIN")"
 call record_consent "$CONSENT_NO" >/dev/null
 check "refused consent blocks lookup"    200 '"consent_required":true'    "$(call find_patient "$FIND_REFUSED")"
+
+# --- Golden path: history, scheduling, escalation -------------------------------------------------
+PID="$(jq -r .patient_id <<<"$(sed '$d' <<<"$(call find_patient "$FIND")")")"
+hist() { # status, answers-json, chief complaint
+  jq -nc --arg c "$CONV" --arg p "$PID" --arg s "$1" --argjson a "$2" --arg cc "$3" \
+    '{conversation_id:$c, patient_id:$p, status:$s, answers:$a, chief_complaint:$cc}'
+}
+PARTIAL='[{"link_id":"onset-duration","answer":"hace tres meses, poco a poco"},{"link_id":"bogus-item","answer":"ignored"}]'
+FULL='[{"link_id":"onset-duration","answer":"hace tres meses, poco a poco"},{"link_id":"joints-involved","answer":"manos, ambos lados"},{"link_id":"morning-stiffness-min","answer":"unos 45 minutos"},{"link_id":"joint-swelling","answer":"si"},{"link_id":"systemic-symptoms","answer":"cansancio"},{"link_id":"extra-articular","answer":"no"},{"link_id":"current-medications","answer":"ibuprofeno"},{"link_id":"allergies","answer":"ninguna"},{"link_id":"prior-dx-tests","answer":"no sabe"},{"link_id":"family-history","answer":"mi mama tiene artritis"}]'
+OTHER_PATIENT="$(jq -nc --arg c "$CONV" '{conversation_id:$c, patient_id:"00000000-0000-0000-0000-000000000000", status:"in-progress", answers:[], chief_complaint:"x"}')"
+Q="$(j conversation_id "$C")"
+
+check "questionnaire needs consent"      200 '"consent_required":true'    "$(call get_questionnaire "$(j conversation_id "\"$CONV-refused\"")")"
+check "questionnaire lists the items"    200 '"link_id":"chief-complaint"' "$(call get_questionnaire "$Q")"
+check "history for another patient is refused" 200 '"patient_mismatch":true' "$(call save_history "$OTHER_PATIENT")"
+check "partial history saves in progress" 200 '"saved":true'              "$(call save_history "$(hist in-progress "$PARTIAL" 'me duelen las manos')")"
+check "completed with gaps lists them"   200 '"saved":false'              "$(call save_history "$(hist completed "$PARTIAL" 'me duelen las manos')")"
+check "gaps name the missing items"      200 'joints-involved'            "$(call save_history "$(hist completed "$PARTIAL" 'me duelen las manos')")"
+check "full history saves as completed"  200 '"saved":true'               "$(call save_history "$(hist completed "$FULL" 'me duelen las manos')")"
+check "history can be re-saved"          200 '"status":"completed"'       "$(call save_history "$(hist completed "$FULL" 'me duelen las manos')")"
+
+check "availability needs consent"       200 '"consent_required":true'    "$(call check_availability "$(j conversation_id "\"$CONV-refused\"")")"
+AV="$(call check_availability "$Q")"
+check "availability returns slots"       200 '"label"'                    "$AV"
+check "availability honours part of day" 200 '"slots"'                    "$(call check_availability "$(j conversation_id "$C" part_of_day '"afternoon"')")"
+check "availability rejects a bad date"  400 'Invalid input'              "$(call check_availability "$(j conversation_id "$C" preferred_date '"mañana"')")"
+
+if [[ "${SMOKE_SKIP_BOOKING:-0}" != 1 ]]; then
+  START="$(jq -r '.slots[0].start' <<<"$(sed '$d' <<<"$AV")")"
+  book() { jq -nc --arg c "$1" --arg p "$2" --arg s "$3" '{conversation_id:$c, patient_id:$p, start:$s}'; }
+  check "off-grid start is refused"      200 '"booked":false'             "$(call book_appointment "$(book "$CONV" "$PID" "2030-01-01T03:00:00-06:00")")"
+  BOOKED="$(call book_appointment "$(book "$CONV" "$PID" "$START")")"
+  check "slot is booked"                 200 '"booked":true'              "$BOOKED"
+  APPT="$(jq -r .appointment_id <<<"$(sed '$d' <<<"$BOOKED")")"
+  check "booking again is idempotent"    200 "\"appointment_id\":\"$APPT\"" "$(call book_appointment "$(book "$CONV" "$PID" "$START")")"
+
+  # A second Conversation must not get the slot the first one holds.
+  CONV3="$CONV-second"; PHONE3="55$(printf '%08d' $((RANDOM * RANDOM % 100000000)))"
+  call record_consent "$(jq -nc --arg c "$CONV3" '{conversation_id:$c, granted:true}')" >/dev/null
+  SAVED3="$(call save_patient "$(jq -nc --arg c "$CONV3" --arg t "$PHONE3" '{conversation_id:$c, nombre:"Mario", primer_apellido:"Lopez", telefono:$t}')")"
+  PID3="$(jq -r .patient_id <<<"$(sed '$d' <<<"$SAVED3")")"
+  check "taken slot is not double-booked" 200 '"booked":false'            "$(call book_appointment "$(book "$CONV3" "$PID3" "$START")")"
+  OFFER="$(call check_availability "$(jq -nc --arg c "$CONV3" '{conversation_id:$c}')")"
+  if [[ "$OFFER" != *"$START"* && "$OFFER" == *'"label"'* ]]; then echo "PASS  taken slot leaves the offer list"; else echo "FAIL  taken slot still offered or none offered: $OFFER"; FAIL=1; fi
+fi
+
+CONV4="$CONV-redflag"
+ESC="$(jq -nc --arg c "$CONV4" '{conversation_id:$c, severity:"emergencia", patient_words:"me duele el pecho y me falta el aire", instruction_given:"llamar al 911"}')"
+ESC_BAD_PATIENT="$(jq -nc --arg c "$CONV4-b" '{conversation_id:$c, severity:"urgencia", patient_words:"ojo rojo y dolor de cabeza fuerte", instruction_given:"ir a urgencias hoy", patient_id:"00000000-0000-0000-0000-000000000000"}')"
+check "escalation works without consent" 200 '"logged":true'              "$(call escalate "$ESC")"
+check "escalation survives a bad patient id" 200 '"logged":true'          "$(call escalate "$ESC_BAD_PATIENT")"
+check "escalation validates severity"    400 'Invalid input'              "$(call escalate "$(jq -nc --arg c "$CONV4" '{conversation_id:$c, severity:"alta", patient_words:"x", instruction_given:"y"}')")"
 
 exit $FAIL
