@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { FHIR_VERSION, operationOutcome } from "@pokta-clinic/fhir";
 import { requireToken, tokenEndpoint, type AuthVars } from "./auth.js";
+import { consentRoutes } from "./routes/consent.js";
 import { patientRoutes } from "./routes/patient.js";
 
 // "Expediente Demo": a mock third-party EHR. pokta-clinic reaches it only over FHIR R4.
@@ -40,6 +41,11 @@ app.get("/fhir/metadata", (c) =>
               { name: "identifier", type: "token" },
             ],
           },
+          {
+            type: "Consent",
+            interaction: [{ code: "create" }, { code: "search-type" }, { code: "update" }],
+            searchParam: [{ name: "identifier", type: "token" }],
+          },
         ],
       },
     ],
@@ -48,6 +54,7 @@ app.get("/fhir/metadata", (c) =>
 
 app.use("/fhir/*", requireToken);
 app.route("/fhir/Patient", patientRoutes);
+app.route("/fhir/Consent", consentRoutes);
 
 app.notFound((c) => c.json(operationOutcome("not-found", `No route for ${c.req.method} ${c.req.path}`), 404));
 app.onError((err, c) => {

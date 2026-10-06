@@ -1,5 +1,4 @@
-// The FHIR R4 contract shared by pokta-clinic and the mock EHR. Resource schemas land here once the
-// NOM-004/NOM-024 data model is written (apps/mock-ehr/docs/data-model.md).
+// The FHIR R4 contract shared by pokta-clinic and the mock EHR. Data model: apps/mock-ehr/docs/data-model.md.
 import { z } from "zod";
 
 export const FHIR_VERSION = "4.0.1";
@@ -26,4 +25,5 @@ export function operationOutcome(
   return { resourceType: "OperationOutcome", issue: [{ severity, code, diagnostics }] };
 }
 
-export * from "./patient.js";
+export * from "./patient.ts";
+export * from "./consent.ts";

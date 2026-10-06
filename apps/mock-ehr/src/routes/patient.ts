@@ -45,7 +45,7 @@ patientRoutes.post("/", async (c) => {
   }
   if (input.telefono.length !== 10) return c.json(operationOutcome("invalid", "Phone must have 10 digits"), 400);
 
-  // Conditional create: a known phone or CURP returns the existing Patient instead of a duplicate.
+  // Conditional create: a known phone returns the existing Patient instead of a duplicate.
   const [existing] = await db.select().from(patient).where(eq(patient.telefono, input.telefono));
   if (existing) return c.json(toFhir(existing), 200);
 
