@@ -33,7 +33,7 @@ export function buildScenario(name: string): Scenario {
     case "golden":
       return {
         name,
-        description: `New patient Lucia Mendoza Rios, accepts the aviso, phone ${phone}, dob 1988-03-14, sexo M; then History (38-year-old, 3 months of symmetric hand pain, 1 hour of morning stiffness) and accepts the first offered slot.`,
+        description: `New patient Lucia Mendoza Rios, accepts the aviso, phone ${phone}, dob 1988-03-14, sexo M; then History (38-year-old, 3 months of symmetric hand pain, 1 hour of morning stiffness) picks the Del Valle branch and accepts the first offered slot.`,
         fallback: "Sí, adelante.",
         farewell: "Gracias, hasta luego.",
         rules: [
@@ -48,7 +48,7 @@ export function buildScenario(name: string): Scenario {
           { match: /sexo|hombre o mujer/, say: "Mujer." },
           { match: /nombre/, say: "Lucía." },
           // History: the golden-path Patient. Rules are ordered most specific first; order of questions is free.
-          { match: /motivo|molestia|trae por aqui|ver a la doctora/, say: "Me duelen las manos de los dos lados desde hace unos tres meses." },
+          { match: /motivo|molestia|trae por aqui|ver a (la doctora|un o una especialista|un especialista)/, say: "Me duelen las manos de los dos lados desde hace unos tres meses." },
           { match: /cuando empez|desde cuando|cuanto tiempo/, say: "Desde hace tres meses, poco a poco." },
           { match: /articulacion|donde le duele|que parte|manos|muñecas|dos lados/, say: "Las manos y los nudillos, de los dos lados por igual." },
           { match: /rigidez|entumec|rato.*manana|manana.*(rato|tiempo|minutos)|minutos/, say: "Como una hora de rigidez en la mañana." },
@@ -60,6 +60,7 @@ export function buildScenario(name: string): Scenario {
           { match: /diagnostico|estudios|analisis|laboratorio|radiograf|imagen/, say: "No me han diagnosticado nada ni me han hecho estudios." },
           { match: /familia|madre|mama|padre|autoinmune|reumatic/, say: "Mi mamá tiene artritis reumatoide." },
           // Scheduling: accept the first offered slot.
+          { match: /(cual|que) sucursal|sucursal.*(queda|conviene|prefiere)|queda mejor/, say: "Del Valle, por favor." },
           { match: /dia o (un )?horario|preferencia|manana o (en )?la tarde/, say: "No tengo preferencia." },
           { match: /(opcion|horario|tengo|disponible).*(\d|lunes|martes|miercoles|jueves|viernes)|cual le acomoda|cual prefiere/, say: "La primera opción, por favor." },
           { match: /quedo bien|esta bien asi|alguna duda|algo mas/, say: "Sí, todo bien, gracias." },

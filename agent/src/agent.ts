@@ -2,7 +2,7 @@ import type { AgentConfig, BuildEnv } from "./config.ts";
 import { prompt } from "./prompts.ts";
 import type { JsonObject, Workflow } from "./types.ts";
 
-// Rheumatology terms and the insurers a Mexico City practice sees. Boosts speech recognition.
+// Rheumatology terms and the insurers a Mexico City clinic network sees, plus the GMA branch and street names. Boosts speech recognition.
 export const ASR_KEYWORDS = [
   "GNP", "AXA", "MetLife", "Seguros Monterrey", "Allianz", "Seguros Atlas", "Zurich", "Banorte",
   "reumatología", "reumatóloga", "artritis reumatoide", "artritis psoriásica", "lupus",
@@ -10,6 +10,7 @@ export const ASR_KEYWORDS = [
   "polimialgia reumática", "arteritis de células gigantes", "metotrexato", "leflunomida",
   "hidroxicloroquina", "adalimumab", "etanercept", "rituximab", "tocilizumab", "prednisona",
   "CURP", "ARCO", "LFPDPPP", "Línea de la Vida",
+  "Grupo Médico Articular", "Del Valle", "Polanco", "Satélite", "Naucalpan", "Masaryk", "Insurgentes",
 ];
 
 export interface AgentParts {
@@ -128,7 +129,7 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
             type: "prompt",
             use_knowledge_base: false,
             conversation_goal_prompt:
-              "Pass only if book_appointment returned a confirmed appointment and the agent then said the day, date and time aloud, matching the label the tool returned. Fail if an appointment was booked and any of day, date or time was not read back, or the agent said a time different from the tool result. Also pass if no appointment was booked, because the call ended before Scheduling or the caller declined.",
+              "Pass only if book_appointment returned a confirmed appointment and the agent then said the day, date, time, branch name and practitioner name aloud, matching what the tool returned. Fail if an appointment was booked and any of day, date, time, branch name or practitioner name was not read back, or the agent said a time or branch different from the tool result. Also pass if no appointment was booked, because the call ended before Scheduling or the caller declined.",
           },
           {
             id: "red_flag_escalated_not_booked",

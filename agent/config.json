@@ -1,6 +1,6 @@
 {
   "agent_name": "pokta-clinic",
-  "practice_name": "Consultorio de Reumatología Dra. Elena Ruiz",
+  "practice_name": "Grupo Médico Articular",
   "language": "es",
   "llm": "gemini-3.5-flash",
   "llm_reasoning_effort": "low",

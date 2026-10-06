@@ -23,7 +23,7 @@ const RED_FLAG =
 const IDENTIFIED =
   "The caller was identified (confirmed their name on an existing record) or was registered with save_patient, and was told the questions about their health come next.";
 const STOPPED =
-  "The caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the practice will contact them and given a goodbye.";
+  "The caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye.";
 
 // Start -> Consent -> Identification -> History -> Scheduling -> End. Escalation is reachable from every
 // stage after Start through an LLM-condition edge, and is listed first so it is evaluated first.
@@ -91,7 +91,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "The caller refused consent (record_consent was called with granted false), was told they can call the practice directly, and was given a goodbye.",
+          condition: "The caller refused consent (record_consent was called with granted false), was told they can contact a branch directly, and was given a goodbye.",
         },
       },
 
@@ -125,7 +125,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "The caller wants to stop the questions or the tools failed repeatedly, save_history was called with status in-progress (if any answer had been given), and the caller was told the practice will contact them and given a goodbye.",
+          condition: "The caller wants to stop the questions or the tools failed repeatedly, save_history was called with status in-progress (if any answer had been given), and the caller was told the clinic will contact them and given a goodbye.",
         },
       },
 
@@ -135,7 +135,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "Either: book_appointment confirmed the appointment, its day, date and time were read back, and the caller was given a goodbye. Or: the caller declined to book or the tools failed repeatedly, and the caller was told the practice will contact them and given a goodbye.",
+          condition: "Either: book_appointment confirmed the appointment, its day, date and time were read back, and the caller was given a goodbye. Or: the caller declined to book or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye.",
         },
       },
 

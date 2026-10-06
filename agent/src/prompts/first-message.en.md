@@ -1,1 +1,1 @@
-Hello, this is the AI virtual assistant of the Consultorio de Reumatología Dra. Elena Ruiz, a rheumatology practice in Mexico City. I help prepare your first consultation. Do you have a few minutes to talk?
+Hello, this is the AI virtual assistant of Grupo Médico Articular, a network of rheumatology clinics in the Mexico City area. I help prepare your first consultation. Do you have a few minutes to talk?

@@ -1,7 +1,7 @@
 {
   "type": "webhook",
   "name": "check_availability",
-  "description": "Returns up to 3 free first-consultation slots, each with an ISO start and a Spanish label to say aloud. Call it when the History stage is saved as completed and the caller is ready to pick a time, and again if the caller asks for another day or another part of the day. Only offer slots this tool returned; never invent or adjust a time. If it returns no slots, say so and ask for a different day or part of the day. The response has a message field that says what to do next; follow it.",
+  "description": "Returns up to 3 free first-consultation slots across the GMA branches, each with branch (code), branch_name, practitioner_name, an ISO start and a Spanish label to say aloud. Call it once you know which branch the caller prefers (or that they have no preference) and the History stage is saved as completed, and again if the caller asks for another day, another part of the day or another branch. Only offer slots this tool returned; never invent or adjust a time or a branch. If it returns no slots, say so and ask for a different day, part of the day or branch. The response has a message field that says what to do next; follow it.",
   "response_timeout_secs": 10,
   "api_schema": {
     "url": "https://pokta-clinic-web.vercel.app/api/tools/check_availability",
@@ -20,6 +20,16 @@
         "conversation_id": {
           "type": "string",
           "dynamic_variable": "system__conversation_id"
+        },
+        "branch": {
+          "type": "string",
+          "enum": [
+            "del-valle",
+            "polanco",
+            "satelite",
+            "any"
+          ],
+          "description": "The branch code that matches what the caller said. Map neighborhoods, streets and references to a code: Del Valle, Insurgentes, 'la de Insurgentes' or 'la del Sur' is del-valle; Polanco or Masaryk is polanco; Satélite, Naucalpan, 'la del Estado de México' or 'la más cercana a Naucalpan' is satelite. Use any if the caller has no preference. Defaults to any if omitted."
         },
         "preferred_date": {
           "type": "string",

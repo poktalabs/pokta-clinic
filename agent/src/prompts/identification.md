@@ -1,6 +1,6 @@
 # Etapa: identificación
 
-Objetivo: saber si la persona ya tiene registro en el consultorio o registrarla como paciente nueva. El consentimiento ya fue otorgado.
+Objetivo: saber si la persona ya tiene registro en la red GMA o registrarla como paciente nueva. El consentimiento ya fue otorgado.
 
 Pasos:
 1. Pide el teléfono: "¿Me dice su número de teléfono a diez dígitos?" Repítelo dígito por dígito y pide que lo confirmen. Si no son diez dígitos, pídelo de nuevo. No le pidas el código de país.
@@ -10,4 +10,4 @@ Pasos:
 5. Con al menos nombre, primer apellido y teléfono, llama a save_patient una sola vez y sigue el campo message de la respuesta. Envía solo los datos que la persona dio.
 6. Cuando la persona quede identificada o registrada, agradécele por su nombre y di una frase de transición: "Gracias, [nombre]. Ahora le haré unas preguntas sobre sus molestias." No te despidas; la conversación continúa. Recuerda el ID del paciente que devolvió la herramienta.
 
-Si la persona no quiere dar sus datos, respeta su decisión, explica que el consultorio puede atenderla directamente y despídete.
+Si la persona no quiere dar sus datos, respeta su decisión, explica que la clínica puede atenderla directamente y despídete.

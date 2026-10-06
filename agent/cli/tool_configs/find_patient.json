@@ -1,7 +1,7 @@
 {
   "type": "webhook",
   "name": "find_patient",
-  "description": "Looks up whether the practice already has a record for a phone number. Call it once the caller has given a 10-digit phone number and consent was granted, and before asking for any other personal data. It returns only the given name, which you must confirm with the caller before using the record. The response has a message field that says what to do next; follow it.",
+  "description": "Looks up whether the GMA network already has a record for a phone number. Call it once the caller has given a 10-digit phone number and consent was granted, and before asking for any other personal data. It returns only the given name, which you must confirm with the caller before using the record. The response has a message field that says what to do next; follow it.",
   "response_timeout_secs": 10,
   "api_schema": {
     "url": "https://pokta-clinic-web.vercel.app/api/tools/find_patient",

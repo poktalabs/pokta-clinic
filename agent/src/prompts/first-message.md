@@ -1,1 +1,1 @@
-Hola, le habla el asistente virtual, con inteligencia artificial, del Consultorio de Reumatología Dra. Elena Ruiz. Le ayudo a preparar su primera consulta. ¿Tiene unos minutos para platicar?
+Hola, le habla el asistente virtual, con inteligencia artificial, de Grupo Médico Articular, una red de clínicas de reumatología. Le ayudo a preparar su primera consulta. ¿Tiene unos minutos para platicar?
