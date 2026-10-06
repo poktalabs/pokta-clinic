@@ -1,0 +1,20 @@
+{
+  "name": "pokta-clinic",
+  "private": true,
+  "packageManager": "pnpm@12.4.1",
+  "scripts": {
+    "dev:web": "pnpm --filter @pokta-clinic/web dev",
+    "dev:ehr": "pnpm --filter @pokta-clinic/mock-ehr dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "agent:push": "dotenv -e .env.local -- elevenlabs agents push --dry-run",
+    "agent:push:apply": "dotenv -e .env.local -- elevenlabs agents push",
+    "agent:pull": "dotenv -e .env.local -- elevenlabs agents pull",
+    "agent:test": "dotenv -e .env.local -- elevenlabs agents test",
+    "render": "dotenv -e .env.local -- render"
+  },
+  "devDependencies": {
+    "@elevenlabs/cli": "^1.4.0",
+    "dotenv-cli": "^11.0.0"
+  }
+}

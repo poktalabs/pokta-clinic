@@ -1,0 +1,40 @@
+# Expediente Demo: data model
+
+Expediente Demo is a mock third-party EHR for a private practice in Mexico. Its internal data model follows the two Mexican norms that govern clinical records and record systems; HL7 FHIR R4 is only the exchange format at its edge. pokta-clinic never sees the tables below, only FHIR resources.
+
+- **NOM-004-SSA3-2012**, Del expediente clínico (DOF): https://dof.gob.mx/nota_detalle_popup.php?codigo=5272787
+- **NOM-024-SSA3-2012**, Sistemas de Información de Registro Electrónico para la Salud (SIRES) (DOF): https://dof.gob.mx/nota_detalle_popup.php?codigo=5280847
+
+Section numbers below refer to these texts. "Confirmed" means read in the DOF text; "design choice" means the norms are silent and we decided.
+
+## What the norms say, in brief
+
+**NOM-004 (the record).** The expediente may be electronic and its entries are made by health personnel (4.4). Every expediente carries the establishment's type, name and address, and the patient's name, sex, age and address (5.2.1 to 5.2.4). Every note carries the patient's full name, age, sex and expediente number (5.9), and the date, time, full name and signature (autograph, electronic or digital) of its author (5.10). The record belongs to the provider, the patient has rights over the information, and it is kept at least 5 years from the last medical act (5.4). It is confidential and disclosed only to the patient, a representative or an authority (5.5, 5.7). Optional complementary documents are allowed (5.18). The historia clínica (6.1) is written by medical staff: interrogatorio (ficha de identificación, grupo étnico, antecedentes heredo-familiares, personales patológicos y no patológicos, padecimiento actual, interrogatorio por aparatos y sistemas), exploración física, results, diagnósticos, pronóstico and indicación terapéutica. A carta de consentimiento bajo información (10.1.1) is mandatory for admissions, surgery, anaesthesia and high-risk procedures (10.1.2), not for a routine consultation.
+
+**NOM-024 (the system).** The CURP, validated against RENAPO, is the unique patient identifier and a system must never generate one (6.5.1, 6.5.2). Table 1 (6.5.3) fixes the identification fields: CURP, primer apellido, segundo apellido (optional), nombre, fecha de nacimiento (aaaammdd), entidad de nacimiento (INEGI), sexo (H/M, RENAPO), nacionalidad, folio and residence codes. The minimum for exchange is CURP, nombre, primer apellido and segundo apellido when the person has one (6.5.5). Mandatory catalogs (6.4.2, Apéndice A) include CLUES for establishments, CIE-10 for diagnoses, CIE-9-MC for procedures and INEGI geography. Security (6.6) requires confidentiality, integrity, availability, traceability and non-repudiation, an audit log able to rebuild earlier states (3.42), unalterable signed documents with firma electrónica avanzada available to professionals, role-based access and patient control over consents. Exchange standards named are HL7 CDA, HL7 V3 and IHE profiles "or others DGIS determines" (6.1.3); FHIR is not named.
+
+**No official Mexican FHIR implementation guide exists** as of 2026-10. A "FHIR-MX" profile set appears only as a proposal (Transform Health Coalition, Dec 2025), so Expediente Demo uses local NamingSystem URIs and the core R4 name extensions `humanname-fathers-family` and `humanname-mothers-family`.
+
+## The key consequence: an intake is not the historia clínica
+
+An AI agent is not health personnel (4.4) and cannot sign a note (5.10), so its output cannot be the historia clínica (inferred from the norm). The intake is a patient-reported complementary document (5.18): it lands as `pending_validation`, the Practitioner reviews it in the EHR console, and validating it is a signed act by the Practitioner that feeds the historia clínica. The agent is recorded as a `Device` author. The norms are silent on AI authorship, so this is a design choice.
+
+## Mapping
+
+| Concept (source) | Table: key columns | FHIR R4 |
+|---|---|---|
+| Patient identity (024 Table 1; 004 5.2.3) | `patient`: id, curp (unique, nullable, never generated), folio, nombre, primer_apellido, segundo_apellido, fecha_nacimiento, sexo (H/M), entidad_nacimiento, telefono, domicilio, cp, entidad/municipio/localidad (INEGI) | `Patient`: identifier (CURP system, folio system), name.given, name.family with fathers-family and mothers-family extensions, birthDate, gender (H→male, M→female, raw value kept in an extension), telecom, address |
+| Establishment (004 5.2.1, 5.2.2; CLUES) | `establishment`: id, clues, tipo, nombre, razon_social, domicilio | `Organization`: identifier (CLUES) |
+| Physician (004 5.10) | `practitioner`: id, nombre, primer_apellido, segundo_apellido, cedula_profesional, especialidad | `Practitioner`: identifier (cédula profesional), qualification |
+| Intake definition | `questionnaire`: id, version, items (JSONB) | `Questionnaire` |
+| Pre-visit intake (004 5.18, raw input to 6.1.1) | `intake`: id, patient_id, questionnaire_id, conversation_id, items (JSONB), status (pending_validation, validated, rejected), author_device, validated_by, validated_at | `QuestionnaireResponse`: status, source = Patient, author = Device (the agent), extension for the Conversation ID |
+| Historia clínica (004 6.1) | `historia_clinica`: id, patient_id, intake_id, sections (JSONB), author_practitioner_id, signed_at, signature | `Composition` (validated output; console only in the demo) |
+| Privacy consent (LFPDPPP; 024 6.6.6) | `consent`: id, patient_id, tipo (privacidad), granted, method (voice), conversation_id, recorded_at | `Consent`: scope patient-privacy, sourceReference to the Conversation |
+| Appointment | `appointment`: id, patient_id, practitioner_id, start, end, status, calendar_event_id | `Appointment` |
+| Audit log (024 3.42, 6.6.1) | `audit_event`: id, at, actor (client or user), action, resource_type, resource_id, before_hash, after_hash; append-only | `AuditEvent` (console only in the demo) |
+| Diagnoses (024 Apéndice A, CIE-10) | out of scope: the intake records no diagnoses | `Condition.code` (future) |
+| Retention (004 5.4) | `retain_until` = last act + 5 years, soft delete only | n/a |
+
+## What the demo deliberately does not do
+
+No DGIS certification (024 section 7), no RENAPO validation of CURP (it is stored as given and flagged unvalidated), no firma electrónica avanzada (validation is a console button standing in for a signed act), no catalog tables beyond a seeded CLUES-style value for the demo establishment, and no carta de consentimiento bajo información, which a routine consultation does not require (004 10.1.2).

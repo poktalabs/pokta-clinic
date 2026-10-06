@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pokta-clinic: what is built (2026-10-05)</title>
+<style>
+@font-face { font-family: "Source Serif 4 Variable"; font-style: normal; font-weight: 200 900; font-display: swap; src: url(fonts/source-serif-4-latin-wght-normal.woff2) format("woff2-variations"); }
+@font-face { font-family: "Source Serif 4 Variable"; font-style: italic; font-weight: 200 900; font-display: swap; src: url(fonts/source-serif-4-latin-wght-italic.woff2) format("woff2-variations"); }
+@font-face { font-family: "Manrope Variable"; font-style: normal; font-weight: 200 800; font-display: swap; src: url(fonts/manrope-latin-wght-normal.woff2) format("woff2-variations"); }
+@font-face { font-family: "Funnel Display Variable"; font-style: normal; font-weight: 300 800; font-display: swap; src: url(fonts/funnel-display-latin-wght-normal.woff2) format("woff2-variations"); }
+
+/* RheumAI brand kit tokens, verbatim from https://rheumai.xyz/brandkit/llms.txt (2026-10-05) */
+:root {
+  --font-serif: "Source Serif 4 Variable", Georgia, "Times New Roman", serif;
+  --font-sans:  "Manrope Variable", system-ui, -apple-system, sans-serif;
+  --font-funnel: "Funnel Display Variable", "Funnel Display", system-ui, sans-serif;
+  --background:         #EBEEF4;
+  --surface:            #FFFFFF;
+  --surface-2:          #E2E6F0;
+  --foreground:         #14161C;
+  --foreground-soft:    #545B6B;
+  --muted-foreground:   #646B7D;
+  --primary:            #3333DE;
+  --primary-foreground: #FFFFFF;
+  --primary-ink:        #3333DE;
+  --accent-text:        var(--primary-ink);
+  --accent-on-dark:     #5A5AFF;
+  --foreground-on-dark: color-mix(in srgb, var(--primary-foreground) 86%, transparent);
+  --muted-on-dark:      color-mix(in srgb, var(--primary-foreground) 72%, transparent);
+  --primary-soft:       color-mix(in srgb, var(--primary) 10%, transparent);
+  --surface-brand:      color-mix(in srgb, var(--primary) 14%, var(--surface));
+  --ok:                 #1F7A54;
+  --attn:               #9C6A15;
+  --spot:               #C1362B;
+  --rule:               #CDD4E0;
+  --ink-black:          #07090A;
+  --shadow:             0 1px 2px rgba(20, 22, 28, .06), 0 18px 40px -16px rgba(20, 22, 28, .20);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background:         #141621;
+    --surface:            #1D2231;
+    --surface-2:          #262C3C;
+    --foreground:         #E9EBF2;
+    --foreground-soft:    #A2A9BA;
+    --muted-foreground:   #808799;
+    --primary-ink:        #5A5AFF;
+    --primary-soft:       color-mix(in srgb, var(--primary-ink) 15%, transparent);
+    --surface-brand:      color-mix(in srgb, var(--primary-ink) 12%, var(--surface));
+    --ok:                 #57C89A;
+    --attn:               #E0A24A;
+    --spot:               #F0796B;
+    --rule:               #363D4F;
+    --shadow:             0 1px 2px rgba(0, 0, 0, .4), 0 18px 42px -16px rgba(0, 0, 0, .66);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
+html { background: var(--background); color: var(--foreground); }
+body { font-family: var(--font-sans); font-size: 1rem; line-height: 1.6; font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+section { padding: 56px 0; border-bottom: 1px solid var(--rule); }
+h1, h2, h3 { font-family: var(--font-serif); font-weight: 500; }
+h1 { font-size: clamp(2.25rem, 5vw, 3.5rem); line-height: 1.1; letter-spacing: -0.02em; max-width: 22ch; }
+h2 { font-size: clamp(1.5rem, 2.6vw, 2rem); line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 8px; }
+h3 { font-size: 1.2rem; line-height: 1.25; }
+em { font-style: italic; color: var(--accent-text); }
+.label { font-size: .75rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted-foreground); }
+.sub { color: var(--foreground-soft); max-width: 62ch; margin-bottom: 28px; }
+code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .86em; color: var(--foreground); background: var(--surface-2); padding: 1px 5px; }
+
+/* nav */
+nav { position: sticky; top: 0; z-index: 2; background: var(--background); border-bottom: 1px solid var(--rule); }
+nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.wordmark { display: flex; align-items: center; gap: 8px; font-family: var(--font-funnel); font-weight: 500; letter-spacing: -0.025em; font-size: 1.25rem; }
+.wordmark img { width: 20px; height: 20px; }
+.wordmark span { color: var(--accent-text); }
+
+/* hero */
+.hero { padding: 72px 0 56px; }
+.hero .label { margin-bottom: 16px; }
+.hero p { font-family: var(--font-serif); font-size: 1.2rem; color: var(--foreground-soft); max-width: 58ch; margin-top: 20px; }
+.legend { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+
+/* pills */
+.pill { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px; }
+.pill.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 13%, transparent); }
+.pill.attn { color: var(--attn); background: color-mix(in srgb, var(--attn) 14%, transparent); }
+
+/* architecture diagram */
+.arch { display: grid; grid-template-columns: 1fr 36px 1.15fr 36px 1.15fr 36px 1.3fr 36px 1fr; align-items: stretch; }
+.node { background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow); padding: 18px 16px; display: flex; flex-direction: column; gap: 8px; }
+.node.todo { box-shadow: none; background: var(--surface-2); }
+.node.focus { border-top: 2px solid var(--primary); }
+.node .who { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); }
+.node h3 { font-family: var(--font-sans); font-weight: 700; font-size: 1rem; }
+.node p { font-size: .88rem; color: var(--foreground-soft); line-height: 1.5; }
+.node .pill { align-self: flex-start; margin-top: auto; }
+.link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.link::before { content: ""; width: 100%; height: 1px; background: var(--accent-text); }
+.link span { font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-text); writing-mode: vertical-rl; transform: rotate(180deg); }
+.link::after { content: "▶"; color: var(--accent-text); font-size: .6rem; margin-top: -26px; align-self: flex-end; }
+.zones { display: grid; grid-template-columns: 1fr 36px 1.15fr 36px 1.15fr 36px 1.3fr 36px 1fr; margin-top: 10px; }
+.zone { font-size: .7rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); border-top: 1px solid var(--rule); padding-top: 6px; }
+.callout { margin-top: 28px; background: var(--surface-brand); border: 1px solid var(--rule); padding: 20px 24px; max-width: 1080px; }
+.callout p { font-family: var(--font-serif); font-size: 1.1rem; }
+
+/* trace */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.cols > div { background: var(--surface); padding: 24px; }
+.trace { list-style: none; position: relative; counter-reset: s; }
+.trace::before { content: ""; position: absolute; left: 3px; top: 10px; bottom: 10px; width: 1px; background: var(--rule); }
+.trace li { position: relative; padding: 0 0 16px 26px; color: var(--foreground-soft); font-size: .95rem; }
+.trace li::before { content: ""; position: absolute; left: 0; top: 8px; width: 7px; height: 7px; background: var(--surface); outline: 1px solid var(--accent-text); }
+.trace li.done::before { background: var(--accent-text); }
+.trace li b { color: var(--foreground); font-weight: 700; }
+.trace .pill { margin-left: 6px; vertical-align: 1px; }
+
+/* paired comparison */
+.pair { display: grid; grid-template-columns: 1fr 1fr; max-width: 1080px; }
+.pair > div { padding: 0 32px; }
+.pair > div:first-child { border-right: 1px solid var(--rule); padding-left: 0; }
+.pair ul { list-style: none; margin-top: 12px; }
+.pair li { padding: 9px 0; border-bottom: 1px solid var(--rule); font-size: .95rem; }
+.pair li small { display: block; color: var(--muted-foreground); font-size: .8rem; }
+
+/* table */
+table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow); }
+th { text-align: left; font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); padding: 12px 16px; border-bottom: 1px solid var(--rule); background: var(--surface-2); }
+td { padding: 12px 16px; border-bottom: 1px solid var(--rule); font-size: .93rem; vertical-align: top; }
+td:nth-child(3) { color: var(--foreground-soft); }
+
+/* files + next */
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.grid3 > div { background: var(--surface); padding: 20px; }
+.grid3 h3 { font-family: var(--font-sans); font-weight: 700; font-size: .95rem; margin-bottom: 8px; }
+.grid3 ul { list-style: none; font-size: .88rem; color: var(--foreground-soft); }
+.grid3 li { padding: 4px 0; }
+.next { list-style: none; counter-reset: n; max-width: 860px; }
+.next li { counter-increment: n; display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.next li::before { content: counter(n, decimal-leading-zero); font-weight: 700; color: var(--accent-text); }
+
+/* closing band */
+.band { background: var(--ink-black); color: var(--primary-foreground); padding: 64px 0; }
+.band .label { color: var(--muted-on-dark); margin-bottom: 14px; }
+.band p.quote { font-family: var(--font-serif); font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.25; max-width: 30ch; }
+.band p.quote em { color: var(--accent-on-dark); }
+.band p.meta { color: var(--foreground-on-dark); margin-top: 18px; }
+
+@media (max-width: 960px) {
+  .arch, .zones { grid-template-columns: 1fr; }
+  .link { height: 32px; }
+  .link::before { width: 1px; height: 100%; }
+  .link span, .link::after, .zones { display: none; }
+  .cols, .pair, .grid3 { grid-template-columns: 1fr; }
+  .pair > div, .pair > div:first-child { padding: 16px 0; border-right: 0; }
+}
+@media print { nav { position: static; } section { break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="wordmark"><img src="poktacare-logo.svg" alt=""><b style="font-weight:500">pokta<span>clinic</span></b></div>
+  <div class="label">ElevenLabs SE take-home · status 2026-10-05</div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="label">Architecture · what is built</div>
+  <h1>The voice agent connects to the EHR through a <em>standard</em> interface.</h1>
+  <p>The agent does not touch a database. It calls our backend. Our backend calls the clinic EHR with FHIR R4 and OAuth2. A real hospital system uses the same interface.</p>
+  <div class="legend"><span class="pill ok">Built and tested</span><span class="pill attn">Not built</span></div>
+</div></header>
+
+<section><div class="wrap">
+  <h2>Three systems, one direction</h2>
+  <p class="sub">Each arrow is one network call. Each system knows only the system on its right.</p>
+
+  <div class="arch">
+    <div class="node todo">
+      <div class="who">Patient</div>
+      <h3>Browser widget</h3>
+      <p>The patient speaks Spanish. No API key is in the browser.</p>
+      <span class="pill attn">Not built</span>
+    </div>
+    <div class="link"><span>Voice</span></div>
+    <div class="node todo">
+      <div class="who">ElevenLabs</div>
+      <h3>Voice agent</h3>
+      <p>Workflow nodes: Consent, Identification, History, Scheduling, Escalation. It calls server tools.</p>
+      <span class="pill attn">Not built</span>
+    </div>
+    <div class="link"><span>Tool call</span></div>
+    <div class="node todo">
+      <div class="who">Vercel</div>
+      <h3>apps/web</h3>
+      <p>Next.js tool endpoints and the EhrAdapter. Now only the starter page.</p>
+      <span class="pill attn">Not built</span>
+    </div>
+    <div class="link"><span>FHIR + OAuth</span></div>
+    <div class="node focus">
+      <div class="who">Render (now local)</div>
+      <h3>Expediente Demo (mock EHR)</h3>
+      <p>Hono server. OAuth2 token, FHIR Patient search, read and create. Audit log on every action.</p>
+      <span class="pill ok">Built and tested</span>
+    </div>
+    <div class="link"><span>SQL</span></div>
+    <div class="node">
+      <div class="who">Render (now Docker)</div>
+      <h3>Postgres</h3>
+      <p>Tables follow NOM-024 and NOM-004. Port 5434.</p>
+      <span class="pill ok">Built and tested</span>
+    </div>
+  </div>
+  <div class="zones">
+    <div class="zone">Public</div><div></div>
+    <div class="zone">Vendor</div><div></div>
+    <div class="zone">Our integration</div><div></div>
+    <div class="zone">Clinic system (external)</div><div></div>
+    <div class="zone">Clinic data</div>
+  </div>
+
+  <div class="callout"><p>To connect a different EHR, change only the EhrAdapter in apps/web. The agent and the tools stay the same.</p></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>One tool call, step by step</h2>
+  <p class="sub">Example: the agent registers a new patient. A filled node shows a built step.</p>
+  <div class="cols">
+    <div>
+      <div class="label" style="margin-bottom:14px">Request path</div>
+      <ol class="trace">
+        <li>The agent sends <b>save_patient</b> to apps/web with a shared-secret header.<span class="pill attn">Not built</span></li>
+        <li>apps/web checks the secret. Then it asks the EHR for a token.<span class="pill attn">Not built</span></li>
+        <li class="done">The EHR checks the client ID and secret. It returns a <b>token that expires in 1 hour</b>.</li>
+        <li class="done">apps/web sends <b>POST /fhir/Patient</b> with the token.</li>
+        <li class="done">The EHR validates the FHIR Patient. It writes one <b>NOM row</b> in <code>patient</code>.</li>
+        <li class="done">The EHR writes one <b>audit_event</b> row. It returns the FHIR Patient.</li>
+      </ol>
+    </div>
+    <div>
+      <div class="label" style="margin-bottom:14px">Rules the EHR applies</div>
+      <ol class="trace">
+        <li class="done"><b>No token, no data.</b> Every <code>/fhir/*</code> call without a valid token gets 401.</li>
+        <li class="done"><b>No duplicate patients.</b> If the phone number exists, the EHR returns that patient (200).</li>
+        <li class="done"><b>Same phone, any format.</b> The EHR keeps the last 10 digits.</li>
+        <li class="done"><b>No invented CURP.</b> The CURP is optional. The EHR never generates it.</li>
+        <li class="done"><b>Errors are FHIR too.</b> Each error is an OperationOutcome.</li>
+      </ol>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Mexican rules inside, FHIR outside</h2>
+  <p class="sub">The database follows Mexican health-record law. The API follows the international standard. One mapping file connects them: <code>src/fhir/patient.ts</code>.</p>
+  <div class="pair">
+    <div>
+      <div class="label">Inside: NOM-024 and NOM-004</div>
+      <ul>
+        <li>Two surnames: <code>primer_apellido</code>, <code>segundo_apellido</code><small>NOM-024 Table 1</small></li>
+        <li>Sex as RENAPO H or M<small>NOM-024 Table 1</small></li>
+        <li>CURP as the unique key, never generated<small>NOM-024 6.5.2</small></li>
+        <li>Clinic CLUES and doctor cédula profesional<small>NOM-024 catalogs, NOM-004 5.10</small></li>
+        <li>Audit log: the database rejects UPDATE and DELETE<small>NOM-024 3.42 and 6.6.1</small></li>
+        <li>Intake stays <code>pending_validation</code> until the doctor signs<small>NOM-004 4.4 and 5.10</small></li>
+      </ul>
+    </div>
+    <div>
+      <div class="label">Outside: FHIR R4</div>
+      <ul>
+        <li><code>name.family</code> plus fathers-family and mothers-family extensions<small>HL7 core extensions</small></li>
+        <li><code>gender</code> male or female, raw H or M in an extension<small>FHIR Patient</small></li>
+        <li><code>identifier</code> with system <code>urn:mx:renapo:curp</code><small>Local URN: Mexico has no official FHIR guide</small></li>
+        <li>Folio <code>EXP-…</code> as the record identifier<small>urn:pokta-clinic:expediente-demo:folio</small></li>
+        <li><code>/fhir/metadata</code> CapabilityStatement<small>Integrators discover what the EHR supports</small></li>
+        <li>QuestionnaireResponse with a Device author (next)<small>The agent is not health personnel</small></li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>What the smoke test proves</h2>
+  <p class="sub">The test runs against the local EHR and the Docker database. All six checks pass.</p>
+  <table>
+    <thead><tr><th>Check</th><th>Result</th><th>What it proves</th></tr></thead>
+    <tbody>
+      <tr><td>Call the API without a token</td><td><span class="pill ok">401</span></td><td>The EHR is closed by default.</td></tr>
+      <tr><td>Ask for a token with a wrong secret</td><td><span class="pill ok">401</span></td><td>The EHR checks the credentials.</td></tr>
+      <tr><td>Create a patient</td><td><span class="pill ok">201</span></td><td>The EHR stores the patient and returns valid FHIR.</td></tr>
+      <tr><td>Create the same phone again</td><td><span class="pill ok">200</span></td><td>An agent retry does not make a duplicate patient.</td></tr>
+      <tr><td>Search with a different phone format</td><td><span class="pill ok">1 result</span></td><td>The EHR normalizes phone numbers.</td></tr>
+      <tr><td>Run <code>DELETE FROM audit_event</code></td><td><span class="pill ok">Rejected</span></td><td>Nobody can change the audit log, not even with direct SQL access.</td></tr>
+    </tbody>
+  </table>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Where each part is</h2>
+  <p class="sub">Repository: <code>code/pokta-clinic/</code>. Nothing is committed or deployed yet.</p>
+  <div class="grid3">
+    <div>
+      <h3>apps/mock-ehr</h3>
+      <ul>
+        <li><code>src/auth.ts</code>: OAuth2 token and check</li>
+        <li><code>src/routes/patient.ts</code>: search, read, create</li>
+        <li><code>src/fhir/patient.ts</code>: NOM to FHIR mapping</li>
+        <li><code>src/db/schema.ts</code>: NOM tables</li>
+        <li><code>drizzle/0001_…sql</code>: append-only trigger</li>
+        <li><code>Dockerfile</code>: image for Render</li>
+      </ul>
+    </div>
+    <div>
+      <h3>packages/fhir</h3>
+      <ul>
+        <li><code>src/patient.ts</code>: FHIR Patient schema, identifier systems</li>
+        <li><code>src/index.ts</code>: OperationOutcome</li>
+        <li>apps/web and the EHR both use these types.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>docs</h3>
+      <ul>
+        <li><code>CONTEXT.md</code>: glossary</li>
+        <li><code>docs/adr/0001-…md</code>: NOM inside, FHIR at the edge</li>
+        <li><code>docs/questionnaire-rheum-first-visit.md</code>: 11 items, 12 references</li>
+        <li><code>docs/security/elevenlabs-api-keys.md</code>: key scopes</li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Next steps</h2>
+  <p class="sub">Monday and Tuesday. Submission is Thursday 2026-10-08.</p>
+  <ol class="next">
+    <li><span>apps/web: EhrAdapter with the <b>find_patient</b> and <b>save_patient</b> tools</span><span class="pill attn">Mon</span></li>
+    <li><span>ElevenLabs agent with Consent and Identification nodes (dry run, then approval)</span><span class="pill attn">Mon</span></li>
+    <li><span>Run the database migrations when the container starts</span><span class="pill attn">Mon</span></li>
+    <li><span>Deploy the EHR and Postgres to Render, with the on and off control</span><span class="pill attn">Mon</span></li>
+    <li><span>History, Scheduling with Google Calendar, Escalation, post-call webhook, tests</span><span class="pill attn">Tue</span></li>
+  </ol>
+</div></section>
+
+<div class="band"><div class="wrap">
+  <div class="label">One sentence for the Loom</div>
+  <p class="quote">The agent calls my backend. My backend calls the clinic EHR with FHIR and OAuth, as in a <em>real</em> integration.</p>
+  <p class="meta">The EHR stores data under Mexican health-record law. Its audit log cannot be changed.</p>
+</div></div>
+
+</body>
+</html>
