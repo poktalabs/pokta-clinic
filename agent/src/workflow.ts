@@ -1,30 +1,36 @@
 import type { Workflow } from "./types.ts";
+import type { AgentConfig } from "./config.ts";
 import { prompt } from "./prompts.ts";
 
 export interface WorkflowToolIds {
   record_consent: string;
   find_patient: string;
   save_patient: string;
+  get_questionnaire: string;
+  save_history: string;
+  check_availability: string;
+  book_appointment: string;
+  escalate: string;
 }
 
 const RED_FLAG =
   "The caller reports or describes an Emergencia or Urgencia red flag at any point: chest pain, stroke signs, difficulty breathing, thoughts of suicide or self-harm, suspected giant cell arteritis with vision changes, a hot swollen joint with fever, cauda equina symptoms, or fever while taking methotrexate or a biologic.";
 
-// Extension point: where a patient goes once identified. Today the call ends there, with the
-// identification prompt saying "we will continue in the next version". The platform allows one edge
-// per node pair, so while the next stage is the end node, "identified" and "stopped" share one edge.
-// When the History stage is added: define its node, point identification_to_next at it with the
-// IDENTIFIED condition alone, and restore a separate identification_to_end with STOPPED.
+// The platform allows one edge per node pair. Identification has two distinct targets (History, End),
+// so each outcome has its own edge. Any future stage that can be reached for two reasons from the same
+// node must merge those reasons into one edge condition ("Either: A Or: B"), as this workflow did
+// while Identification led only to End.
 const IDENTIFIED =
-  "The caller was identified (confirmed their name on an existing record) or was registered with save_patient, and was told the intake continues in the next version.";
+  "The caller was identified (confirmed their name on an existing record) or was registered with save_patient, and was told the questions about their health come next.";
 const STOPPED =
   "The caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the practice will contact them and given a goodbye.";
 
-// Start -> Consent -> Identification -> (End). Escalation is reachable from Consent and
-// Identification through an LLM-condition edge, and is listed first so it is evaluated first.
+// Start -> Consent -> Identification -> History -> Scheduling -> End. Escalation is reachable from every
+// stage after Start through an LLM-condition edge, and is listed first so it is evaluated first.
+// History alone runs on a stronger LLM (a per-node override); every other node uses the agent's LLM.
 // Tools are attached per node, so the model cannot even see find_patient or save_patient until
 // Consent has been granted (the web app also enforces this server side).
-export function buildWorkflow(ids: WorkflowToolIds): Workflow {
+export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "history_llm" | "history_llm_reasoning_effort">): Workflow {
   return assertOneEdgePerPair({
     nodes: {
       start_node: { type: "start", edge_order: ["start_to_consent"] },
@@ -40,12 +46,33 @@ export function buildWorkflow(ids: WorkflowToolIds): Workflow {
         label: "Identification",
         additional_prompt: prompt("identification"),
         additional_tool_ids: [ids.find_patient, ids.save_patient],
-        edge_order: ["identification_to_escalation", "identification_to_next"],
+        edge_order: ["identification_to_escalation", "identification_to_history", "identification_to_end"],
       },
+      // Free-form, adaptive interview guided by the Questionnaire. The model picks order and follow-ups, so
+      // it gets a stronger tool-capable LLM than the scripted stages.
+      history: {
+        type: "override_agent",
+        label: "History",
+        additional_prompt: prompt("history"),
+        additional_tool_ids: [ids.get_questionnaire, ids.save_history],
+        conversation_config: {
+          agent: { prompt: { llm: config.history_llm, reasoning_effort: config.history_llm_reasoning_effort } },
+        },
+        edge_order: ["history_to_escalation", "history_to_scheduling", "history_to_end"],
+      },
+      scheduling: {
+        type: "override_agent",
+        label: "Scheduling",
+        additional_prompt: prompt("scheduling"),
+        additional_tool_ids: [ids.check_availability, ids.book_appointment],
+        edge_order: ["scheduling_to_escalation", "scheduling_to_end"],
+      },
+      // The escalate tool works without consent: a red flag is a safety event.
       escalation: {
         type: "override_agent",
         label: "Escalation",
         additional_prompt: prompt("escalation"),
+        additional_tool_ids: [ids.escalate],
         edge_order: ["escalation_to_end"],
       },
       end_node: { type: "end" },
@@ -73,10 +100,43 @@ export function buildWorkflow(ids: WorkflowToolIds): Workflow {
         target: "escalation",
         forward_condition: { type: "llm", condition: RED_FLAG },
       },
-      identification_to_next: {
+      identification_to_history: {
+        source: "identification",
+        target: "history",
+        forward_condition: { type: "llm", condition: IDENTIFIED },
+      },
+      identification_to_end: {
         source: "identification",
         target: "end_node",
-        forward_condition: { type: "llm", condition: `Either: ${IDENTIFIED} Or: ${STOPPED}` },
+        forward_condition: { type: "llm", condition: STOPPED },
+      },
+
+      history_to_escalation: { source: "history", target: "escalation", forward_condition: { type: "llm", condition: RED_FLAG } },
+      history_to_scheduling: {
+        source: "history",
+        target: "scheduling",
+        forward_condition: {
+          type: "llm",
+          condition: "save_history was called with status completed and the response did not list missing items, and the caller was told the next step is choosing a day and time.",
+        },
+      },
+      history_to_end: {
+        source: "history",
+        target: "end_node",
+        forward_condition: {
+          type: "llm",
+          condition: "The caller wants to stop the questions or the tools failed repeatedly, save_history was called with status in-progress (if any answer had been given), and the caller was told the practice will contact them and given a goodbye.",
+        },
+      },
+
+      scheduling_to_escalation: { source: "scheduling", target: "escalation", forward_condition: { type: "llm", condition: RED_FLAG } },
+      scheduling_to_end: {
+        source: "scheduling",
+        target: "end_node",
+        forward_condition: {
+          type: "llm",
+          condition: "Either: book_appointment confirmed the appointment, its day, date and time were read back, and the caller was given a goodbye. Or: the caller declined to book or the tools failed repeatedly, and the caller was told the practice will contact them and given a goodbye.",
+        },
       },
 
       escalation_to_end: {

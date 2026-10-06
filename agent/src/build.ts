@@ -60,11 +60,19 @@ const toolId = (name: string): string => {
   pending.push({ msg: `tool ID for ${name} (created by pnpm agent:tools:push:apply)`, blocking: requireToolIds });
   return toolPlaceholder(name);
 };
-const workflow = buildWorkflow({
-  record_consent: toolId("record_consent"),
-  find_patient: toolId("find_patient"),
-  save_patient: toolId("save_patient"),
-});
+const workflow = buildWorkflow(
+  {
+    record_consent: toolId("record_consent"),
+    find_patient: toolId("find_patient"),
+    save_patient: toolId("save_patient"),
+    get_questionnaire: toolId("get_questionnaire"),
+    save_history: toolId("save_history"),
+    check_availability: toolId("check_availability"),
+    book_appointment: toolId("book_appointment"),
+    escalate: toolId("escalate"),
+  },
+  config,
+);
 
 const agentFile = `agent_configs/${config.agent_name}.json`;
 writeJson(agentFile, buildAgent({ config, env, workflow, globalToolIds: [] }), 2);

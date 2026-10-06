@@ -5,6 +5,8 @@
   "llm": "gemini-3.5-flash",
   "llm_reasoning_effort": "low",
   "llm_temperature": 0.3,
+  "history_llm": "claude-sonnet-5",
+  "history_llm_reasoning_effort": "low",
   "tts_model_id": "eleven_v4_turbo",
   "voice_id": "m7yTemJqdIqrcNleANfX",
   "allowlist": [

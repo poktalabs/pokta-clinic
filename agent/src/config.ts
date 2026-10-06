@@ -14,6 +14,9 @@ export interface AgentConfig {
   llm: string;
   llm_reasoning_effort: "none" | "minimal" | "low" | "medium" | "high";
   llm_temperature: number;
+  /** Stronger tool-capable LLM for the History node only (per-node override). */
+  history_llm: string;
+  history_llm_reasoning_effort: "none" | "minimal" | "low" | "medium" | "high";
   tts_model_id: string;
   voice_id: string;
   allowlist: string[];

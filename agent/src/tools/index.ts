@@ -1,9 +1,23 @@
 import type { ToolSpec, WebhookTool } from "../types.ts";
+import { bookAppointment } from "./book-appointment.ts";
+import { checkAvailability } from "./check-availability.ts";
+import { escalate } from "./escalate.ts";
 import { findPatient } from "./find-patient.ts";
+import { getQuestionnaire } from "./get-questionnaire.ts";
 import { recordConsent } from "./record-consent.ts";
+import { saveHistory } from "./save-history.ts";
 import { savePatient } from "./save-patient.ts";
 
-export const TOOL_SPECS = { recordConsent, findPatient, savePatient } as const;
+export const TOOL_SPECS = {
+  recordConsent,
+  findPatient,
+  savePatient,
+  getQuestionnaire,
+  saveHistory,
+  checkAvailability,
+  bookAppointment,
+  escalate,
+} as const;
 export const SECRET_HEADER = "x-pokta-tool-secret";
 
 export interface ToolEnv {

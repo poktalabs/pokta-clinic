@@ -14,6 +14,26 @@
             "type": "webhook",
             "config": "tool_configs/save_patient.json",
             "id": "tool_1001m47rbjhfeg5rzhnnqk1rct4d"
+        },
+        {
+            "type": "webhook",
+            "config": "tool_configs/get_questionnaire.json"
+        },
+        {
+            "type": "webhook",
+            "config": "tool_configs/save_history.json"
+        },
+        {
+            "type": "webhook",
+            "config": "tool_configs/check_availability.json"
+        },
+        {
+            "type": "webhook",
+            "config": "tool_configs/book_appointment.json"
+        },
+        {
+            "type": "webhook",
+            "config": "tool_configs/escalate.json"
         }
     ]
 }

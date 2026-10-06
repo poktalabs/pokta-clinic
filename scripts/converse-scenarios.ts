@@ -33,7 +33,7 @@ export function buildScenario(name: string): Scenario {
     case "golden":
       return {
         name,
-        description: `New patient Lucia Mendoza Rios, accepts the aviso, phone ${phone}, dob 1988-03-14, sexo M.`,
+        description: `New patient Lucia Mendoza Rios, accepts the aviso, phone ${phone}, dob 1988-03-14, sexo M; then History (38-year-old, 3 months of symmetric hand pain, 1 hour of morning stiffness) and accepts the first offered slot.`,
         fallback: "Sí, adelante.",
         farewell: "Gracias, hasta luego.",
         rules: [
@@ -47,6 +47,22 @@ export function buildScenario(name: string): Scenario {
           { match: /nacimiento|nacio|naciste/, say: "Nací el 14 de marzo de 1988." },
           { match: /sexo|hombre o mujer/, say: "Mujer." },
           { match: /nombre/, say: "Lucía." },
+          // History: the golden-path Patient. Rules are ordered most specific first; order of questions is free.
+          { match: /motivo|molestia|trae por aqui|ver a la doctora/, say: "Me duelen las manos de los dos lados desde hace unos tres meses." },
+          { match: /cuando empez|desde cuando|cuanto tiempo/, say: "Desde hace tres meses, poco a poco." },
+          { match: /articulacion|donde le duele|que parte|manos|muñecas|dos lados/, say: "Las manos y los nudillos, de los dos lados por igual." },
+          { match: /rigidez|entumec|rato.*manana|manana.*(rato|tiempo|minutos)|minutos/, say: "Como una hora de rigidez en la mañana." },
+          { match: /hincha|inflam|nudillos/, say: "Sí, tengo los nudillos hinchados." },
+          { match: /fiebre|cansancio|fatiga|peso|sintomas generales/, say: "Un poco de cansancio, sin fiebre." },
+          { match: /piel|ojos|boca|sequedad|ronchas|erupcion|raynaud|dedos.*(blancos|morados)/, say: "No, sin ronchas, ni problemas en la piel, los ojos o la boca." },
+          { match: /medicamento|toma alguno|ibuprofeno|tratamiento/, say: "Tomo ibuprofeno cuando me duele." },
+          { match: /alergia/, say: "No tengo alergias." },
+          { match: /diagnostico|estudios|analisis|laboratorio|radiograf|imagen/, say: "No me han diagnosticado nada ni me han hecho estudios." },
+          { match: /familia|madre|mama|padre|autoinmune|reumatic/, say: "Mi mamá tiene artritis reumatoide." },
+          // Scheduling: accept the first offered slot.
+          { match: /dia o (un )?horario|preferencia|manana o (en )?la tarde/, say: "No tengo preferencia." },
+          { match: /(opcion|horario|tengo|disponible).*(\d|lunes|martes|miercoles|jueves|viernes)|cual le acomoda|cual prefiere/, say: "La primera opción, por favor." },
+          { match: /quedo bien|esta bien asi|alguna duda|algo mas/, say: "Sí, todo bien, gracias." },
         ],
       };
     case "refuse":

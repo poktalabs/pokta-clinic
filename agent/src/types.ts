@@ -8,7 +8,10 @@ export type JsonValue = string | number | boolean | null | JsonValue[] | JsonObj
 // `description`, or the platform fills it from a dynamic variable.
 export type ToolProperty =
   | { type: "string" | "boolean" | "integer" | "number"; description: string; enum?: string[] }
-  | { type: "string"; dynamic_variable: string };
+  | { type: "string"; dynamic_variable: string }
+  // Nested shapes are accepted by the API (ArrayJsonSchemaProperty, ObjectJsonSchemaProperty).
+  | { type: "array"; description: string; items: ToolProperty }
+  | { type: "object"; description: string; required: string[]; properties: Record<string, ToolProperty> };
 
 export type SecretHeader = { secret_id: string };
 
@@ -44,6 +47,8 @@ export interface WorkflowNode {
   label?: string;
   additional_prompt?: string;
   additional_tool_ids?: string[];
+  /** Per-node override of the agent's conversation config; we only use it to swap the LLM. */
+  conversation_config?: JsonObject;
   edge_order?: string[];
 }
 
