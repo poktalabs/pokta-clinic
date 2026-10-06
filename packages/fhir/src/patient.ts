@@ -7,6 +7,7 @@ export const SYSTEM = {
   folio: "urn:pokta-clinic:expediente-demo:folio",
   clues: "urn:mx:dgis:clues",
   cedula: "urn:mx:sep:cedula-profesional",
+  branch: "urn:pokta-clinic:branch",
 } as const;
 
 export const EXT = {

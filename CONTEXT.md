@@ -1,6 +1,6 @@
 # pokta-clinic
 
-A voice agent that runs the pre-visit intake for a private rheumatology practice in Mexico and writes the result into the practice's EHR over HL7 FHIR R4. The EHR is an external system; pokta-clinic works with any FHIR-speaking EHR.
+A voice agent that runs the pre-visit intake for a private rheumatology clinic network in Mexico and writes the result into the network's EHR over HL7 FHIR R4. The EHR is an external system; pokta-clinic works with any FHIR-speaking EHR.
 
 ## Clinical (HL7 FHIR R4)
 
@@ -9,16 +9,20 @@ The Organization's system of record for Patients and their clinical data, run by
 _Avoid_: database, backend, records system
 
 **Patient**:
-The person being seen by the practice, as held in the EHR (FHIR `Patient`). Identified by phone number, with CURP as an optional second identifier.
+The person being seen by the Organization, as held in the EHR (FHIR `Patient`). Identified by phone number, with CURP as an optional second identifier.
 _Avoid_: user, caller (outside the call itself), client
 
 **Practitioner**:
-The rheumatologist who will see the Patient (FHIR `Practitioner`).
+The rheumatologist who will see the Patient, working at one or more Locations (FHIR `Practitioner`).
 _Avoid_: doctor (in code and docs), provider
 
 **Organization**:
-The private practice that owns the EHR and the Practitioner's calendar (FHIR `Organization`).
+The private clinic network (Grupo Médico Articular) that owns the EHR and its Locations (FHIR `Organization`).
 _Avoid_: clinic (in code and docs), tenant
+
+**Location**:
+A branch of the Organization where the Patient is seen, with its own address, opening hours and CLUES (FHIR `Location`). A Practitioner works at one or more Locations (FHIR `PractitionerRole`).
+_Avoid_: clinic, site, sucursal (in code)
 
 **QuestionnaireResponse**:
 The patient-reported answers collected during one Conversation, authored by the agent and pending the Practitioner's Validation (FHIR `QuestionnaireResponse`). It feeds the Historia clinica but is never the Historia clinica itself.
@@ -45,7 +49,7 @@ The Patient's express agreement to the aviso de privacidad, required before any 
 _Avoid_: opt-in, acceptance
 
 **Appointment**:
-The booked first consultation between the Patient and the Practitioner (FHIR `Appointment`).
+The booked first consultation between the Patient and a Practitioner at a Location (FHIR `Appointment`).
 _Avoid_: booking, visit, slot (a slot is free time, not a booking)
 
 **Red flag**:

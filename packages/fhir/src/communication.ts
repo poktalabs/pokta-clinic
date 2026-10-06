@@ -20,7 +20,8 @@ export const Communication = z.object({
   category: z.array(z.object({ text: z.literal(RED_FLAG_CATEGORY) })).optional(),
   // Optional: an Escalation can happen before the caller is identified.
   subject: reference("Patient").optional(),
-  recipient: z.array(reference("Practitioner")).min(1),
+  // Optional: the EHR defaults to the network's first Practitioner when a client names none.
+  recipient: z.array(reference("Practitioner")).min(1).optional(),
   sent: z.iso.datetime({ offset: true }).optional(),
   // payload[0] is the patient's exact words; payload[1] is the instruction the agent gave.
   payload: z.array(z.object({ contentString: z.string() })).min(1),

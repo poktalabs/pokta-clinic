@@ -49,7 +49,8 @@ patientRoutes.post("/", async (c) => {
   const [existing] = await db.select().from(patient).where(eq(patient.telefono, input.telefono));
   if (existing) return c.json(toFhir(existing), 200);
 
-  const [org] = await db.select().from(establishment).limit(1);
+  // A new Patient registers at the first branch; the Expediente is network-wide in the demo.
+  const [org] = await db.select().from(establishment).orderBy(establishment.createdAt).limit(1);
   if (!org) return c.json(operationOutcome("exception", "No establishment seeded"), 500);
   const folio = `EXP-${Date.now().toString(36).toUpperCase()}`;
   try {

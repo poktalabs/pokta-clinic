@@ -1,6 +1,6 @@
 // Tables follow NOM-004-SSA3-2012 and NOM-024-SSA3-2012; see apps/mock-ehr/docs/data-model.md for the section
 // behind each column. FHIR mapping lives in src/fhir/, never here.
-import { boolean, date, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 const id = () => uuid("id").primaryKey().defaultRandom();
 const now = (name: string) => timestamp(name, { withTimezone: true }).notNull().defaultNow();
@@ -9,9 +9,25 @@ const createdAt = () => now("created_at");
 // NOM-024 Table 1 uses RENAPO's H/M.
 export const sexoEnum = pgEnum("sexo", ["H", "M"]);
 
-// NOM-004 5.2.1, 5.2.2; CLUES from the DGIS catalog (NOM-024 Apendice A).
+// The clinic network that owns the branches: FHIR `Organization`. Not a NOM establishment (it has no CLUES).
+export const organization = pgTable("organization", {
+  id: id(),
+  nombre: text("nombre").notNull(),
+  razonSocial: text("razon_social").notNull().unique(),
+  createdAt: createdAt(),
+});
+
+// One opening interval of a branch, in FHIR R4 `hoursOfOperation` terms. Times are local (America/Mexico_City).
+export type Horario = { daysOfWeek: ("mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun")[]; openingTime: string; closingTime: string };
+
+// A branch: NOM-004 5.2.1, 5.2.2; CLUES from the DGIS catalog (NOM-024 Apendice A). FHIR `Location`.
 export const establishment = pgTable("establishment", {
   id: id(),
+  // Nullable so the migration is additive; the seed links every branch to the network.
+  organizationId: uuid("organization_id").references(() => organization.id),
+  // Stable branch code (`del-valle`, `polanco`, `satelite`): how a client resolves a Location by identifier.
+  codigo: text("codigo").unique(),
+  horarios: jsonb("horarios").$type<Horario[]>(),
   clues: text("clues").notNull().unique(),
   tipo: text("tipo").notNull(),
   nombre: text("nombre").notNull(),
@@ -31,6 +47,18 @@ export const practitioner = pgTable("practitioner", {
   especialidad: text("especialidad").notNull(),
   createdAt: createdAt(),
 });
+
+// A Practitioner works at one or more branches: FHIR `PractitionerRole`.
+export const practitionerRole = pgTable(
+  "practitioner_role",
+  {
+    id: id(),
+    practitionerId: uuid("practitioner_id").notNull().references(() => practitioner.id),
+    establishmentId: uuid("establishment_id").notNull().references(() => establishment.id),
+    createdAt: createdAt(),
+  },
+  (t) => [unique().on(t.practitionerId, t.establishmentId)],
+);
 
 // NOM-024 6.5 and Table 1; NOM-004 5.2.3. CURP is never generated (6.5.2) and stays unvalidated
 // until checked against RENAPO, which the demo does not do.
@@ -102,6 +130,8 @@ export const appointment = pgTable("appointment", {
   id: id(),
   patientId: uuid("patient_id").notNull().references(() => patient.id),
   practitionerId: uuid("practitioner_id").notNull().references(() => practitioner.id),
+  // The branch where the Patient is seen; the Practitioner must hold a practitioner_role there.
+  establishmentId: uuid("establishment_id").notNull().references(() => establishment.id),
   start: timestamp("start", { withTimezone: true }).notNull(),
   end: timestamp("end", { withTimezone: true }).notNull(),
   status: appointmentStatusEnum("status").notNull().default("booked"),

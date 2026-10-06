@@ -44,9 +44,13 @@ communicationRoutes.post("/", async (c) => {
   const level = severity as (typeof RED_FLAG_SEVERITY)[number];
   if (PRIORITY_BY_SEVERITY[level] !== data.priority) return c.json(operationOutcome("business-rule", `priority ${data.priority} does not match severity ${level}`), 422);
 
-  const practitionerId = idFromReference(data.recipient[0].reference, "Practitioner")!;
-  const [foundPractitioner] = isUuid(practitionerId) ? await db.select({ id: practitioner.id }).from(practitioner).where(eq(practitioner.id, practitionerId)) : [];
+  // The client may name the Practitioner to notify; otherwise the network's first Practitioner (oldest row) is told.
+  const named = data.recipient?.[0] && idFromReference(data.recipient[0].reference, "Practitioner")!;
+  const [foundPractitioner] = named
+    ? isUuid(named) ? await db.select({ id: practitioner.id }).from(practitioner).where(eq(practitioner.id, named)) : []
+    : await db.select({ id: practitioner.id }).from(practitioner).orderBy(practitioner.createdAt).limit(1);
   if (!foundPractitioner) return c.json(operationOutcome("not-found", "Practitioner not found"), 404);
+  const practitionerId = foundPractitioner.id;
 
   let patientId: string | null = null;
   if (data.subject) {

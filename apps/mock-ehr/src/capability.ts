@@ -6,7 +6,10 @@ const reference = (name: string) => ({ name, type: "reference" });
 
 export const RESOURCES = [
   { type: "Patient", interaction: ["read", "search-type", "create"], searchParam: [token("phone"), token("identifier")] },
+  { type: "Organization", interaction: ["read", "search-type"], searchParam: [] },
+  { type: "Location", interaction: ["read", "search-type"], searchParam: [token("identifier")] },
   { type: "Practitioner", interaction: ["read", "search-type"], searchParam: [] },
+  { type: "PractitionerRole", interaction: ["read", "search-type"], searchParam: [reference("location"), reference("practitioner")] },
   { type: "Questionnaire", interaction: ["read", "search-type"], searchParam: [{ name: "url", type: "uri" }] },
   {
     type: "QuestionnaireResponse",
@@ -14,7 +17,7 @@ export const RESOURCES = [
     searchParam: [token("identifier"), reference("subject")],
   },
   { type: "Consent", interaction: ["create", "search-type", "update"], searchParam: [token("identifier")] },
-  { type: "Appointment", interaction: ["read", "create", "search-type"], searchParam: [reference("patient"), token("identifier")] },
+  { type: "Appointment", interaction: ["read", "create", "search-type"], searchParam: [reference("patient"), reference("location"), token("identifier")] },
   { type: "Communication", interaction: ["create", "search-type"], searchParam: [token("identifier")] },
 ] as const;
 

@@ -1,8 +1,8 @@
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "./client.js";
-import { seedDemoPractice, seedQuestionnaire } from "./seed-data.js";
+import { seedDemoNetwork, seedQuestionnaire } from "./seed-data.js";
 
-// Runs before the server accepts traffic: apply pending migrations, then seed the demo practice and the Questionnaire.
+// Runs before the server accepts traffic: apply pending migrations, then seed the demo network and the Questionnaire.
 // Both steps are idempotent. After a resume, Render can start the service before Postgres accepts
 // connections, so the first attempts may fail; retry for about a minute, then exit and let Render restart.
 const ATTEMPTS = 12;
@@ -12,9 +12,9 @@ export async function prepareDatabase(migrationsFolder: string): Promise<void> {
   for (let attempt = 1; ; attempt++) {
     try {
       await migrate(db, { migrationsFolder });
-      const seeded = await seedDemoPractice();
+      const seeded = await seedDemoNetwork();
       const seededQuestionnaire = await seedQuestionnaire();
-      console.log(`database ready (migrations applied${seeded ? ", demo practice seeded" : ""}${seededQuestionnaire ? ", questionnaire seeded" : ""})`);
+      console.log(`database ready (migrations applied${seeded ? ", demo network seeded" : ""}${seededQuestionnaire ? ", questionnaire seeded" : ""})`);
       return;
     } catch (err) {
       const e = err as { code?: string; cause?: { code?: string }; name: string };

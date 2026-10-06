@@ -1,7 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { appointment, auditEvent, communication, consent, intake, patient } from "../db/schema.js";
+import { appointment, auditEvent, communication, consent, establishment, intake, patient } from "../db/schema.js";
 import { Layout } from "./layout.js";
+import { Network, loadNetwork } from "./network.js";
 
 const VALIDATION = { pending_validation: "pending", validated: "validated", rejected: "rejected" } as const;
 const mexicoCity = new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", dateStyle: "short", timeStyle: "short" });
@@ -25,15 +26,22 @@ const Table = (props: { title: string; head: string[]; rows: unknown[][]; empty?
 
 // Read-only: the latest rows of each resource and the audit trail.
 export async function loadConsole() {
-  const [patients, consents, responses, appointments, communications, audits] = await Promise.all([
+  const [network, patients, consents, responses, appointments, communications, audits] = await Promise.all([
+    loadNetwork(),
     db.select().from(patient).orderBy(desc(patient.createdAt)).limit(20),
     db.select({ c: consent, folio: patient.folio }).from(consent).leftJoin(patient, eq(consent.patientId, patient.id)).orderBy(desc(consent.recordedAt)).limit(20),
     db.select({ r: intake, folio: patient.folio }).from(intake).innerJoin(patient, eq(intake.patientId, patient.id)).orderBy(desc(intake.createdAt)).limit(20),
-    db.select({ a: appointment, folio: patient.folio }).from(appointment).innerJoin(patient, eq(appointment.patientId, patient.id)).orderBy(desc(appointment.start)).limit(20),
+    db
+      .select({ a: appointment, folio: patient.folio, branch: establishment.nombre })
+      .from(appointment)
+      .innerJoin(patient, eq(appointment.patientId, patient.id))
+      .innerJoin(establishment, eq(appointment.establishmentId, establishment.id))
+      .orderBy(desc(appointment.start))
+      .limit(20),
     db.select().from(communication).orderBy(desc(communication.sentAt)).limit(20),
     db.select().from(auditEvent).orderBy(desc(auditEvent.at)).limit(30),
   ]);
-  return { patients, consents, responses, appointments, communications, audits };
+  return { network, patients, consents, responses, appointments, communications, audits };
 }
 
 export function ConsolePage(d: Awaited<ReturnType<typeof loadConsole>>) {
@@ -41,6 +49,9 @@ export function ConsolePage(d: Awaited<ReturnType<typeof loadConsole>>) {
     <Layout title="Expediente Demo: console" wide>
       <h1>Expediente Demo console</h1>
       <p class="sub">Read-only. Fictional data. Latest 20 of each, latest 30 audit events.</p>
+
+      <h2>Network</h2>
+      <Network data={d.network} />
 
       <Table
         title="Patients"
@@ -65,8 +76,8 @@ export function ConsolePage(d: Awaited<ReturnType<typeof loadConsole>>) {
       />
       <Table
         title="Appointments"
-        head={["Patient (folio)", "Start (America/Mexico_City)", "Calendar event"]}
-        rows={d.appointments.map(({ a, folio }) => [folio, when(a.start), a.calendarEventId ?? ""])}
+        head={["Patient (folio)", "Branch", "Start (America/Mexico_City)", "Calendar event"]}
+        rows={d.appointments.map(({ a, folio, branch }) => [folio, branch, when(a.start), a.calendarEventId ?? ""])}
       />
       <Table
         title="Communications (Red flag Escalations)"

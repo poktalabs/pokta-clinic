@@ -20,18 +20,24 @@ Routes are wired in [src/app.ts](src/app.ts). Everything under `/fhir/*` except 
 | POST | `/fhir/Consent` | bearer | Create a Consent. Each answer is a new row; earlier answers stay as history. 201 with `Location`. |
 | PUT | `/fhir/Consent/:id` | bearer | Only links the Consent to a Patient (`patient.reference` required). Changing the answer returns 422. |
 
-| GET | `/fhir/Practitioner` | bearer | Searchset of the seeded Practitioner(s), so a client can resolve the reference once and cache it. |
+| GET | `/fhir/Organization` | bearer | Searchset of the clinic network (one Organization, seeded; read-only). |
+| GET | `/fhir/Organization/:id` | bearer | Read one; 404 if missing. |
+| GET | `/fhir/Location` or `?identifier=<system>\|<value>` | bearer | Searchset of the branches (name, address, CLUES, `hoursOfOperation`, `managingOrganization`). `identifier` is `urn:pokta-clinic:branch\|<code>` (`del-valle`, `polanco`, `satelite`) or `urn:mx:dgis:clues\|<CLUES>`; any other system returns 400. Read-only. |
+| GET | `/fhir/Location/:id` | bearer | Read one; 404 if missing. |
+| GET | `/fhir/Practitioner` | bearer | Searchset of the seeded Practitioners (one per branch), so a client can resolve the references once and cache them. |
 | GET | `/fhir/Practitioner/:id` | bearer | Read one; 404 if missing. |
+| GET | `/fhir/PractitionerRole?location=Location/<id>` or `?practitioner=Practitioner/<id>` | bearer | Searchset of who works where (specialty, Organization). Both parameters may be combined; no parameter lists every role. Read-only. |
+| GET | `/fhir/PractitionerRole/:id` | bearer | Read one; 404 if missing. |
 | GET | `/fhir/Questionnaire?url=<canonical>` | bearer | Searchset Bundle. Seeded on boot; read-only. No `url` returns 400. |
 | GET | `/fhir/Questionnaire/:id` | bearer | Read one; 404 if missing. |
 | POST | `/fhir/QuestionnaireResponse` | bearer | Create the answers of one Conversation. 404 if the subject Patient or the Questionnaire does not exist; 422 `business-rule` if `status` is `completed` and a required linkId has no answer (diagnostics lists the missing linkIds, comma-separated); 409 if the Conversation already has a response. 201 with `Location`. |
 | PUT | `/fhir/QuestionnaireResponse/:id` | bearer | Replace answers and status. 404 if missing; 422 if subject, identifier or questionnaire change, or if the Practitioner already validated it. |
 | GET | `/fhir/QuestionnaireResponse/:id` | bearer | Read one. |
 | GET | `/fhir/QuestionnaireResponse?identifier=urn:elevenlabs:conversation\|<id>` or `?subject=Patient/<id>` | bearer | Search, newest first. No parameter returns 400. |
-| POST | `/fhir/Appointment` | bearer | Book the first consultation. 404 if the Patient or Practitioner does not exist; 409 `conflict` if the Practitioner has a booked Appointment overlapping the interval. 201 with `Location`. |
-| GET | `/fhir/Appointment?patient=Patient/<id>` or `?identifier=<system>\|<value>` | bearer | Search by Patient or by calendar event or Conversation identifier. |
+| POST | `/fhir/Appointment` | bearer | Book the first consultation. Needs Patient, Practitioner and Location participants (`actor: Location/<id>`; 400 without). 404 if any does not exist; 422 `business-rule` if the Practitioner holds no PractitionerRole at that Location; 409 `conflict` if the Practitioner has a booked Appointment overlapping the interval (at any Location). 201 with the HTTP `Location` header. |
+| GET | `/fhir/Appointment?patient=Patient/<id>`, `?location=Location/<id>` or `?identifier=<system>\|<value>` | bearer | Search by Patient, by Location or by calendar event or Conversation identifier. |
 | GET | `/fhir/Appointment/:id` | bearer | Read one. |
-| POST | `/fhir/Communication` | bearer | Record a Red flag Escalation. Subject is optional. 422 if `priority` does not match the severity extension; 404 if the Practitioner (or a given Patient) does not exist. 201 with `Location`. |
+| POST | `/fhir/Communication` | bearer | Record a Red flag Escalation. Subject is optional. `recipient` (a Practitioner) is optional: without one the network's first Practitioner (the oldest row, Dra. Elena Ruiz Castellanos at Del Valle) is notified. 422 if `priority` does not match the severity extension; 404 if the Practitioner (or a given Patient) does not exist. 201 with `Location`. |
 | GET | `/fhir/Communication?identifier=urn:elevenlabs:conversation\|<id>` | bearer | Search by Conversation, newest first. |
 
 Errors are FHIR `OperationOutcome` bodies. Unknown routes return a 404 outcome; unhandled errors return a 500 outcome.
@@ -52,19 +58,21 @@ Schema: [src/db/schema.ts](src/db/schema.ts). Section-by-section sources: [docs/
 
 | Table | Purpose | Norm | Used by routes |
 |---|---|---|---|
-| `establishment` | The Organization (practice), identified by CLUES | NOM-004 5.2.1, 5.2.2; NOM-024 Apendice A | Seed, Patient create |
+| `organization` | The clinic network (Organization): nombre and razon social | n/a | Yes (read) |
+| `establishment` | A branch (Location): CLUES, stable branch `codigo`, opening hours (`horarios`, JSONB) and its `organization_id` | NOM-004 5.2.1, 5.2.2; NOM-024 Apendice A | Yes (read), Patient create |
 | `practitioner` | The rheumatologist, identified by cedula profesional | NOM-004 5.10 | Yes (read) |
+| `practitioner_role` | A Practitioner at a branch (unique pair) | n/a | Yes (read), Appointment create |
 | `patient` | Patient identity: folio, optional CURP, names, birth date, sex (H/M), phone, address; `retain_until` for retention | NOM-024 6.5 and Table 1; NOM-004 5.2.3, 5.4 | Yes |
 | `questionnaire` | Questionnaire definition: canonical `url`, version, title, items as JSONB; seeded on boot | n/a | Yes (read) |
 | `intake` | QuestionnaireResponse: patient-reported document from a Conversation, `completion` (`in_progress` or `completed`), Validation `status` (`pending_validation`, `validated` or `rejected`), author device | NOM-004 5.18 | Yes |
 | `consent` | Privacy Consent: granted, method (`voice`), Conversation ID, optional Patient | LFPDPPP; NOM-024 6.6.6 | Yes |
-| `appointment` | Booked first consultation, with the Google Calendar event id | n/a | Yes |
+| `appointment` | Booked first consultation at a branch (`establishment_id`), with the Google Calendar event id | n/a | Yes |
 | `communication` | Red flag Escalation to the Practitioner: severity, exact words, instruction; Patient optional | n/a | Yes |
 | `audit_event` | Append-only log of reads, searches and writes (actor, action, resource, detail) | NOM-024 3.42, 6.6.1 | Written by every route |
 
 The audit log is append-only in the database itself: migration [0001_audit_append_only.sql](drizzle/0001_audit_append_only.sql) adds a trigger that raises `audit_event is append-only` on any UPDATE or DELETE. The app writes through [src/audit.ts](src/audit.ts). Audit detail holds counts and ids, not Patient data.
 
-Migrations are in [drizzle/](drizzle/) (`0000_chief_silvermane.sql` creates the tables; `0001` adds the trigger; `0002_opposite_franklin_richards.sql` adds `communication`, the Questionnaire `url` and `status`, the QuestionnaireResponse `completion`, `updated_at` and unique Conversation, and the Appointment `description`).
+Migrations are in [drizzle/](drizzle/) (`0000_chief_silvermane.sql` creates the tables; `0001` adds the trigger; `0002_opposite_franklin_richards.sql` adds `communication`, the Questionnaire `url` and `status`, the QuestionnaireResponse `completion`, `updated_at` and unique Conversation, and the Appointment `description`; `0003_branch_network.sql` adds `organization` and `practitioner_role`, the branch columns on `establishment` and the Appointment `establishment_id`, backfilling the old single establishment and its Practitioner and Appointments, so no row is dropped or rewritten).
 
 ## FHIR mapping
 
@@ -86,20 +94,20 @@ Mapping code: [src/fhir/patient.ts](src/fhir/patient.ts) (`toFhir`, `fromFhir`) 
 | consent `patient_id` | `Consent.patient.reference` (`Patient/<id>`) |
 | consent `recorded_at` | `Consent.dateTime` |
 
-The mappings for QuestionnaireResponse, Appointment, Communication, Questionnaire and Practitioner are in the table in [docs/data-model.md](docs/data-model.md); their builders live in [packages/fhir](../../packages/fhir/README.md) and their route modules in [src/routes/](src/routes/).
+The mappings for QuestionnaireResponse, Appointment, Communication, Questionnaire, Practitioner, Organization, Location and PractitionerRole are in the table in [docs/data-model.md](docs/data-model.md); their builders live in [packages/fhir](../../packages/fhir/README.md) and their route modules in [src/routes/](src/routes/).
 
 Scope and category on Consent are fixed (`patient-privacy`, LOINC `59284-0`). On input, a missing primer apellido extension falls back to splitting `family` on spaces; no primer apellido at all is a 400.
 
 ## Console
 
-`GET /console` is a read-only page for showing the demo: the latest 20 Patients (phone masked to the last 4 digits), Consents, QuestionnaireResponses (with a link to the raw JSON at `/console/questionnaire-response/:id`), Appointments (start in America/Mexico_City) and Communications, plus the latest 30 audit events. Auth is HTTP Basic with user `admin` and the password in `EHR_CONSOLE_PASSWORD`, compared in constant time. If the variable is unset the console returns 404. All values are HTML-escaped; there is no client JS and no write action. Code: [src/routes/console.tsx](src/routes/console.tsx) and [src/pages/console.tsx](src/pages/console.tsx). The root page `/` ([src/pages/root.tsx](src/pages/root.tsx)) is public and shows only counts.
+`GET /console` is a read-only page for showing the demo: the latest 20 Patients (phone masked to the last 4 digits), Consents, QuestionnaireResponses (with a link to the raw JSON at `/console/questionnaire-response/:id`), Appointments (with the branch, start in America/Mexico_City) and Communications, plus the Organization and its three branches (name, CLUES, address, hours, Practitioner), plus the latest 30 audit events. Auth is HTTP Basic with user `admin` and the password in `EHR_CONSOLE_PASSWORD`, compared in constant time. If the variable is unset the console returns 404. All values are HTML-escaped; there is no client JS and no write action. Code: [src/routes/console.tsx](src/routes/console.tsx) and [src/pages/console.tsx](src/pages/console.tsx). The root page `/` ([src/pages/root.tsx](src/pages/root.tsx)) is public and shows the network and its branches plus per-resource counts, never patient data.
 
 ## Boot sequence
 
 [src/server.ts](src/server.ts) calls `prepareDatabase` ([src/db/bootstrap.ts](src/db/bootstrap.ts)) before it starts listening:
 
 1. Apply pending Drizzle migrations from the `drizzle/` folder (resolved relative to the file, so it works from `src/` in dev and `dist/` in the image).
-2. Seed the demo practice ([src/db/seed-data.ts](src/db/seed-data.ts)): one establishment (CLUES `DFSMP000001`) and one practitioner. It does nothing if the CLUES already exists. Then seed the rheumatology first-visit Questionnaire; it does nothing if its canonical url already exists.
+2. Seed the demo network ([src/db/seed-data.ts](src/db/seed-data.ts)): the Organization, three branches (CLUES `DFSMP000001`, `DFSMP000002`, `MCSMP000003`) and one Practitioner with a PractitionerRole per branch. Rows are matched by natural key (razon social, CLUES, cedula) and updated in place, so a database seeded by the old single-practice version keeps its ids: `DFSMP000001` becomes the Del Valle branch with the same row. Missing rows are inserted. Then seed the rheumatology first-visit Questionnaire; it does nothing if its canonical url already exists.
 3. On failure (Postgres not accepting connections yet, for example after a Render resume), wait 5 seconds and retry, up to 12 attempts. After that the process throws and exits so the host restarts it.
 4. Listen on `PORT` (default 8787).
 
@@ -130,7 +138,7 @@ From the repo root use `pnpm --filter @pokta-clinic/mock-ehr <script>`, or `pnpm
 | `typecheck` | `tsc --noEmit`. |
 | `db:generate` | `drizzle-kit generate`: new migration from schema changes. |
 | `db:migrate` | `drizzle-kit migrate` with `.env.local` (optional locally; boot also migrates). |
-| `db:seed` | Seed the demo practice by hand ([src/seed.ts](src/seed.ts)). |
+| `db:seed` | Seed the demo network by hand ([src/seed.ts](src/seed.ts)). |
 
 The [Dockerfile](Dockerfile) builds from the repo root (it needs `packages/fhir`), bundles with tsup, ships only production dependencies plus `dist/` and `drizzle/`, runs as the `node` user and exposes 8787.
 
@@ -157,7 +165,7 @@ The [Dockerfile](Dockerfile) builds from the repo root (it needs `packages/fhir`
 | [src/db/schema.ts](src/db/schema.ts) | Drizzle tables and enums. |
 | [src/db/client.ts](src/db/client.ts) | Postgres client and Drizzle instance. |
 | [src/db/bootstrap.ts](src/db/bootstrap.ts) | Migrate, seed, retry. |
-| [src/db/seed-data.ts](src/db/seed-data.ts) | The fictional practice and Practitioner. |
+| [src/db/seed-data.ts](src/db/seed-data.ts) | The fictional network, branches and Practitioners. |
 | [src/seed.ts](src/seed.ts) | CLI wrapper for the seed. |
 | [drizzle.config.ts](drizzle.config.ts), [drizzle/](drizzle/) | drizzle-kit config and generated migrations. |
 | [tsup.config.ts](tsup.config.ts) | Production bundle config. |

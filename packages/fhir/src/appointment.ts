@@ -9,7 +9,7 @@ export const FIRST_VISIT_SERVICE = "Primera consulta de reumatologia";
 export const FIRST_VISIT_MINUTES = 60;
 
 const Participant = z.object({
-  actor: z.union([reference("Patient"), reference("Practitioner")]),
+  actor: z.union([reference("Patient"), reference("Practitioner"), reference("Location")]),
   status: z.literal("accepted"),
 });
 
@@ -23,7 +23,8 @@ export const Appointment = z.object({
   end: z.iso.datetime({ offset: true }),
   minutesDuration: z.number().int().positive().optional(),
   description: z.string().optional(),
-  participant: z.array(Participant).min(2),
+  // Patient, Practitioner and the Location where they meet.
+  participant: z.array(Participant).min(3),
 });
 export type Appointment = z.infer<typeof Appointment>;
 
@@ -31,6 +32,7 @@ export function appointmentResource(input: {
   id?: string;
   patientId: string;
   practitionerId: string;
+  locationId: string;
   start: string;
   end: string;
   calendarEventId: string;
@@ -52,6 +54,7 @@ export function appointmentResource(input: {
     participant: [
       { actor: ref("Patient", input.patientId), status: "accepted" },
       { actor: ref("Practitioner", input.practitionerId), status: "accepted" },
+      { actor: ref("Location", input.locationId), status: "accepted" },
     ],
   };
 }

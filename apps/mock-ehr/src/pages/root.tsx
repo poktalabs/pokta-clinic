@@ -2,19 +2,26 @@ import { count } from "drizzle-orm";
 import type { AnyPgTable } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { RESOURCES } from "../capability.js";
-import { appointment, communication, consent, intake, patient } from "../db/schema.js";
+import { appointment, communication, consent, establishment, intake, organization, patient, practitioner, practitionerRole } from "../db/schema.js";
 import { Layout } from "./layout.js";
+import { Network, loadNetwork } from "./network.js";
 
 // Public landing page: counts only, never patient data.
 export async function counts() {
   const of = async (table: AnyPgTable) => (await db.select({ n: count() }).from(table))[0].n;
-  const [patients, consents, responses, appointments, communications] = await Promise.all([patient, consent, intake, appointment, communication].map(of));
-  return { patients, consents, responses, appointments, communications };
+  const [organizations, locations, practitioners, roles, patients, consents, responses, appointments, communications] = await Promise.all(
+    [organization, establishment, practitioner, practitionerRole, patient, consent, intake, appointment, communication].map(of),
+  );
+  return { organizations, locations, practitioners, roles, patients, consents, responses, appointments, communications };
 }
 
 export async function RootPage() {
-  const n = await counts();
+  const [n, network] = await Promise.all([counts(), loadNetwork()]);
   const stats = [
+    ["Organizations", n.organizations],
+    ["Locations", n.locations],
+    ["Practitioners", n.practitioners],
+    ["PractitionerRoles", n.roles],
     ["Patients", n.patients],
     ["Consents", n.consents],
     ["QuestionnaireResponses", n.responses],
@@ -26,8 +33,11 @@ export async function RootPage() {
       <h1>Expediente Demo</h1>
       <p class="sub">A mock third-party EHR (HL7 FHIR R4) for the pokta-clinic voice agent demo</p>
       <p>
-        Expediente Demo plays the vendor system that holds the Expediente of a private rheumatology practice in Mexico. pokta-clinic reaches it only over FHIR R4. Everything stored here is fictional.
+        Expediente Demo plays the vendor system that holds the Expediente of a private rheumatology clinic network in Mexico, with three branches. pokta-clinic reaches it only over FHIR R4. Everything stored here is fictional.
       </p>
+
+      <h2>The network</h2>
+      <Network data={network} />
 
       <h2>Live counts</h2>
       <div class="grid">
