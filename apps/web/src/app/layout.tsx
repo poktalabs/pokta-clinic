@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "pokta-clinic: voice pre-consultation intake",
-  description: "Live demo of a voice agent that runs the pre-visit intake for a fictional rheumatology practice in Mexico City. All data is fictional.",
+  description: "Live demo of a voice agent that runs the pre-visit intake for Grupo Médico Articular, a fictional rheumatology network with three branches in the Mexico City area. All data is fictional.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

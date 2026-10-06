@@ -1,14 +1,18 @@
 import { z } from "zod";
+import { BRANCH_CODES } from "@pokta-clinic/fhir";
 import { calendar } from "@/calendar";
 import { EhrRejectedError, EhrUnavailableError, ehr, type AppointmentRecord, type PatientDetail } from "@/ehr";
 import { queueForEhr } from "@/outbox/queue";
+import { BRANCHES, type BranchCode } from "@/scheduling/branches";
 import { busyRange, describeStart, resolveSlot } from "@/scheduling/slots";
 import { store, type BookingRecord } from "@/store";
+import { branchDetails } from "@/tools/branch-details";
 import { NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
 
 const Input = z.object({
   conversation_id: conversationId,
   patient_id: z.string().min(1).max(100),
+  branch: z.enum(BRANCH_CODES),
   start: z.string().min(1).max(40),
 });
 
@@ -17,17 +21,23 @@ const SLOT_TAKEN = {
   message: "That slot is no longer available. Apologise briefly and call check_availability to offer other options.",
 };
 
-function confirmed(appointment: { id: string | null; start: string }, queued = false) {
+async function confirmed(appointment: { id: string | null; branch: BranchCode; start: string }, queued = false) {
   const { label } = describeStart(appointment.start);
+  const { name, address, practitionerName } = await branchDetails(appointment.branch);
+  const readBack = `the day, date and time (${label}), the branch name (${name}) and the practitioner (${practitionerName})`;
   return {
     booked: true,
     ...(appointment.id ? { appointment_id: appointment.id } : {}),
     ...(queued ? { queued: true } : {}),
+    branch: appointment.branch,
+    branch_name: name,
+    address,
+    practitioner_name: practitionerName,
     start: appointment.start,
     label,
     message: queued
-      ? `Booked in the calendar: ${label}. The clinic record system is offline and will sync the Appointment by itself. Read back the day, date and time to the caller, do not mention any problem, and follow the instructions of your current stage.`
-      : `Booked. Read back the day, date and time to the caller: ${label}. Then follow the instructions of your current stage.`,
+      ? `Booked in the calendar. The clinic record system is offline and will sync the Appointment by itself. Read back ${readBack} to the caller, say the address once, do not mention any problem, and follow the instructions of your current stage.`
+      : `Booked. Read back ${readBack} to the caller and say the address once. Then follow the instructions of your current stage.`,
   };
 }
 
@@ -61,7 +71,7 @@ export const POST = tool("book_appointment", Input, async (input, ctx) => {
   if (remembered) {
     if (remembered.patientId !== input.patient_id) return patientMismatch({ id: "", granted: true, patientId: remembered.patientId }, input.patient_id)!;
     ctx.outcome(`slot already booked ${describeOutcomeStart(remembered.start)}`);
-    return confirmed({ id: remembered.appointmentId, start: remembered.start });
+    return confirmed({ id: remembered.appointmentId, branch: remembered.branch ?? input.branch, start: remembered.start });
   }
   // From here a failed EHR call does not stop the booking: only the Appointment write is queued.
   let ehrDown = false;
@@ -75,18 +85,18 @@ export const POST = tool("book_appointment", Input, async (input, ctx) => {
   if (existing) {
     if (existing.patientId !== input.patient_id) return patientMismatch({ id: "", granted: true, patientId: existing.patientId }, input.patient_id)!;
     ctx.outcome(`slot already booked ${describeOutcomeStart(existing.start)}`);
-    return confirmed(existing);
+    return confirmed({ id: existing.id, branch: existing.branch ?? input.branch, start: existing.start });
   }
 
-  // Never trust the start the LLM sends: re-check the practice rules and the live calendar.
+  // Never trust the start the LLM sends: re-check the branch's rules and its live calendar.
   const now = new Date();
-  const slot = resolveSlot(input.start, now);
+  const slot = resolveSlot(input.start, now, input.branch);
   if (!slot) {
     ctx.outcome("start not bookable");
     return { ...SLOT_TAKEN, message: "That start is not a bookable slot. Call check_availability and offer only the slots it returns." };
   }
   const range = busyRange(now);
-  const busy = await calendar.busy(range.from, range.to);
+  const busy = await calendar.busy(input.branch, range.from, range.to);
   const startMs = Date.parse(slot.start);
   if (busy.some((b) => startMs < Date.parse(b.end) && Date.parse(b.start) < Date.parse(slot.end))) {
     ctx.outcome("slot taken");
@@ -111,27 +121,29 @@ export const POST = tool("book_appointment", Input, async (input, ctx) => {
   // The folio and ids let the practice find the Patient in the EHR. While the EHR is down the name is
   // unknown, so the event carries the ids only.
   const event = await calendar.createEvent({
+    branch: input.branch,
     start: slot.start,
     end: slot.end,
     summary: patient ? `Primera consulta: ${patient.givenName} ${patient.primerApellido}`.trim() : "Primera consulta (pendiente de sincronizar)",
-    description: `Folio: ${patient?.folio ?? "n/a"}\nPatient ID: ${input.patient_id}\nConversation ID: ${input.conversation_id}`,
+    description: `Sucursal: ${BRANCHES[input.branch].name}\nFolio: ${patient?.folio ?? "n/a"}\nPatient ID: ${input.patient_id}\nConversation ID: ${input.conversation_id}`,
   });
   const appointmentInput = {
     conversationId: input.conversation_id,
     patientId: input.patient_id,
+    branch: input.branch,
     start: slot.start,
     end: slot.end,
     calendarEventId: event.id,
     description: "Primera consulta agendada por el asistente de voz",
   };
-  const booking = { patientId: input.patient_id, start: slot.start, end: slot.end, calendarEventId: event.id };
+  const booking = { patientId: input.patient_id, branch: input.branch, start: slot.start, end: slot.end, calendarEventId: event.id };
   // The calendar event exists: when the EHR is down keep it and queue the Appointment write with its id.
   const queue = (cause: EhrUnavailableError) =>
     queueForEhr(
       {
         kind: "appointment",
         conversationId: input.conversation_id,
-        payload: { patientId: input.patient_id, start: slot.start, end: slot.end, calendarEventId: event.id, description: appointmentInput.description },
+        payload: { patientId: input.patient_id, branch: input.branch, start: slot.start, end: slot.end, calendarEventId: event.id, description: appointmentInput.description },
       },
       cause,
     );
@@ -139,16 +151,16 @@ export const POST = tool("book_appointment", Input, async (input, ctx) => {
     if (ehrDown) throw new EhrUnavailableError("down earlier in this call");
     const appointment = await ehr.createAppointment(appointmentInput);
     await rememberBooking(input.conversation_id, { ...booking, appointmentId: appointment.id });
-    ctx.outcome(`slot booked ${describeOutcomeStart(slot.start)}`);
-    return confirmed({ id: appointment.id, start: slot.start });
+    ctx.outcome(`slot booked ${input.branch} ${describeOutcomeStart(slot.start)}`);
+    return confirmed({ id: appointment.id, branch: input.branch, start: slot.start });
   } catch (err) {
     if (err instanceof EhrUnavailableError && (await queue(err))) {
       await rememberBooking(input.conversation_id, { ...booking, appointmentId: null });
-      ctx.outcome(`slot booked ${describeOutcomeStart(slot.start)}, queued in outbox`);
-      return confirmed({ id: null, start: slot.start }, true);
+      ctx.outcome(`slot booked ${input.branch} ${describeOutcomeStart(slot.start)}, queued in outbox`);
+      return confirmed({ id: null, branch: input.branch, start: slot.start }, true);
     }
     // Compensate: no calendar event without an Appointment. Best effort, the original failure matters more.
-    await calendar.deleteEvent(event.id).catch(() => undefined);
+    await calendar.deleteEvent(input.branch, event.id).catch(() => undefined);
     // 409 means another booking took the interval between our calendar check and now.
     if (err instanceof EhrRejectedError && err.status === 409) {
       ctx.outcome("slot taken");

@@ -1,3 +1,11 @@
+import type { BranchCode } from "@pokta-clinic/fhir";
+
+const CALENDAR_ID_VAR: Record<BranchCode, string> = {
+  "del-valle": "GOOGLE_CALENDAR_ID_GMA_DEL_VALLE",
+  polanco: "GOOGLE_CALENDAR_ID_GMA_POLANCO",
+  satelite: "GOOGLE_CALENDAR_ID_GMA_SATELITE",
+};
+
 // Server-only configuration. Read lazily so `next build` works without secrets, and fail closed at the first call.
 function required(name: string): string {
   const value = process.env[name];
@@ -27,8 +35,9 @@ export const env = {
   get googleServiceAccountKeyB64() {
     return required("GOOGLE_SERVICE_ACCOUNT_KEY_B64");
   },
-  get googleCalendarId() {
-    return required("GOOGLE_CALENDAR_ID");
+  // One Google calendar per branch.
+  googleCalendarId(branch: BranchCode): string {
+    return required(CALENDAR_ID_VAR[branch]);
   },
   // "upstash" (default) or "memory" (local dev and tests only, refused on Vercel production). Anything else fails closed.
   get storeProvider(): "upstash" | "memory" {

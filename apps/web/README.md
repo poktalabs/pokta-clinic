@@ -15,9 +15,9 @@ Each endpoint is a `POST` route in `src/app/api/tools/<name>/route.ts`, built wi
 | `/api/tools/save_patient` ([route](src/app/api/tools/save_patient/route.ts)) | `conversation_id`, `nombre`, `primer_apellido`, `telefono`, optional `segundo_apellido`, `fecha_nacimiento` (ISO date), `sexo` (`H` or `M`) | `patient_id`, `folio`, `already_registered`; or `invalid_phone`; or `consent_required` | Requires a granted Consent. If the Patient is new and the Consent has no Patient yet, links the Consent to the Patient. An existing phone is not linked until the caller confirms the name. |
 | `/api/tools/get_questionnaire` ([route](src/app/api/tools/get_questionnaire/route.ts)) | `conversation_id` | `items`: the required Questionnaire items as `link_id` plus Spanish `text`; or `consent_required` | Requires a granted Consent. The Questionnaire is fetched from the EHR once per server instance and cached in module scope. |
 | `/api/tools/save_history` ([route](src/app/api/tools/save_history/route.ts)) | `conversation_id`, `patient_id`, `status` (`in-progress` or `completed`), `answers` (`[{ link_id, answer }]`), `chief_complaint` | `saved: true`; or `saved: false` with `missing` link_ids; or `patient_mismatch`; or `consent_required` | Requires a granted Consent. Upserts one QuestionnaireResponse per Conversation, merged over what is already stored. Unknown `link_id`s are dropped, blank answers are ignored, `chief_complaint` fills the `chief-complaint` item when `answers` lacks it. Integer and boolean items are converted only when the words are clear (`unos 45 minutos` becomes 45); otherwise the words are kept as a string. `completed` with missing required items returns `saved: false` and a message naming them in Spanish; an EHR 422 `business-rule` is mapped the same way. |
-| `/api/tools/check_availability` ([route](src/app/api/tools/check_availability/route.ts)) | `conversation_id`, optional `preferred_date` (ISO date), optional `part_of_day` (`morning` or `afternoon`) | `slots`: up to 3 `{ start, label }` (empty list with a message when none) | Requires a granted Consent. |
-| `/api/tools/book_appointment` ([route](src/app/api/tools/book_appointment/route.ts)) | `conversation_id`, `patient_id`, `start` | `booked: true` with `appointment_id`, `start`, `label`; or `booked: false` (slot not bookable or taken); or `patient_mismatch` | Requires a granted Consent. Idempotent per Conversation. Re-validates `start` against the practice rules and the live calendar, creates the calendar event, then the EHR Appointment carrying the event ID; if the EHR answers 409 the event is deleted and the agent is told to offer other slots. Any other failure after the event exists also deletes it, then maps to 503 or 422 as usual. |
-| `/api/tools/escalate` ([route](src/app/api/tools/escalate/route.ts)) | `conversation_id`, `severity` (`emergencia` or `urgencia`), `patient_words`, `instruction_given`, optional `patient_id` | `logged: true` | None, on purpose: a Red flag is a safety event and the LFPDPPP allows processing without consent to protect life. Creates a Communication to the Practitioner. Never blocks the script: on any failure it returns `ok: false` with a message telling the agent to continue the script without mentioning it. An unknown `patient_id` is retried without a subject. |
+| `/api/tools/check_availability` ([route](src/app/api/tools/check_availability/route.ts)) | `conversation_id`, optional `branch` (`del-valle`, `polanco`, `satelite` or `any`; absent means `any`), optional `preferred_date` (ISO date), optional `part_of_day` (`morning` or `afternoon`) | `slots`: up to 3 `{ branch, branch_name, practitioner_name, start, label }` (empty list with a message when none) | Requires a granted Consent. `any` searches the three branch calendars and keeps variety across branches and days. Each branch is read from its own calendar; a branch whose calendar does not answer is left out while another does, and the call fails (503) only when none does. `branch_name` and `practitioner_name` come from the EHR (Location, then PractitionerRole and Practitioner), cached per server instance; when the EHR is down or does not know the branch they come from [src/scheduling/branches.ts](src/scheduling/branches.ts), because availability depends only on the calendars. |
+| `/api/tools/book_appointment` ([route](src/app/api/tools/book_appointment/route.ts)) | `conversation_id`, `patient_id`, `branch` (`del-valle`, `polanco` or `satelite`), `start` | `booked: true` with `appointment_id`, `branch`, `branch_name`, `address`, `practitioner_name`, `start`, `label`; or `booked: false` (slot not bookable or taken); or `patient_mismatch` | Requires a granted Consent. Idempotent per Conversation. Re-validates `start` against that branch's rules and that branch's live calendar, creates the event in that branch's calendar, then the EHR Appointment at the branch's Location with the branch's Practitioner, carrying the event ID. The message tells the agent to read back day, date, time, branch name and practitioner, and the address once; if the EHR answers 409 the event is deleted and the agent is told to offer other slots. Any other failure after the event exists also deletes it, then maps to 503 or 422 as usual. |
+| `/api/tools/escalate` ([route](src/app/api/tools/escalate/route.ts)) | `conversation_id`, `severity` (`emergencia` or `urgencia`), `patient_words`, `instruction_given`, optional `patient_id` | `logged: true` | None, on purpose: a Red flag is a safety event and the LFPDPPP allows processing without consent to protect life. Creates a Communication to a Practitioner: the one at the Conversation's booked branch when it already booked, else no recipient (the EHR notifies its default Practitioner). Never blocks the script: on any failure it returns `ok: false` with a message telling the agent to continue the script without mentioning it. An unknown `patient_id` is retried without a subject. |
 
 Phone numbers are normalized to the last 10 digits ([src/tools/phone.ts](src/tools/phone.ts)); fewer than 10 returns `invalid_phone`. Refusals (`consent_required`, `invalid_phone`, `patient_mismatch`, `booked: false`, `saved: false`) come back as HTTP 200 with a `message`, not as errors. [scripts/tools-smoke.sh](../../scripts/tools-smoke.sh) tests all of this against a running instance.
 
@@ -56,11 +56,12 @@ The tools know only the interface in [src/ehr/adapter.ts](src/ehr/adapter.ts):
 | `findQuestionnaireResponse(conversationId)` | The Conversation's `HistoryRecord` (`id`, `patientId`, `status`, `answers`) or null. |
 | `saveQuestionnaireResponse({ conversationId, patientId, status, answers, existing })` | POST, or PUT when `existing` is given; a 409 race is retried as a PUT. |
 | `findAppointmentByConversation(conversationId)` | The Conversation's `AppointmentRecord` or null; makes booking idempotent. |
-| `createAppointment({ conversationId, patientId, start, end, calendarEventId, description })` | Creates the Appointment; `EhrRejectedError(409)` when the Practitioner is already booked then. |
-| `createCommunication({ conversationId, severity, patientWords, instruction, patientId?, sent? })` | Notifies the Practitioner of a Red flag. `sent` keeps the original time when the write is replayed from the outbox. |
+| `getBranch(branch)` | The `BranchRecord` (`locationId`, `name`, `address`, `practitionerId`, `practitionerName`) of a branch code, cached per server instance. |
+| `createAppointment({ conversationId, branch, patientId, start, end, calendarEventId, description })` | Creates the Appointment at the branch's Location with the Practitioner who has a role there; `EhrRejectedError(409)` when that Practitioner is already booked then. |
+| `createCommunication({ conversationId, severity, patientWords, instruction, patientId?, branch?, sent? })` | Notifies the Practitioner at `branch` of a Red flag, or the EHR's default when no branch is given. `sent` keeps the original time when the write is replayed from the outbox. |
 | `findCommunicationsByConversation(conversationId)` | The Conversation's Communications (`id`, `severity`, `patientWords`); the outbox drain uses it to avoid writing one twice. |
 
-The Practitioner is resolved once through `GET /fhir/Practitioner` inside the FHIR adapter and cached, so tools never see its id.
+A branch is resolved once inside the FHIR adapter and cached: `GET /fhir/Location?identifier=urn:pokta-clinic:branch|<code>`, then `GET /fhir/PractitionerRole?location=Location/<id>`, then `GET /fhir/Practitioner/<id>` for the name. Tools only use branch codes, never Location or Practitioner ids.
 
 Implementation: [src/ehr/fhir-adapter.ts](src/ehr/fhir-adapter.ts) builds and reads FHIR Patient and Consent with [@pokta-clinic/fhir](../../packages/fhir/README.md). The HTTP layer is [src/ehr/fhir-client.ts](src/ehr/fhir-client.ts): it fetches an OAuth2 client-credentials token (Basic auth to `/oauth/token`), caches one token per server instance, renews it 60 seconds before expiry, and retries once if the EHR answers 401. Requests time out after 8 seconds. The swap point is [src/ehr/index.ts](src/ehr/index.ts) (`export const ehr`).
 
@@ -73,9 +74,17 @@ Error classes (in adapter.ts):
 
 ## Scheduling rules
 
-Pure functions in [src/scheduling/slots.ts](src/scheduling/slots.ts), tested in [slots.test.ts](src/scheduling/slots.test.ts) with an injected `now`. First consultation is 60 minutes. Starts are Monday to Friday at 9, 10, 11, 12, 13, 16, 17 and 18 (9:00-14:00 and 16:00-19:00) in `America/Mexico_City`. Bookable from now + 24 hours to now + 14 days, both ends inclusive. Wall-clock times are converted with the IANA zone, not a fixed offset, even though Mexico has had no DST since 2022. `start` is ISO 8601 with the numeric offset (`2026-10-13T09:00:00-06:00`); `label` is Spanish, for example `martes 13 de octubre a las 9:00 de la mañana`, `a las 5:00 de la tarde`, `a la 1:00 de la tarde`, `a las 12:00 del día`.
+Pure functions in [src/scheduling/slots.ts](src/scheduling/slots.ts), tested in [slots.test.ts](src/scheduling/slots.test.ts) with an injected `now`. First consultation is 60 minutes, in `America/Mexico_City`. The hours of each branch live in one module, [src/scheduling/branches.ts](src/scheduling/branches.ts):
 
-`preferred_date` keeps one local day; `part_of_day` `morning` means before 14:00. Free slots are those that do not overlap a calendar busy interval. Up to 3 are picked for variety: a day not yet chosen first, then a start not adjacent to a chosen one on the same day, then the earliest; the result is sorted by time. `book_appointment` accepts a `start` only if it is one of the rule-allowed starts (`resolveSlot`), then checks the live calendar again.
+| Branch | Code | Hours (one start per hour) |
+|---|---|---|
+| GMA Del Valle | `del-valle` | Mon-Fri 9:00-14:00 and 16:00-19:00 |
+| GMA Polanco | `polanco` | Mon-Fri 10:00-18:00 |
+| GMA Satélite | `satelite` | Mon-Fri 9:00-14:00, Sat 9:00-13:00 |
+
+The web config is authoritative for booking. The EHR Location also carries `hoursOfOperation`, but booking has to work while the EHR is switched off and `resolveSlot` needs the hours synchronously, so the config is not read from the EHR; it must match the seeded Location hours ([apps/mock-ehr/src/db/seed-data.ts](../mock-ehr/src/db/seed-data.ts)). The config also holds each branch's name, address and practitioner name as a fallback for an EHR outage. Bookable from now + 24 hours to now + 14 days, both ends inclusive. Wall-clock times are converted with the IANA zone, not a fixed offset, even though Mexico has had no DST since 2022. `start` is ISO 8601 with the numeric offset (`2026-10-13T09:00:00-06:00`); `label` is Spanish, for example `martes 13 de octubre a las 9:00 de la mañana`, `a las 5:00 de la tarde`, `a la 1:00 de la tarde`, `a las 12:00 del día`.
+
+`preferred_date` keeps one local day; `part_of_day` `morning` means before 14:00. Free slots are those that do not overlap a calendar busy interval. Up to 3 are picked for variety: a day not yet chosen first, then a start not adjacent to a chosen one on the same day at the same branch, then a branch not yet chosen, then the earliest; the result is sorted by time. `book_appointment` accepts a `start` only if it is one of that branch's rule-allowed starts (`resolveSlot`), then checks that branch's live calendar again.
 
 ## Calendar providers
 
@@ -83,18 +92,18 @@ The tools know only `CalendarAdapter` in [src/calendar/adapter.ts](src/calendar/
 
 | Method | Purpose |
 |---|---|
-| `busy(from, to)` | Busy intervals `{ start, end }` between two ISO instants. |
-| `createEvent({ start, end, summary, description })` | Creates an event, returns `{ id }`. |
-| `deleteEvent(id)` | Deletes it; an already deleted event is not an error. |
+| `busy(branch, from, to)` | Busy intervals `{ start, end }` of the branch's calendar between two ISO instants. |
+| `createEvent({ branch, start, end, summary, description })` | Creates an event in the branch's calendar, returns `{ id }`. |
+| `deleteEvent(branch, id)` | Deletes it from the branch's calendar; an already deleted event is not an error. |
 
 Failures throw `CalendarUnavailableError`, which `tool()` maps to 503. Selection is in [src/calendar/index.ts](src/calendar/index.ts), by `CALENDAR_PROVIDER`:
 
 | Value | Behavior |
 |---|---|
-| `google` (default) | [src/calendar/google.ts](src/calendar/google.ts). Service account from `GOOGLE_SERVICE_ACCOUNT_KEY_B64` (base64 of the JSON key) and the calendar `GOOGLE_CALENDAR_ID`, scopes `calendar.events` and `calendar.freebusy`, through the Calendar REST API (`freeBusy.query`, `events.insert`, `events.delete`) with `google-auth-library` for the JWT access token. Events carry time zone `America/Mexico_City` and the summary `Primera consulta: <given name> <first surname>`. The description holds only folio, patient id and conversation id: the calendar is a third-party system outside the Expediente, so no clinical data goes into it. A calendar the service account cannot read is reported as unavailable, never as free. A missing variable throws at first use. |
+| `google` (default) | [src/calendar/google.ts](src/calendar/google.ts). Service account from `GOOGLE_SERVICE_ACCOUNT_KEY_B64` (base64 of the JSON key) and one calendar per branch (`GOOGLE_CALENDAR_ID_GMA_DEL_VALLE`, `GOOGLE_CALENDAR_ID_GMA_POLANCO`, `GOOGLE_CALENDAR_ID_GMA_SATELITE`), scopes `calendar.events` and `calendar.freebusy`, through the Calendar REST API (`freeBusy.query`, `events.insert`, `events.delete`) with `google-auth-library` for the JWT access token. Events carry time zone `America/Mexico_City` and the summary `Primera consulta: <given name> <first surname>`. The description holds only the branch, folio, patient id and conversation id: the calendar is a third-party system outside the Expediente, so no clinical data goes into it. A calendar the service account cannot read is reported as unavailable, never as free. A missing variable throws at first use. |
 | `fake` | [src/calendar/fake.ts](src/calendar/fake.ts), in memory, for local dev and tests only. Refused when `VERCEL_ENV` is `production`. There is no silent fallback from `google` to `fake`. |
 
-The practice must share its calendar with the service account's email, with permission to make changes to events.
+Each branch must share its calendar with the service account's email, with permission to make changes to events.
 
 ## Store
 
@@ -161,7 +170,9 @@ Server-only, read lazily in [src/env.ts](src/env.ts) so `next build` works witho
 | `TOOL_SECRET` | Shared secret the agent sends in `x-pokta-tool-secret`; matches the ElevenLabs workspace Secret `tool_secret`. |
 | `CALENDAR_PROVIDER` | `google` (default) or `fake`. Any other value fails closed. Local dev: `fake`. |
 | `GOOGLE_SERVICE_ACCOUNT_KEY_B64` | Base64 of the service account JSON key. Required when the provider is `google`. |
-| `GOOGLE_CALENDAR_ID` | Id of the Practitioner's calendar. Required when the provider is `google`. |
+| `GOOGLE_CALENDAR_ID_GMA_DEL_VALLE` | Id of the GMA Del Valle calendar. Required when the provider is `google`. |
+| `GOOGLE_CALENDAR_ID_GMA_POLANCO` | Id of the GMA Polanco calendar. Required when the provider is `google`. |
+| `GOOGLE_CALENDAR_ID_GMA_SATELITE` | Id of the GMA Satélite calendar. Required when the provider is `google`. |
 | `STORE_PROVIDER` | `upstash` (default) or `memory` (local dev and tests only, refused when `VERCEL_ENV` is `production`). Any other value fails closed. |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Upstash Redis REST credentials, as the Vercel Marketplace integration injects them. |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | The same credentials under the other name the integration can use; either pair works. |
@@ -199,7 +210,9 @@ Run with `pnpm --filter @pokta-clinic/web <script>` or, from the root, `pnpm dev
 | [src/ehr/fhir-client.ts](src/ehr/fhir-client.ts) | Token cache, fetch with timeout, status mapping. |
 | [src/ehr/index.ts](src/ehr/index.ts) | Exports the active adapter as `ehr`. |
 | [src/tools/history.ts](src/tools/history.ts) | Answer coercion and the missing-required-items rule for `save_history`. |
-| [src/scheduling/slots.ts](src/scheduling/slots.ts) | Practice rules: slot generation, filters, variety, labels, validation. |
+| [src/scheduling/branches.ts](src/scheduling/branches.ts) | The three GMA branches: hours (authoritative for booking), and fallback name, address and practitioner name. |
+| [src/tools/branch-details.ts](src/tools/branch-details.ts) | Branch name, address and practitioner for the agent: EHR first, config fallback. |
+| [src/scheduling/slots.ts](src/scheduling/slots.ts) | Per-branch rules: slot generation across branches, filters, variety, labels, validation. |
 | [src/calendar/](src/calendar/) | `CalendarAdapter`, the Google and fake implementations, and the provider switch. |
 | [src/env.ts](src/env.ts) | Lazy env vars. |
 | [src/store/](src/store/) | `Store` interface, the Upstash and in-memory implementations, and the provider switch. |

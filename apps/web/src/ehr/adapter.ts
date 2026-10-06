@@ -1,3 +1,5 @@
+import type { BranchCode } from "@pokta-clinic/fhir";
+
 // The only contract the tools know. A different EHR means a different implementation of this
 // interface; the tools and the agent stay the same.
 
@@ -46,6 +48,17 @@ export type AppointmentRecord = {
   patientId: string;
   start: string;
   end: string;
+  // Null when the Appointment's Location is not one of the known branches.
+  branch: BranchCode | null;
+};
+
+// A branch (Location) with the Practitioner who works there (PractitionerRole), as the EHR holds them.
+export type BranchRecord = {
+  locationId: string;
+  name: string;
+  address: string;
+  practitionerId: string;
+  practitionerName: string;
 };
 
 export type Severity = "emergencia" | "urgencia";
@@ -70,17 +83,23 @@ export interface EhrAdapter {
     existing: HistoryRecord | null;
   }): Promise<HistoryRecord>;
   findAppointmentByConversation(conversationId: string): Promise<AppointmentRecord | null>;
-  // Rejects with EhrRejectedError(409) when the Practitioner already has an Appointment in that interval.
+  // The Location of a branch code and its Practitioner, cached per server instance. Rejects with
+  // EhrRejectedError(404) when the EHR has no such Location or nobody works there.
+  getBranch(branch: BranchCode): Promise<BranchRecord>;
+  // Books at the branch with the Practitioner who has a role there. Rejects with EhrRejectedError(409)
+  // when that Practitioner already has an Appointment in the interval.
   createAppointment(input: {
     conversationId: string;
+    branch: BranchCode;
     patientId: string;
     start: string;
     end: string;
     calendarEventId: string;
     description: string;
   }): Promise<AppointmentRecord>;
-  // Notifies the Practitioner of a Red flag. The Practitioner is resolved by the adapter.
+  // Notifies a Practitioner of a Red flag: the one at `branch` when it is given, else the EHR's default.
   createCommunication(input: {
+    branch?: BranchCode;
     conversationId: string;
     severity: Severity;
     patientWords: string;

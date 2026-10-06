@@ -1,4 +1,5 @@
 import {
+  BRANCH_CODES,
   CONVERSATION_SYSTEM,
   EXT,
   QUESTIONNAIRE_URL,
@@ -10,9 +11,12 @@ import {
   questionnaireResponseResource,
   type Appointment,
   type Communication,
+  type BranchCode,
   type Consent,
+  type Location as FhirLocation,
   type Patient,
   type Practitioner,
+  type PractitionerRole,
   type Questionnaire,
   type QuestionnaireResponse,
   type QuestionnaireResponseItem,
@@ -20,6 +24,7 @@ import {
 import {
   EhrRejectedError,
   type AppointmentRecord,
+  type BranchRecord,
   type CommunicationRecord,
   type ConsentRecord,
   type EhrAdapter,
@@ -66,14 +71,23 @@ function answerItem(a: HistoryAnswer): QuestionnaireResponseItem {
   return { linkId: a.linkId, answer: [answer] };
 }
 
-function appointmentRecord(resource: Appointment): AppointmentRecord {
-  const actor = resource.participant.map((p) => p.actor.reference).find((r) => r.startsWith("Patient/"));
-  return { id: resource.id!, patientId: actor?.slice("Patient/".length) ?? "", start: resource.start, end: resource.end };
+// The branch an Appointment is at, from its Location participant.
+async function appointmentRecord(resource: Appointment, branch?: BranchCode): Promise<AppointmentRecord> {
+  const refs = resource.participant.map((p) => p.actor.reference);
+  const patient = refs.find((r) => r.startsWith("Patient/"));
+  const locationId = refs.find((r) => r.startsWith("Location/"))?.slice("Location/".length);
+  return {
+    id: resource.id!,
+    patientId: patient?.slice("Patient/".length) ?? "",
+    start: resource.start,
+    end: resource.end,
+    branch: branch ?? (locationId ? await branchOfLocation(locationId) : null),
+  };
 }
 
 const conversationQuery = (conversationId: string) => encodeURIComponent(`${CONVERSATION_SYSTEM}|${conversationId}`);
 
-// The Questionnaire is static and the Practitioner does not change within a deploy: fetch each once per
+// The Questionnaire is static and the branches and their Practitioners do not change within a deploy: fetch each once per
 // server instance. A failed fetch is not cached.
 function memoize<T>(load: () => Promise<T>): () => Promise<T> {
   let slot: Promise<T> | null = null;
@@ -93,15 +107,42 @@ async function loadQuestionnaire(): Promise<Questionnaire["item"]> {
   return found.item;
 }
 
-async function loadPractitionerId(): Promise<string> {
-  const { data } = await fhir<Bundle<Practitioner>>("GET", "/Practitioner");
-  const id = data.entry?.[0]?.resource.id;
-  if (!id) throw new EhrRejectedError(404, "No Practitioner in the EHR");
-  return id;
+// Location by branch code, then the PractitionerRole at it, then the Practitioner's name.
+async function loadBranch(branch: BranchCode): Promise<BranchRecord> {
+  const identifier = encodeURIComponent(`${SYSTEM.branch}|${branch}`);
+  const { data: locations } = await fhir<Bundle<FhirLocation>>("GET", `/Location?identifier=${identifier}`);
+  const location = locations.entry?.[0]?.resource;
+  if (!location?.id) throw new EhrRejectedError(404, `No Location for branch ${branch}`);
+  const { data: roles } = await fhir<Bundle<PractitionerRole>>("GET", `/PractitionerRole?location=${encodeURIComponent(`Location/${location.id}`)}`);
+  const practitionerId = roles.entry?.[0]?.resource.practitioner.reference.slice("Practitioner/".length);
+  if (!practitionerId) throw new EhrRejectedError(404, `No PractitionerRole at branch ${branch}`);
+  const { data: person } = await fhir<Practitioner>("GET", `/Practitioner/${encodeURIComponent(practitionerId)}`);
+  const name = person.name[0];
+  return {
+    locationId: location.id,
+    name: location.name,
+    address: location.address.text,
+    practitionerId,
+    practitionerName: [...(name?.given ?? []), name?.family].filter(Boolean).join(" "),
+  };
 }
 
 const questionnaireItems = memoize(loadQuestionnaire);
-const practitioner = memoize(loadPractitionerId);
+const branchLoaders = new Map<BranchCode, () => Promise<BranchRecord>>();
+function branchRecord(branch: BranchCode): Promise<BranchRecord> {
+  let load = branchLoaders.get(branch);
+  if (!load) branchLoaders.set(branch, (load = memoize(() => loadBranch(branch))));
+  return load();
+}
+
+// Best effort: an Appointment found without the branch it was made for. Unreachable branches are skipped.
+async function branchOfLocation(locationId: string): Promise<BranchCode | null> {
+  for (const code of BRANCH_CODES) {
+    const found = await branchRecord(code).catch(() => null);
+    if (found?.locationId === locationId) return code;
+  }
+  return null;
+}
 
 function patientResource(input: NewPatient): Patient {
   const family: { url: string; valueString: string }[] = [{ url: EXT.fathersFamily, valueString: input.primerApellido }];
@@ -200,14 +241,17 @@ export const fhirEhrAdapter: EhrAdapter = {
     return first ? appointmentRecord(first) : null;
   },
 
+  getBranch: branchRecord,
+
   async createAppointment(input) {
-    const practitionerId = await practitioner();
+    const { locationId, practitionerId } = await branchRecord(input.branch);
     const { data } = await fhir<Appointment>(
       "POST",
       "/Appointment",
       appointmentResource({
         patientId: input.patientId,
         practitionerId,
+        locationId,
         start: input.start,
         end: input.end,
         calendarEventId: input.calendarEventId,
@@ -215,25 +259,32 @@ export const fhirEhrAdapter: EhrAdapter = {
         description: input.description,
       }),
     );
-    return appointmentRecord(data);
+    return appointmentRecord(data, input.branch);
   },
 
   async createCommunication(input) {
-    const practitionerId = await practitioner();
-    const send = (patientId?: string) =>
-      fhir<Communication>(
-        "POST",
-        "/Communication",
-        communicationResource({
-          conversationId: input.conversationId,
-          severity: input.severity,
-          patientId,
-          practitionerId,
-          sent: input.sent ?? new Date().toISOString(),
-          patientWords: input.patientWords,
-          instruction: input.instruction,
-        }),
-      );
+    // The recipient is optional in FHIR: without a known branch (or when its Practitioner cannot be
+    // resolved) it is left out and the EHR notifies its default Practitioner.
+    let practitionerId: string | undefined;
+    if (input.branch) {
+      try {
+        practitionerId = (await branchRecord(input.branch)).practitionerId;
+      } catch (err) {
+        if (!(err instanceof EhrRejectedError)) throw err;
+      }
+    }
+    const send = (patientId?: string) => {
+      const resource = communicationResource({
+        conversationId: input.conversationId,
+        severity: input.severity,
+        patientId,
+        practitionerId: practitionerId ?? "",
+        sent: input.sent ?? new Date().toISOString(),
+        patientWords: input.patientWords,
+        instruction: input.instruction,
+      });
+      return fhir<Communication>("POST", "/Communication", practitionerId ? resource : { ...resource, recipient: undefined });
+    };
     try {
       await send(input.patientId);
     } catch (err) {

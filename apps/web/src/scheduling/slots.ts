@@ -1,14 +1,16 @@
-// The practice's scheduling rules as pure functions. Google Calendar says what is busy; this module
-// says what could ever be offered. `now` is injected so the date math is testable.
+// The network's scheduling rules as pure functions. Each branch's Google Calendar says what is busy;
+// this module (with branches.ts, which holds each branch's hours) says what could ever be offered.
+// `now` is injected so the date math is testable.
+import { BRANCHES, BRANCH_CODES, type BranchCode } from "./branches";
+
 const TIME_ZONE = "America/Mexico_City";
 const SLOT_MINUTES = 60; // FIRST_VISIT_MINUTES in @pokta-clinic/fhir
-// Mon-Fri 9:00-14:00 and 16:00-19:00, one hour each.
-const START_HOURS = [9, 10, 11, 12, 13, 16, 17, 18];
 const MIN_LEAD_MS = 24 * 3600_000;
 const MAX_LEAD_DAYS = 14;
 const HOUR_MS = 3600_000;
 
 export type Slot = { start: string; label: string };
+export type BranchSlot = Slot & { branch: BranchCode };
 export type Interval = { start: string; end: string };
 export type PartOfDay = "morning" | "afternoon";
 
@@ -72,16 +74,14 @@ export function bookableWindow(now: Date): { from: number; to: number } {
 
 const slotOf = (ms: number): Slot => ({ start: isoOf(ms), label: labelOf(ms) });
 
-// Every start the rules allow in the window, in time order, ignoring the calendar.
-function candidates(now: Date): number[] {
+// Every start the branch's hours allow in the window, in time order, ignoring the calendar.
+function candidates(now: Date, branch: BranchCode): number[] {
   const { from, to } = bookableWindow(now);
   const today = localOf(now.getTime());
   const out: number[] = [];
   for (let i = 0; i <= MAX_LEAD_DAYS + 1; i++) {
     const day = new Date(Date.UTC(today.y, today.m - 1, today.d + i));
-    const weekday = day.getUTCDay();
-    if (weekday === 0 || weekday === 6) continue;
-    for (const h of START_HOURS) {
+    for (const h of BRANCHES[branch].schedule[day.getUTCDay()] ?? []) {
       const ms = instantOf(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), h);
       if (ms >= from && ms <= to) out.push(ms);
     }
@@ -97,37 +97,55 @@ const dayKey = (ms: number) => {
   return `${l.y}-${pad(l.m)}-${pad(l.d)}`;
 };
 
-// Up to `max` free slots. Greedy for variety: prefer a day not yet chosen, then a start that is not
-// adjacent to a chosen one on the same day, then the earliest.
-export function freeSlots(input: { now: Date; busy: Interval[]; preferredDate?: string; partOfDay?: PartOfDay; max?: number }): Slot[] {
+export type FreeSlotsInput = {
+  now: Date;
+  // Busy intervals per branch calendar. The branches searched are the keys.
+  busy: Partial<Record<BranchCode, Interval[]>>;
+  preferredDate?: string;
+  partOfDay?: PartOfDay;
+  max?: number;
+};
+
+// Up to `max` free slots across the given branches. Greedy for variety: prefer a day not yet chosen
+// (and, on a chosen day, a start not adjacent to a chosen one at the same branch), then a branch not yet
+// chosen, then the earliest. With one branch that is the single-branch behaviour.
+export function freeSlots(input: FreeSlotsInput): BranchSlot[] {
   const max = input.max ?? 3;
-  const pool = candidates(input.now).filter((ms) => {
-    if (input.preferredDate && dayKey(ms) !== input.preferredDate) return false;
-    if (input.partOfDay === "morning" && localOf(ms).h >= 14) return false;
-    if (input.partOfDay === "afternoon" && localOf(ms).h < 14) return false;
-    return !overlaps(ms, input.busy);
-  });
-  const chosen: number[] = [];
+  type Candidate = { branch: BranchCode; ms: number; day: string };
+  const pool: Candidate[] = [];
+  for (const branch of BRANCH_CODES) {
+    const busy = input.busy[branch];
+    if (!busy) continue;
+    for (const ms of candidates(input.now, branch)) {
+      if (input.preferredDate && dayKey(ms) !== input.preferredDate) continue;
+      if (input.partOfDay === "morning" && localOf(ms).h >= 14) continue;
+      if (input.partOfDay === "afternoon" && localOf(ms).h < 14) continue;
+      if (!overlaps(ms, busy)) pool.push({ branch, ms, day: dayKey(ms) });
+    }
+  }
+  pool.sort((a, b) => a.ms - b.ms || BRANCH_CODES.indexOf(a.branch) - BRANCH_CODES.indexOf(b.branch));
+  const chosen: Candidate[] = [];
   while (chosen.length < max && pool.length) {
-    const rank = (ms: number) => {
-      const sameDay = chosen.filter((c) => dayKey(c) === dayKey(ms));
-      const adjacent = sameDay.some((c) => Math.abs(c - ms) <= HOUR_MS);
-      return (sameDay.length ? 2 : 0) + (adjacent ? 1 : 0);
+    const rank = (c: Candidate) => {
+      const sameDay = chosen.filter((x) => x.day === c.day);
+      const adjacent = sameDay.some((x) => x.branch === c.branch && Math.abs(x.ms - c.ms) <= HOUR_MS);
+      const dayPenalty = (sameDay.length ? 2 : 0) + (adjacent ? 1 : 0);
+      return dayPenalty * 1_000_000 + chosen.filter((x) => x.branch === c.branch).length;
     };
     let best = 0;
     for (let i = 1; i < pool.length; i++) if (rank(pool[i]) < rank(pool[best])) best = i;
     chosen.push(pool.splice(best, 1)[0]);
   }
-  return chosen.sort((a, b) => a - b).map(slotOf);
+  return chosen.sort((a, b) => a.ms - b.ms || BRANCH_CODES.indexOf(a.branch) - BRANCH_CODES.indexOf(b.branch)).map((c) => ({ branch: c.branch, ...slotOf(c.ms) }));
 }
 
-// Re-validates a start the agent sends back: it must be on the grid and inside the window. Returns the
-// normalized slot with its end, or null.
-export function resolveSlot(start: string, now: Date): (Slot & { end: string }) | null {
+// Re-validates a start the agent sends back: it must be on the branch's grid and inside the window. Returns
+// the normalized slot with its end, or null.
+export function resolveSlot(start: string, now: Date, branch: BranchCode): (Slot & { end: string }) | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(start)) return null;
   const ms = Date.parse(start);
   if (Number.isNaN(ms)) return null;
-  const match = candidates(now).includes(ms);
+  const match = candidates(now, branch).includes(ms);
   return match ? { ...slotOf(ms), end: isoOf(ms + SLOT_MINUTES * 60_000) } : null;
 }
 

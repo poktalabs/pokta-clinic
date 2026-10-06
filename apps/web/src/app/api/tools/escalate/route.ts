@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { EhrUnavailableError, ehr } from "@/ehr";
 import { queueForEhr } from "@/outbox/queue";
+import { store } from "@/store";
 import { conversationId, tool } from "@/tools/handler";
 
 const Input = z.object({
@@ -18,6 +19,8 @@ const Input = z.object({
 // queued (the drain writes it) and the agent is told it is logged.
 export const POST = tool("escalate", Input, async (input, ctx) => {
   const sent = new Date().toISOString();
+  // The branch is known only if this Conversation already booked one; otherwise the EHR picks the recipient.
+  const branch = (await store.getBooking(input.conversation_id).catch(() => null))?.branch;
   try {
     await ehr.createCommunication({
       conversationId: input.conversation_id,
@@ -25,6 +28,7 @@ export const POST = tool("escalate", Input, async (input, ctx) => {
       patientWords: input.patient_words,
       instruction: input.instruction_given,
       patientId: input.patient_id,
+      branch,
       sent,
     });
     ctx.outcome(`${input.severity} escalation logged`);
@@ -36,7 +40,7 @@ export const POST = tool("escalate", Input, async (input, ctx) => {
         {
           kind: "escalate",
           conversationId: input.conversation_id,
-          payload: { severity: input.severity, patientWords: input.patient_words, instruction: input.instruction_given, patientId: input.patient_id, sent },
+          payload: { severity: input.severity, patientWords: input.patient_words, instruction: input.instruction_given, patientId: input.patient_id, branch, sent },
         },
         err,
       );

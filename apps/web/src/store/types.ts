@@ -1,6 +1,8 @@
 // What pokta-clinic persists itself, independent of the EHR, so the demo keeps working while the EHR
 // is suspended. Operational data only (7-day TTL): the EHR stays the system of record.
 
+import type { BranchCode } from "@pokta-clinic/fhir";
+
 export const TTL_SECONDS = 7 * 24 * 60 * 60;
 
 // One tool call. Never holds patient answers, names or phones: only what the timeline shows.
@@ -19,7 +21,7 @@ export type ToolEvent = {
 export type ConsentDecision = { granted: boolean; consentId: string | null; patientId: string | null; at: number };
 
 // The booking of a Conversation: makes book_appointment idempotent when the EHR cannot be asked.
-export type BookingRecord = { appointmentId: string | null; patientId: string; start: string; end: string; calendarEventId: string };
+export type BookingRecord = { appointmentId: string | null; branch: BranchCode; patientId: string; start: string; end: string; calendarEventId: string };
 
 export type OutboxKind = "consent" | "save_history" | "appointment" | "escalate";
 
@@ -28,8 +30,8 @@ export type OutboxKind = "consent" | "save_history" | "appointment" | "escalate"
 export type OutboxPayloads = {
   consent: { granted: boolean };
   save_history: { patientId: string; status: "in-progress" | "completed"; answers: { link_id: string; answer: string }[]; chiefComplaint: string };
-  appointment: { patientId: string; start: string; end: string; calendarEventId: string; description: string };
-  escalate: { severity: "emergencia" | "urgencia"; patientWords: string; instruction: string; patientId?: string; sent: string };
+  appointment: { patientId: string; branch: BranchCode; start: string; end: string; calendarEventId: string; description: string };
+  escalate: { severity: "emergencia" | "urgencia"; patientWords: string; instruction: string; patientId?: string; branch?: BranchCode; sent: string };
 };
 
 export type OutboxItem<K extends OutboxKind = OutboxKind> = {

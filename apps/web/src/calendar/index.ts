@@ -16,9 +16,9 @@ function select(): CalendarAdapter {
 }
 
 export const calendar: CalendarAdapter = {
-  busy: (from, to) => select().busy(from, to),
+  busy: (branch, from, to) => select().busy(branch, from, to),
   createEvent: (input) => select().createEvent(input),
-  deleteEvent: (id) => select().deleteEvent(id),
+  deleteEvent: (branch, id) => select().deleteEvent(branch, id),
 };
 
 export * from "./adapter";

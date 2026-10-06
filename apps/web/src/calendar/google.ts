@@ -1,8 +1,9 @@
 import { JWT } from "google-auth-library";
 import { env } from "@/env";
+import type { BranchCode } from "@/scheduling/branches";
 import { CalendarUnavailableError, type CalendarAdapter } from "./adapter";
 
-// Google Calendar REST API with a service account (the practice shares its calendar with the
+// Google Calendar REST API with a service account (each branch shares its calendar with the
 // service account's email). google-auth-library rather than hand-rolled node:crypto: it signs the JWT,
 // exchanges it for an access token, caches it and renews it, which is the part easy to get subtly wrong.
 const API = "https://www.googleapis.com/calendar/v3";
@@ -36,11 +37,11 @@ async function call<T>(method: "GET" | "POST" | "DELETE", url: string, data?: un
   }
 }
 
-const eventsUrl = () => `${API}/calendars/${encodeURIComponent(env.googleCalendarId)}/events`;
+const eventsUrl = (branch: BranchCode) => `${API}/calendars/${encodeURIComponent(env.googleCalendarId(branch))}/events`;
 
 export const googleCalendar: CalendarAdapter = {
-  async busy(from, to) {
-    const id = env.googleCalendarId;
+  async busy(branch, from, to) {
+    const id = env.googleCalendarId(branch);
     const body = await call<{ calendars?: Record<string, { busy?: { start: string; end: string }[]; errors?: unknown[] }> }>(
       "POST",
       `${API}/freeBusy`,
@@ -52,8 +53,8 @@ export const googleCalendar: CalendarAdapter = {
     return (cal.busy ?? []).map((b) => ({ start: b.start, end: b.end }));
   },
 
-  async createEvent({ start, end, summary, description }) {
-    const event = await call<{ id?: string }>("POST", eventsUrl(), {
+  async createEvent({ branch, start, end, summary, description }) {
+    const event = await call<{ id?: string }>("POST", eventsUrl(branch), {
       summary,
       description,
       start: { dateTime: start, timeZone: TIME_ZONE },
@@ -63,9 +64,9 @@ export const googleCalendar: CalendarAdapter = {
     return { id: event.id };
   },
 
-  async deleteEvent(id) {
+  async deleteEvent(branch, id) {
     try {
-      await call("DELETE", `${eventsUrl()}/${encodeURIComponent(id)}`);
+      await call("DELETE", `${eventsUrl(branch)}/${encodeURIComponent(id)}`);
     } catch (err) {
       // Already gone is the goal of a delete.
       if (!/returned (404|410)/.test((err as Error).message)) throw err;

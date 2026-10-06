@@ -1,3 +1,4 @@
+import { BRANCH_CODE } from "@pokta-clinic/fhir";
 import { EhrRejectedError, EhrUnavailableError, type EhrAdapter } from "@/ehr";
 import type { OutboxItem, Store } from "@/store";
 import { saveHistory } from "@/tools/save-history";
@@ -37,7 +38,8 @@ async function replay(ehr: EhrAdapter, item: OutboxItem): Promise<void> {
     }
     case "appointment": {
       if (await ehr.findAppointmentByConversation(item.conversationId)) return;
-      await ehr.createAppointment({ conversationId: item.conversationId, ...item.payload });
+      // Items queued before the branch network have no branch: the old single practice is now Del Valle.
+      await ehr.createAppointment({ conversationId: item.conversationId, ...item.payload, branch: item.payload.branch ?? BRANCH_CODE.delValle });
       return;
     }
     case "escalate": {
@@ -49,6 +51,7 @@ async function replay(ehr: EhrAdapter, item: OutboxItem): Promise<void> {
         patientWords: item.payload.patientWords,
         instruction: item.payload.instruction,
         patientId: item.payload.patientId,
+        branch: item.payload.branch,
         sent: item.payload.sent,
       });
       return;

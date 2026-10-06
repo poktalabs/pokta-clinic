@@ -1,3 +1,4 @@
+import type { BranchCode } from "@pokta-clinic/fhir";
 import { describe, expect, it } from "vitest";
 import { EhrRejectedError, EhrUnavailableError, type AppointmentRecord, type CommunicationRecord, type ConsentRecord, type EhrAdapter, type HistoryRecord } from "@/ehr";
 import { createMemoryStore } from "@/store/memory";
@@ -52,11 +53,11 @@ function fakeEhr() {
       guard();
       return state.appointments.get(c) ?? null;
     },
-    async createAppointment(input: { conversationId: string; patientId: string; start: string; end: string }) {
+    async createAppointment(input: { conversationId: string; branch: BranchCode; patientId: string; start: string; end: string }) {
       guard();
       if (state.rejectAppointments) throw new EhrRejectedError(409, "conflict");
       calls.push(`appointment:${input.conversationId}`);
-      const record = { id: `appt-${state.appointments.size}`, patientId: input.patientId, start: input.start, end: input.end };
+      const record = { id: `appt-${state.appointments.size}`, patientId: input.patientId, start: input.start, end: input.end, branch: input.branch };
       state.appointments.set(input.conversationId, record);
       return record;
     },
@@ -81,7 +82,7 @@ const history = (conversationId: string): NewOutboxItem => ({
 const appointment = (conversationId: string): NewOutboxItem => ({
   kind: "appointment",
   conversationId,
-  payload: { patientId: "p1", start: "2026-10-13T09:00:00-06:00", end: "2026-10-13T10:00:00-06:00", calendarEventId: "ev1", description: "d" },
+  payload: { patientId: "p1", branch: "polanco", start: "2026-10-13T09:00:00-06:00", end: "2026-10-13T10:00:00-06:00", calendarEventId: "ev1", description: "d" },
 });
 const escalate = (conversationId: string): NewOutboxItem => ({
   kind: "escalate",
@@ -104,7 +105,7 @@ describe("drainOutbox", () => {
   it("is idempotent: a second drain, or items the EHR already holds, create nothing new", async () => {
     const store = createMemoryStore();
     const { ehr, state, calls } = fakeEhr();
-    state.appointments.set("c1", { id: "appt-existing", patientId: "p1", start: "s", end: "e" });
+    state.appointments.set("c1", { id: "appt-existing", patientId: "p1", start: "s", end: "e", branch: "polanco" });
     state.communications.push({ id: "c-existing", conversationId: "c2", severity: "emergencia", patientWords: "dolor de pecho" });
     for (const item of [appointment("c1"), escalate("c2"), history("c3")]) await store.enqueue(item);
     await drainOutbox({ store, ehr });

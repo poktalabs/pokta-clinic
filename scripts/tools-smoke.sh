@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Exercises the agent tools against a running apps/web (default http://localhost:3000) and EHR.
 # Usage: scripts/tools-smoke.sh [base-url]. TOOL_SECRET comes from the environment, else apps/web/.env.local.
-# The golden sequence books a real first consultation (calendar event + Appointment) for a throwaway
-# patient. Set SMOKE_SKIP_BOOKING=1 to stop before the scheduling checks against a real calendar.
+# The golden sequence books a real first consultation (calendar event in the branch's calendar +
+# Appointment at its Location) for a throwaway patient, at the branch of the first offered slot. Set SMOKE_SKIP_BOOKING=1 to stop before the scheduling checks against a real calendar.
 # Needs jq.
 set -uo pipefail
 BASE="${1:-http://localhost:3000}"
@@ -70,25 +70,46 @@ check "history can be re-saved"          200 '"status":"completed"'       "$(cal
 check "availability needs consent"       200 '"consent_required":true'    "$(call check_availability "$(j conversation_id "\"$CONV-refused\"")")"
 AV="$(call check_availability "$Q")"
 check "availability returns slots"       200 '"label"'                    "$AV"
+check "slots carry branch and practitioner" 200 '"practitioner_name"'     "$AV"
+check "slots carry the branch name"      200 '"branch_name":"GMA '        "$AV"
 check "availability honours part of day" 200 '"slots"'                    "$(call check_availability "$(j conversation_id "$C" part_of_day '"afternoon"')")"
 check "availability rejects a bad date"  400 'Invalid input'              "$(call check_availability "$(j conversation_id "$C" preferred_date '"mañana"')")"
+check "availability rejects a bad branch" 400 'Invalid input'             "$(call check_availability "$(j conversation_id "$C" branch '"roma"')")"
+check "availability accepts any"         200 '"label"'                    "$(call check_availability "$(j conversation_id "$C" branch '"any"')")"
+for B in del-valle polanco satelite; do
+  BAV="$(call check_availability "$(j conversation_id "$C" branch "\"$B\"")")"
+  check "availability at $B returns slots" 200 '"label"'                  "$BAV"
+  if [[ "$(jq -r '[.slots[].branch] | unique | join(",")' <<<"$(sed '$d' <<<"$BAV")")" == "$B" ]]; then echo "PASS  availability at $B only offers $B"; else echo "FAIL  availability at $B offered another branch: $BAV"; FAIL=1; fi
+done
 
 if [[ "${SMOKE_SKIP_BOOKING:-0}" != 1 ]]; then
   START="$(jq -r '.slots[0].start' <<<"$(sed '$d' <<<"$AV")")"
-  book() { jq -nc --arg c "$1" --arg p "$2" --arg s "$3" '{conversation_id:$c, patient_id:$p, start:$s}'; }
-  check "off-grid start is refused"      200 '"booked":false'             "$(call book_appointment "$(book "$CONV" "$PID" "2030-01-01T03:00:00-06:00")")"
-  BOOKED="$(call book_appointment "$(book "$CONV" "$PID" "$START")")"
+  BRANCH="$(jq -r '.slots[0].branch' <<<"$(sed '$d' <<<"$AV")")"
+  book() { jq -nc --arg c "$1" --arg p "$2" --arg b "$3" --arg s "$4" '{conversation_id:$c, patient_id:$p, branch:$b, start:$s}'; }
+  check "booking needs a branch"         400 'Invalid input'              "$(call book_appointment "$(jq -nc --arg c "$CONV" --arg p "$PID" --arg s "$START" '{conversation_id:$c, patient_id:$p, start:$s}')")"
+  check "off-grid start is refused"      200 '"booked":false'             "$(call book_appointment "$(book "$CONV" "$PID" "$BRANCH" "2030-01-01T03:00:00-06:00")")"
+  # Saturday starts exist only at Satelite: another branch must refuse one.
+  inDays() { date -v+"$1"d "$2" 2>/dev/null || date -d "+$1 days" "$2"; }
+  for i in 2 3 4 5 6 7 8; do [[ "$(inDays "$i" +%u)" == 6 ]] && { SAT_DATE="$(inDays "$i" +%Y-%m-%d)"; break; }; done
+  SAT="$(call check_availability "$(j conversation_id "$C" branch '"satelite"' preferred_date "\"$SAT_DATE\"")")"
+  check "satelite offers Saturday slots" 200 '"branch":"satelite"'        "$SAT"
+  SAT_START="$(jq -r '.slots[0].start' <<<"$(sed '$d' <<<"$SAT")")"
+  check "a Saturday start is refused outside Satelite" 200 '"booked":false' "$(call book_appointment "$(book "$CONV" "$PID" polanco "$SAT_START")")"
+  BOOKED="$(call book_appointment "$(book "$CONV" "$PID" "$BRANCH" "$START")")"
   check "slot is booked"                 200 '"booked":true'              "$BOOKED"
+  check "booking names the branch"       200 "\"branch\":\"$BRANCH\""     "$BOOKED"
+  check "booking returns the address"    200 '"address":"'                "$BOOKED"
+  check "booking returns the practitioner" 200 '"practitioner_name":"'    "$BOOKED"
   APPT="$(jq -r .appointment_id <<<"$(sed '$d' <<<"$BOOKED")")"
-  check "booking again is idempotent"    200 "\"appointment_id\":\"$APPT\"" "$(call book_appointment "$(book "$CONV" "$PID" "$START")")"
+  check "booking again is idempotent"    200 "\"appointment_id\":\"$APPT\"" "$(call book_appointment "$(book "$CONV" "$PID" "$BRANCH" "$START")")"
 
   # A second Conversation must not get the slot the first one holds.
   CONV3="$CONV-second"; PHONE3="55$(printf '%08d' $((RANDOM * RANDOM % 100000000)))"
   call record_consent "$(jq -nc --arg c "$CONV3" '{conversation_id:$c, granted:true}')" >/dev/null
   SAVED3="$(call save_patient "$(jq -nc --arg c "$CONV3" --arg t "$PHONE3" '{conversation_id:$c, nombre:"Mario", primer_apellido:"Lopez", telefono:$t}')")"
   PID3="$(jq -r .patient_id <<<"$(sed '$d' <<<"$SAVED3")")"
-  check "taken slot is not double-booked" 200 '"booked":false'            "$(call book_appointment "$(book "$CONV3" "$PID3" "$START")")"
-  OFFER="$(call check_availability "$(jq -nc --arg c "$CONV3" '{conversation_id:$c}')")"
+  check "taken slot is not double-booked" 200 '"booked":false'            "$(call book_appointment "$(book "$CONV3" "$PID3" "$BRANCH" "$START")")"
+  OFFER="$(call check_availability "$(jq -nc --arg c "$CONV3" --arg b "$BRANCH" '{conversation_id:$c, branch:$b}')")"
   if [[ "$OFFER" != *"$START"* && "$OFFER" == *'"label"'* ]]; then echo "PASS  taken slot leaves the offer list"; else echo "FAIL  taken slot still offered or none offered: $OFFER"; FAIL=1; fi
 fi
 

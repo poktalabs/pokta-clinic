@@ -8,7 +8,7 @@ const STAGES = [
   { name: "Consent", text: "Asks for the aviso de privacidad. Nothing is read or written without a yes." },
   { name: "Identification", text: "Finds the patient by phone, or registers a new one." },
   { name: "History", text: "Collects the first-visit rheumatology Questionnaire as a conversation." },
-  { name: "Scheduling", text: "Offers real free slots and books the first consultation." },
+  { name: "Scheduling", text: "Asks which branch suits the caller, offers real free slots from that branch's calendar (or any branch) and books the first consultation." },
 ];
 
 export default function Home() {
@@ -17,7 +17,7 @@ export default function Home() {
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-10">
       <header>
         <h1 className="text-4xl font-semibold tracking-tight">pokta-clinic</h1>
-        <p className="mt-2 max-w-3xl text-xl">Voice pre-consultation intake for a rheumatology practice in Mexico City (fictional). The agent talks to the patient and writes the result into the practice&apos;s EHR over HL7 FHIR R4.</p>
+        <p className="mt-2 max-w-3xl text-xl">Voice pre-consultation intake for Grupo Médico Articular, a rheumatology network with three branches in the Mexico City area: Del Valle, Polanco and Satélite (fictional). The agent talks to the patient and writes the result into the network&apos;s EHR over HL7 FHIR R4.</p>
         <p role="note" className="mt-4 rounded-lg border border-warn/50 bg-warn/10 px-4 py-3">
           <strong>All data here is fictional and the agent is an AI, not a clinician.</strong> Do not share real personal or health information. This is a take-home demo, not medical advice.
         </p>
@@ -52,9 +52,9 @@ export default function Home() {
           ))}
         </ol>
         <p className="mt-3 rounded-lg border border-line p-3">
-          <strong>Escalation</strong> <span className="text-muted">at any point: a Red flag symptom (Emergencia or Urgencia) ends the intake, the patient gets safety guidance, and the Practitioner is notified.</span>
+          <strong>Escalation</strong> <span className="text-muted">at any point: a Red flag symptom (Emergencia or Urgencia) ends the intake, the patient gets safety guidance, and a Practitioner is notified.</span>
         </p>
-        <p className="mt-4 font-mono text-sm text-muted">ElevenLabs agent → pokta-clinic tools on Vercel → EHR over FHIR R4 on Render + Google Calendar</p>
+        <p className="mt-4 font-mono text-sm text-muted">ElevenLabs agent → pokta-clinic tools on Vercel → EHR over FHIR R4 on Render + one Google Calendar per branch</p>
       </section>
 
       <footer className="flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-4 text-sm">
