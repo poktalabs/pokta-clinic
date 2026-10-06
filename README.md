@@ -10,6 +10,7 @@ A one-page visual of what is built is at [docs/explainers/architecture/index.htm
 flowchart LR
   P[Patient browser widget] --> A[ElevenLabs agent]
   A -->|server tool call, secret header| W[apps/web tool endpoints]
+  W --> ST[(Upstash store: timeline, outbox, consent cache)]
   W --> AD[EhrAdapter]
   AD -->|FHIR R4 + OAuth2 client credentials| E[apps/mock-ehr]
   E --> DB[(Postgres)]
@@ -21,7 +22,7 @@ One tool call, end to end. The agent decides to call a server tool (for example 
 
 | Path | What lives there |
 |---|---|
-| [apps/web](apps/web/README.md) | Next.js app (Vercel). The agent's server tool endpoints under `src/app/api/tools/` and the `EhrAdapter`. The home page is still the create-next-app placeholder. |
+| [apps/web](apps/web/README.md) | Next.js app (Vercel). The agent's server tool endpoints under `src/app/api/tools/` and the `EhrAdapter`. It also owns the live demo page at `/`, a small Upstash Redis store (tool timeline, outbox, Consent cache), the post-call webhook and the admin EHR on/off toggle. |
 | [apps/mock-ehr](apps/mock-ehr/README.md) | "Expediente Demo": a Hono + Drizzle + Postgres FHIR R4 server (Render). Own Dockerfile. |
 | [packages/fhir](packages/fhir/README.md) | Shared FHIR R4 zod schemas, builders, identifier systems and extension URLs. |
 | `agent/` | ElevenLabs agent configuration as code (see [docs/agent.md](docs/agent.md)). |
@@ -40,6 +41,7 @@ Prerequisites: Node 22, pnpm (the root `packageManager` pins a version; `corepac
    - `apps/mock-ehr/.env.example` to `apps/mock-ehr/.env.local`: `DATABASE_URL`, `EHR_JWT_SECRET`, `EHR_CLIENT_ID`, `EHR_CLIENT_SECRET`.
    - `apps/web/.env.example` to `apps/web/.env.local`: `EHR_BASE_URL`, `EHR_CLIENT_ID`, `EHR_CLIENT_SECRET`, `TOOL_SECRET`.
    - `.env.example` to `.env.local` (root, only for the agent and Render CLIs): `ELEVENLABS_API_KEY`, `RENDER_API_KEY`.
+   - For the live page and the store locally, add to `apps/web/.env.local`: `STORE_PROVIDER=memory`, `CALENDAR_PROVIDER=fake`, and optionally `ADMIN_PASSWORD`, `CRON_SECRET`, `ELEVENLABS_WEBHOOK_SECRET`, `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` (all listed in [apps/web/.env.example](apps/web/.env.example)).
 3. Install: `pnpm install`.
 4. Start the EHR: `pnpm dev:ehr` (port 8787). It applies migrations and seeds the demo practice on boot, so `pnpm --filter @pokta-clinic/mock-ehr db:migrate` is optional (it is only useful to migrate without starting the server). `pnpm --filter @pokta-clinic/mock-ehr db:seed` also exists and is idempotent.
 5. Start the web app in a second terminal: `pnpm dev:web` (port 3000).
@@ -50,17 +52,20 @@ Other root scripts: `pnpm build`, `pnpm typecheck`, and the `agent:*` and `rende
 ## Key design decisions
 
 - **NOM-004/NOM-024 inside the EHR, FHIR only at the edge.** Tables follow the Mexican norms; FHIR R4 is the exchange format. The agent's output is a patient-reported document pending the Practitioner's Validation, not the Historia clinica. See [ADR 0001](docs/adr/0001-nom-first-data-model-fhir-at-the-edge.md) and [apps/mock-ehr/docs/data-model.md](apps/mock-ehr/docs/data-model.md).
-- **Consent gates reads and writes.** `find_patient` and `save_patient` refuse to run until the Conversation has a granted Consent ([grantedConsent](apps/web/src/tools/handler.ts)). A refusal blocks everything after it.
+- **Consent gates reads and writes.** Every tool except `record_consent` and `escalate` refuses to run until the Conversation has a granted Consent ([grantedConsent](apps/web/src/tools/handler.ts), store first, EHR second). A refusal blocks everything after it.
 - **Shared-secret tool auth.** Tool endpoints accept only requests with the `x-pokta-tool-secret` header, compared in constant time. The secret lives in an ElevenLabs workspace Secret and in Vercel env. See [docs/security/elevenlabs-api-keys.md](docs/security/elevenlabs-api-keys.md) for the key scoping.
 - **Migrate on boot.** The mock EHR applies Drizzle migrations and seeds the demo practice every time it starts, retrying while Postgres wakes up ([bootstrap.ts](apps/mock-ehr/src/db/bootstrap.ts)).
+- **Own store, outbox, and an EHR that can be off.** The EHR is a third-party system on Render that the admin can suspend and resume from the live page. pokta-clinic keeps its own Upstash Redis store (7 day TTL, operational data only) so the timeline, the Consent gate and an outbox keep working: while the EHR is off, `save_history`, the Appointment write, `escalate` and `record_consent` are queued and replayed idempotently when it returns. `find_patient` and `save_patient` still need the EHR. See [apps/web/README.md](apps/web/README.md).
 - **EhrAdapter.** Tools depend only on an interface; pointing at another FHIR EHR is a config change (`EHR_BASE_URL` and credentials), and a non-FHIR EHR is one new implementation ([apps/web/src/ehr/index.ts](apps/web/src/ehr/index.ts)).
 
 ## Status
 
-| Built | Planned |
+| Built | Still manual |
 |---|---|
-| Mock EHR: Patient (read, search, create) and Consent (create, search, update), OAuth2 token endpoint, CapabilityStatement, append-only audit log | Mock EHR endpoints for Questionnaire, QuestionnaireResponse, Appointment (tables exist; no routes) |
-| Tools: `record_consent`, `find_patient`, `save_patient` | Tools: `get_questionnaire`, `save_history`, `check_availability`, `book_appointment`, `escalate` |
-| Smoke script, Dockerfile, migrations | Google Calendar, live page, outbox, post-call webhook |
+| Mock EHR: Patient, Consent, Questionnaire, QuestionnaireResponse, Appointment, Communication, OAuth2 token endpoint, CapabilityStatement, append-only audit log | Provision Upstash Redis through the Vercel Marketplace and set the new env vars |
+| The 8 tools, with Google Calendar scheduling | Create the ElevenLabs post-call webhook (see [docs/deploy.md](docs/deploy.md)) |
+| Live page at `/`: widget, tool timeline, EHR and outbox panel, admin EHR on/off toggle | Set `ADMIN_PASSWORD`, `CRON_SECRET` and the Render ids in Vercel |
+| Outbox for EHR outages, drained by the toggle, a button and Vercel Cron; post-call webhook records | |
+| Smoke script, Dockerfile, migrations | |
 
 More: [docs/README.md](docs/README.md), [docs/agent.md](docs/agent.md), [docs/deploy.md](docs/deploy.md).

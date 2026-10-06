@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@pokta-clinic/fhir": "workspace:*",
+    "@upstash/redis": "^1.39.0",
     "google-auth-library": "^11.1.0",
     "next": "16.3.8",
     "react": "19.2.8",

@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { calendar } from "@/calendar";
-import { EhrRejectedError, ehr } from "@/ehr";
+import { EhrRejectedError, EhrUnavailableError, ehr, type AppointmentRecord, type PatientDetail } from "@/ehr";
+import { queueForEhr } from "@/outbox/queue";
 import { busyRange, describeStart, resolveSlot } from "@/scheduling/slots";
+import { store, type BookingRecord } from "@/store";
 import { NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
 
 const Input = z.object({
@@ -15,62 +17,148 @@ const SLOT_TAKEN = {
   message: "That slot is no longer available. Apologise briefly and call check_availability to offer other options.",
 };
 
-function confirmed(appointment: { id: string; start: string }) {
+function confirmed(appointment: { id: string | null; start: string }, queued = false) {
   const { label } = describeStart(appointment.start);
   return {
     booked: true,
-    appointment_id: appointment.id,
+    ...(appointment.id ? { appointment_id: appointment.id } : {}),
+    ...(queued ? { queued: true } : {}),
     start: appointment.start,
     label,
-    message: `Booked. Read back the day, date and time to the caller: ${label}. Then follow the instructions of your current stage.`,
+    message: queued
+      ? `Booked in the calendar: ${label}. The clinic record system is offline and will sync the Appointment by itself. Read back the day, date and time to the caller, do not mention any problem, and follow the instructions of your current stage.`
+      : `Booked. Read back the day, date and time to the caller: ${label}. Then follow the instructions of your current stage.`,
   };
 }
 
-export const POST = tool("book_appointment", Input, async (input) => {
+// The store remembers the booking of a Conversation so a repeat is answered while the EHR is down.
+async function rememberBooking(conversationId: string, booking: BookingRecord) {
+  try {
+    await store.putBooking(conversationId, booking);
+  } catch (err) {
+    console.error(JSON.stringify({ booking_cache: "write_failed", error: (err as Error).name }));
+  }
+}
+
+async function recalledBooking(conversationId: string): Promise<BookingRecord | null> {
+  try {
+    return await store.getBooking(conversationId);
+  } catch (err) {
+    console.error(JSON.stringify({ booking_cache: "read_failed", error: (err as Error).name }));
+    return null;
+  }
+}
+
+export const POST = tool("book_appointment", Input, async (input, ctx) => {
   const consent = await grantedConsent(input.conversation_id);
   if (!consent) return NO_CONSENT;
   const mismatch = patientMismatch(consent, input.patient_id);
   if (mismatch) return mismatch;
 
   // Idempotent per Conversation: a repeated call (the agent retrying, a double tap) returns the booking.
-  const existing = await ehr.findAppointmentByConversation(input.conversation_id);
-  if (existing) return existing.patientId === input.patient_id ? confirmed(existing) : patientMismatch({ id: "", granted: true, patientId: existing.patientId }, input.patient_id)!;
+  // The store is asked first (it also knows bookings still queued for the EHR), the EHR second.
+  const remembered = await recalledBooking(input.conversation_id);
+  if (remembered) {
+    if (remembered.patientId !== input.patient_id) return patientMismatch({ id: "", granted: true, patientId: remembered.patientId }, input.patient_id)!;
+    ctx.outcome(`slot already booked ${describeOutcomeStart(remembered.start)}`);
+    return confirmed({ id: remembered.appointmentId, start: remembered.start });
+  }
+  // From here a failed EHR call does not stop the booking: only the Appointment write is queued.
+  let ehrDown = false;
+  let existing: AppointmentRecord | null = null;
+  try {
+    existing = await ehr.findAppointmentByConversation(input.conversation_id);
+  } catch (err) {
+    if (!(err instanceof EhrUnavailableError)) throw err;
+    ehrDown = true;
+  }
+  if (existing) {
+    if (existing.patientId !== input.patient_id) return patientMismatch({ id: "", granted: true, patientId: existing.patientId }, input.patient_id)!;
+    ctx.outcome(`slot already booked ${describeOutcomeStart(existing.start)}`);
+    return confirmed(existing);
+  }
 
   // Never trust the start the LLM sends: re-check the practice rules and the live calendar.
   const now = new Date();
   const slot = resolveSlot(input.start, now);
-  if (!slot) return { ...SLOT_TAKEN, message: "That start is not a bookable slot. Call check_availability and offer only the slots it returns." };
+  if (!slot) {
+    ctx.outcome("start not bookable");
+    return { ...SLOT_TAKEN, message: "That start is not a bookable slot. Call check_availability and offer only the slots it returns." };
+  }
   const range = busyRange(now);
   const busy = await calendar.busy(range.from, range.to);
   const startMs = Date.parse(slot.start);
-  if (busy.some((b) => startMs < Date.parse(b.end) && Date.parse(b.start) < Date.parse(slot.end))) return SLOT_TAKEN;
+  if (busy.some((b) => startMs < Date.parse(b.end) && Date.parse(b.start) < Date.parse(slot.end))) {
+    ctx.outcome("slot taken");
+    return SLOT_TAKEN;
+  }
 
-  const patient = await ehr.getPatient(input.patient_id);
-  if (!patient) return { booked: false, message: "That patient_id is not in the record system. Use the patient_id returned by find_patient or save_patient." };
+  let patient: PatientDetail | null = null;
+  if (!ehrDown) {
+    try {
+      patient = await ehr.getPatient(input.patient_id);
+    } catch (err) {
+      if (!(err instanceof EhrUnavailableError)) throw err;
+      ehrDown = true;
+    }
+    if (!ehrDown && !patient) {
+      ctx.outcome("patient not found");
+      return { booked: false, message: "That patient_id is not in the record system. Use the patient_id returned by find_patient or save_patient." };
+    }
+  }
 
   // No clinical data in the calendar: it is a third-party system outside the Expediente (NOM-004).
-  // The folio and ids let the practice find the Patient in the EHR.
+  // The folio and ids let the practice find the Patient in the EHR. While the EHR is down the name is
+  // unknown, so the event carries the ids only.
   const event = await calendar.createEvent({
     start: slot.start,
     end: slot.end,
-    summary: `Primera consulta: ${patient.givenName} ${patient.primerApellido}`.trim(),
-    description: `Folio: ${patient.folio ?? "n/a"}\nPatient ID: ${patient.id}\nConversation ID: ${input.conversation_id}`,
+    summary: patient ? `Primera consulta: ${patient.givenName} ${patient.primerApellido}`.trim() : "Primera consulta (pendiente de sincronizar)",
+    description: `Folio: ${patient?.folio ?? "n/a"}\nPatient ID: ${input.patient_id}\nConversation ID: ${input.conversation_id}`,
   });
+  const appointmentInput = {
+    conversationId: input.conversation_id,
+    patientId: input.patient_id,
+    start: slot.start,
+    end: slot.end,
+    calendarEventId: event.id,
+    description: "Primera consulta agendada por el asistente de voz",
+  };
+  const booking = { patientId: input.patient_id, start: slot.start, end: slot.end, calendarEventId: event.id };
+  // The calendar event exists: when the EHR is down keep it and queue the Appointment write with its id.
+  const queue = (cause: EhrUnavailableError) =>
+    queueForEhr(
+      {
+        kind: "appointment",
+        conversationId: input.conversation_id,
+        payload: { patientId: input.patient_id, start: slot.start, end: slot.end, calendarEventId: event.id, description: appointmentInput.description },
+      },
+      cause,
+    );
   try {
-    const appointment = await ehr.createAppointment({
-      conversationId: input.conversation_id,
-      patientId: patient.id,
-      start: slot.start,
-      end: slot.end,
-      calendarEventId: event.id,
-      description: "Primera consulta agendada por el asistente de voz",
-    });
+    if (ehrDown) throw new EhrUnavailableError("down earlier in this call");
+    const appointment = await ehr.createAppointment(appointmentInput);
+    await rememberBooking(input.conversation_id, { ...booking, appointmentId: appointment.id });
+    ctx.outcome(`slot booked ${describeOutcomeStart(slot.start)}`);
     return confirmed({ id: appointment.id, start: slot.start });
   } catch (err) {
+    if (err instanceof EhrUnavailableError && (await queue(err))) {
+      await rememberBooking(input.conversation_id, { ...booking, appointmentId: null });
+      ctx.outcome(`slot booked ${describeOutcomeStart(slot.start)}, queued in outbox`);
+      return confirmed({ id: null, start: slot.start }, true);
+    }
     // Compensate: no calendar event without an Appointment. Best effort, the original failure matters more.
     await calendar.deleteEvent(event.id).catch(() => undefined);
     // 409 means another booking took the interval between our calendar check and now.
-    if (err instanceof EhrRejectedError && err.status === 409) return SLOT_TAKEN;
+    if (err instanceof EhrRejectedError && err.status === 409) {
+      ctx.outcome("slot taken");
+      return SLOT_TAKEN;
+    }
     throw err;
   }
 });
+
+// "2026-10-13 09:00" in the practice's local time, for the timeline.
+function describeOutcomeStart(start: string): string {
+  return start.slice(0, 16).replace("T", " ");
+}

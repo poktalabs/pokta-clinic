@@ -50,6 +50,8 @@ export type AppointmentRecord = {
 
 export type Severity = "emergencia" | "urgencia";
 
+export type CommunicationRecord = { id: string; severity: Severity; patientWords: string };
+
 export interface EhrAdapter {
   findPatientsByPhone(phone: string): Promise<PatientSummary[]>;
   createPatient(input: NewPatient): Promise<{ patient: PatientSummary; created: boolean }>;
@@ -84,7 +86,11 @@ export interface EhrAdapter {
     patientWords: string;
     instruction: string;
     patientId?: string;
+    // When the Red flag happened, if the write is replayed later from the outbox.
+    sent?: string;
   }): Promise<void>;
+  // The Communications of a Conversation; the outbox drain uses it to avoid writing one twice.
+  findCommunicationsByConversation(conversationId: string): Promise<CommunicationRecord[]>;
 }
 
 // The EHR did not answer or failed; tools tell the agent to apologise instead of guessing.

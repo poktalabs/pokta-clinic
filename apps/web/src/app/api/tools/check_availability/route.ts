@@ -10,12 +10,13 @@ const Input = z.object({
 });
 
 // The calendar says what is busy; the practice rules (src/scheduling/slots.ts) say what may be offered.
-export const POST = tool("check_availability", Input, async (input) => {
+export const POST = tool("check_availability", Input, async (input, ctx) => {
   if (!(await grantedConsent(input.conversation_id))) return NO_CONSENT;
   const now = new Date();
   const range = busyRange(now);
   const busy = await calendar.busy(range.from, range.to);
   const slots = freeSlots({ now, busy, preferredDate: input.preferred_date, partOfDay: input.part_of_day });
+  ctx.outcome(`${slots.length} slots offered`);
   if (!slots.length) {
     return {
       slots: [],

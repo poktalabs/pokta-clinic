@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ehr } from "@/ehr";
-import { NO_CONSENT, conversationId, grantedConsent, tool } from "@/tools/handler";
+import { NO_CONSENT, cacheConsent, conversationId, grantedConsent, tool } from "@/tools/handler";
 import { INVALID_PHONE, normalizePhone } from "@/tools/phone";
 
 // NOM-024 Table 1 fields the call can collect. CURP is not asked: the patient brings it to the visit.
@@ -14,7 +14,7 @@ const Input = z.object({
   sexo: z.enum(["H", "M"]).optional(),
 });
 
-export const POST = tool("save_patient", Input, async (input) => {
+export const POST = tool("save_patient", Input, async (input, ctx) => {
   const consent = await grantedConsent(input.conversation_id);
   if (!consent) return NO_CONSENT;
   const telefono = normalizePhone(input.telefono);
@@ -29,7 +29,11 @@ export const POST = tool("save_patient", Input, async (input) => {
     sexo: input.sexo,
   });
   // Link only a record this call created; an existing record waits until the caller confirms the name.
-  if (created && !consent.patientId) await ehr.linkConsent(consent, input.conversation_id, patient.id);
+  if (created && !consent.patientId) {
+    await ehr.linkConsent(consent, input.conversation_id, patient.id);
+    await cacheConsent(input.conversation_id, { ...consent, patientId: patient.id });
+  }
+  ctx.outcome(created ? "patient registered" : "existing patient");
 
   return {
     patient_id: patient.id,

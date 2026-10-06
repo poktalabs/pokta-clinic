@@ -1,6 +1,6 @@
 # apps/web
 
-Next.js 16 app (deployed on Vercel). Today it has no real UI: [src/app/page.tsx](src/app/page.tsx) is still the create-next-app placeholder. Its job is to host the server tool endpoints that the ElevenLabs agent calls during a Conversation, and to translate them into FHIR calls on the EHR through an `EhrAdapter`. A planned live page and post-call webhook would also live here.
+Next.js 16 app (deployed on Vercel). It hosts the server tool endpoints that the ElevenLabs agent calls during a Conversation and translates them into FHIR calls on the EHR through an `EhrAdapter`. It also owns a small store of its own (Upstash Redis) so it keeps working while the EHR is switched off, and it serves the live demo page at `/`: the voice widget, a live tool timeline, and the EHR on/off panel. See [Store](#store), [Tool timeline](#tool-timeline), [Outbox](#outbox-ehr-outages), [EHR toggle](#ehr-toggle-and-admin), [Post-call webhook](#post-call-webhook) and [Live page](#live-page).
 
 Read [AGENTS.md](AGENTS.md) before writing Next code: this Next version has breaking changes, and the docs ship in `node_modules/next/dist/docs/`.
 
@@ -33,11 +33,12 @@ All in [src/tools/handler.ts](src/tools/handler.ts), function `tool(name, schema
 
 1. Auth: the `x-pokta-tool-secret` header must equal `TOOL_SECRET` (constant-time compare). Otherwise 401 `{ error: "unauthorized" }`.
 2. Validate: the JSON body is parsed with the tool's zod schema. Failure returns 400 `{ ok: false, message: "Invalid input: ..." }`.
-3. Run: the tool function executes and its result is returned as `{ ok: true, ...result }` with status 200.
+3. Run: the tool function executes and its result is returned as `{ ok: true, ...result }` with status 200. The tool also receives a context whose `outcome(label)` names what happened for the timeline.
 4. Error mapping: `EhrUnavailableError` returns 503 with a message telling the agent to apologise and not retry; `EhrRejectedError` returns 422 with the EHR's diagnostics in the message; `CalendarUnavailableError` returns 503 with a message telling the agent to apologise and say the clinic will call back to schedule; anything else is rethrown (Next returns 500).
 5. Log: one JSON line per call, `{ tool, ok, ms }` on success and `{ tool, ok: false, ms, error }` (error class name) on failure. No request data is logged.
+6. Timeline: one event per call goes to the store, see [Tool timeline](#tool-timeline).
 
-`grantedConsent(conversationId)` and `NO_CONSENT` in the same file implement the consent gate. They query the EHR on every call, so the check does not depend on the prompt or on server memory.
+`grantedConsent(conversationId)` and `NO_CONSENT` in the same file implement the consent gate. The check does not depend on the prompt or on server memory: it asks the store first (where `record_consent` wrote the decision) and the EHR second, and a store miss or failure falls through to the EHR, never to a grant. The EHR stays the system of record; the store is a cache keyed by Conversation.
 
 ## EhrAdapter boundary
 
@@ -56,7 +57,8 @@ The tools know only the interface in [src/ehr/adapter.ts](src/ehr/adapter.ts):
 | `saveQuestionnaireResponse({ conversationId, patientId, status, answers, existing })` | POST, or PUT when `existing` is given; a 409 race is retried as a PUT. |
 | `findAppointmentByConversation(conversationId)` | The Conversation's `AppointmentRecord` or null; makes booking idempotent. |
 | `createAppointment({ conversationId, patientId, start, end, calendarEventId, description })` | Creates the Appointment; `EhrRejectedError(409)` when the Practitioner is already booked then. |
-| `createCommunication({ conversationId, severity, patientWords, instruction, patientId? })` | Notifies the Practitioner of a Red flag. |
+| `createCommunication({ conversationId, severity, patientWords, instruction, patientId?, sent? })` | Notifies the Practitioner of a Red flag. `sent` keeps the original time when the write is replayed from the outbox. |
+| `findCommunicationsByConversation(conversationId)` | The Conversation's Communications (`id`, `severity`, `patientWords`); the outbox drain uses it to avoid writing one twice. |
 
 The Practitioner is resolved once through `GET /fhir/Practitioner` inside the FHIR adapter and cached, so tools never see its id.
 
@@ -94,6 +96,59 @@ Failures throw `CalendarUnavailableError`, which `tool()` maps to 503. Selection
 
 The practice must share its calendar with the service account's email, with permission to make changes to events.
 
+## Store
+
+pokta-clinic keeps a small store of its own, independent of the EHR, so the demo works while the EHR is suspended. It holds operational data only, with a 7 day TTL: the tool timeline, a Consent decision cache, a booking cache per Conversation, the outbox, the post-call records and the toggle's intent. The EHR remains the record. The interface is `Store` in [src/store/types.ts](src/store/types.ts):
+
+| Method | Purpose |
+|---|---|
+| `addEvent(event)`, `recentEvents(limit)` | The tool timeline (newest last, capped at 200). |
+| `getConsent(conversationId)`, `putConsent(conversationId, decision)` | Consent decision cache, so the gate works with the EHR down. |
+| `getBooking(conversationId)`, `putBooking(conversationId, booking)` | Makes `book_appointment` idempotent when the EHR cannot be asked. |
+| `enqueue(item)`, `outbox()`, `updateOutboxItem(item)`, `removeOutboxItem(id)` | The outbox, in enqueue order. |
+| `getEhrIntent()`, `putEhrIntent(intent)` | What the toggle last asked for, and whether a drain is pending. |
+| `putConversation(record)`, `getConversation(id)`, `listConversations(limit)` | Post-call webhook records. |
+| `lock(name, ttlSeconds)` | Returns a release function or null; keeps two drains from running at once. |
+
+Implementations: [upstash.ts](src/store/upstash.ts) (`@upstash/redis` over REST; keys are prefixed `pc:`) and [memory.ts](src/store/memory.ts) (in process, no TTL, local dev and tests only). `STORE_PROVIDER` picks one at first use; the default is `upstash` and missing credentials throw. The memory store is refused on Vercel production and never stands in silently. Outbox payloads and post-call transcripts can hold patient data (fictional in the demo), which is why they expire and why the only readers are admin-only or show counts.
+
+## Tool timeline
+
+`tool()` records one event per call after the response is built: `conversationId`, `tool`, `ok`, `status`, `ms`, `at` and a short `outcome` label such as `consent granted`, `slot booked 2026-10-13 09:00` or `queued in outbox`. Tools set the label with `ctx.outcome(...)`; without one the handler infers `consent required`, `patient mismatch` or `invalid phone`, else `ok`. Events never contain answers, names or phones. The write goes through `after()` (so Vercel keeps the function alive for it), times out after 1.5 s and only logs on error, so it cannot fail or noticeably slow a tool. A 200 answer with `ok: false` (escalate when the EHR fails) shows as an error. `GET /api/live/events?since=<epoch ms>` returns the last 50 events newer than `since`, newest last. It is public.
+
+## Outbox (EHR outages)
+
+When the EHR is unreachable (`EhrUnavailableError`), these writes are queued in the store instead of failing, and the tool answers `ok` with a message saying the data is saved and will sync, so the call continues:
+
+| Kind | Queued from | Replay (idempotent) |
+|---|---|---|
+| `save_history` | `save_history`, with the raw input | `saveHistory` upserts one QuestionnaireResponse per Conversation and merges over what is stored. A queued `completed` that the EHR now says is missing required items is saved as `in-progress`, still pending Validation. |
+| `appointment` | `book_appointment`, after the calendar event is created (its id is kept) | Appointment search by Conversation identifier first, create only if none. |
+| `escalate` | `escalate` | Communication search by Conversation identifier; skipped when one with the same severity and words exists. The original `sent` time is kept. |
+| `consent` | `record_consent` when the EHR is down at that moment | Skipped when the EHR already has the same decision, else a Consent is created. |
+
+Consent still gates everything while the EHR is down: `record_consent` writes the decision to the store, and `grantedConsent()` asks the store first and the EHR second. With the EHR down and no cached decision the gate asks the EHR, fails, and the tool answers 503, so nothing is read or written without a recorded yes.
+
+What still needs the EHR, on purpose: `find_patient` and `save_patient` (they fail with the existing 503 apology message), `get_questionnaire` on a server instance that has not cached the Questionnaire yet, and the `book_appointment` look-ups. For `book_appointment` the EHR reads are best effort during an outage: the calendar event then carries the ids but not the Patient's name (`Primera consulta (pendiente de sincronizar)`), and a repeat call for the same Conversation is answered from the store. If the store is down as well, the original 503 comes back.
+
+The drain ([src/outbox/drain.ts](src/outbox/drain.ts)) takes a lock, replays the items in order, removes successes, and keeps failures queued with an attempt count and the error class (never the EHR's message, which can echo patient data). If the EHR is unreachable the run stops, so later items keep their order; a rejection (4xx) of one item does not block the items behind it. It runs from: `POST /api/outbox/drain` (admin cookie, or the cron bearer), `GET /api/outbox/drain` (Vercel Cron, `Authorization: Bearer $CRON_SECRET`, every 10 minutes per [vercel.json](vercel.json)), and once when `GET /api/live/ehr` first sees a healthy EHR after the toggle resumed it. `GET /api/live/outbox` returns the count and each item's kind, age in seconds and attempts; no patient data and no Conversation ids. It is public.
+
+## EHR toggle and admin
+
+The admin can suspend or resume the Render EHR web service and its Postgres ([src/ehr-control/render.ts](src/ehr-control/render.ts)): `POST /v1/services/{id}/suspend|resume` and `POST /v1/postgres/{id}/suspend|resume`. Resume order is database then service; suspend order is service then database. `POST /api/admin/ehr` takes `{"action":"on"|"off"}` and returns 202 at once (Render answers 202 and the EHR needs a minute or more to boot). Without the three Render variables it answers 501 "not configured".
+
+`GET /api/live/ehr` is public and returns `state`: `on` when the EHR's `/healthz` answers (2.5 s timeout), `waking` when it does not but a resume was requested in the last 10 minutes, otherwise `off`. For an admin it also returns the `suspended` flags Render reports (read with `GET /v1/services/{id}` and `GET /v1/postgres/{id}`), so the public page never spends Render API calls. Note that on the free plan an idle (not suspended) service wakes when its health is probed.
+
+Admin auth: `POST /api/admin/login` with `{"password"}` compares it in constant time with `ADMIN_PASSWORD` and sets the `pc_admin` cookie: httpOnly, `Secure` on Vercel and in production builds, `SameSite=Strict`, 12 hours, value `<expiry>.<HMAC-SHA256>` signed with `ADMIN_SESSION_SECRET` or a key derived from the password. Nothing is stored server-side, so a session ends only by expiring or by changing the signing secret. A wrong password waits 750 ms; there is no per-IP limit, so use a long random password. `POST /api/admin/logout` clears the cookie and `GET /api/admin/session` says whether the caller is an admin. Every admin route checks the cookie: `POST /api/admin/ehr`, `POST /api/outbox/drain`, `GET /api/live/conversations` and `GET /api/live/conversations/[id]`.
+
+## Post-call webhook
+
+`POST /api/webhooks/elevenlabs` verifies the `ElevenLabs-Signature` header against the raw body before parsing it: the header is `t=<unix seconds>,v0=<hex>` and `v0` is `HMAC-SHA256(ELEVENLABS_WEBHOOK_SECRET, "<t>.<raw body>")`, compared in constant time, with a 30 minute tolerance in both directions. This is the scheme of `constructEvent` in the ElevenLabs SDK; the docs page only names the header and points to the SDK. A bad or missing signature is 401; an unset secret is 503. A verified `post_call_transcription` is stored per Conversation (transcript with role, text, workflow node id, tool calls and time; data collection and evaluation results; summary; duration; status) and any other verified event type is acknowledged and ignored, because ElevenLabs retries and eventually disables a webhook that answers non-2xx. It is the fallback evidence if a reviewer cannot open a Conversation ID from another workspace. `GET /api/live/conversations` and `GET /api/live/conversations/[id]` read it (admin only). The webhook is created by hand in ElevenLabs, see [docs/deploy.md](../../docs/deploy.md).
+
+## Live page
+
+`/` ([src/app/page.tsx](src/app/page.tsx), client pieces in [src/components/](src/components/)) is the page for the Loom and for reviewers: header with the fictional-data and AI notice, the ElevenLabs widget (`<elevenlabs-convai agent-id>` plus the embed script from unpkg, agent id from `NEXT_PUBLIC_ELEVENLABS_AGENT_ID`), the tool timeline (polls `/api/live/events` every 1.5 s while the tab is visible, grouped by Conversation, newest on top, six shown), the EHR and outbox panel (polls every 4 s; admins also get Turn on, Turn off and Drain buttons, others see state only, plus a small `admin` link to `/admin`), a How it works strip and links to the EHR info page and FHIR metadata. Styling is Tailwind with CSS variables for light and dark; no other UI library, no secrets in the browser.
+
 ## Environment variables
 
 Server-only, read lazily in [src/env.ts](src/env.ts) so `next build` works without secrets; a missing one throws at first use. Local values go in `apps/web/.env.local` (copy [.env.example](.env.example)); production values live in Vercel.
@@ -107,6 +162,15 @@ Server-only, read lazily in [src/env.ts](src/env.ts) so `next build` works witho
 | `CALENDAR_PROVIDER` | `google` (default) or `fake`. Any other value fails closed. Local dev: `fake`. |
 | `GOOGLE_SERVICE_ACCOUNT_KEY_B64` | Base64 of the service account JSON key. Required when the provider is `google`. |
 | `GOOGLE_CALENDAR_ID` | Id of the Practitioner's calendar. Required when the provider is `google`. |
+| `STORE_PROVIDER` | `upstash` (default) or `memory` (local dev and tests only, refused when `VERCEL_ENV` is `production`). Any other value fails closed. |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Upstash Redis REST credentials, as the Vercel Marketplace integration injects them. |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | The same credentials under the other name the integration can use; either pair works. |
+| `ADMIN_PASSWORD` | Password of the admin login. Unset means nobody can log in (fail closed). |
+| `ADMIN_SESSION_SECRET` | Optional. Signs the admin cookie. Without it the key is derived from `ADMIN_PASSWORD`, so changing the password also ends every session. |
+| `CRON_SECRET` | Vercel Cron sends it as `Authorization: Bearer`; protects `GET /api/outbox/drain`. Unset means the cron call is refused. |
+| `RENDER_API_KEY`, `RENDER_EHR_SERVICE_ID`, `RENDER_EHR_POSTGRES_ID` | The EHR on/off toggle. Unset means the toggle answers 501 "not configured". The key is account-wide, see [docs/deploy.md](../../docs/deploy.md). |
+| `ELEVENLABS_WEBHOOK_SECRET` | Signing secret of the post-call webhook. Unset means the webhook answers 503. |
+| `NEXT_PUBLIC_ELEVENLABS_AGENT_ID` | Agent id for the widget on `/`. Public by design (the agent is public with an origin allowlist). Inlined at build time, so changing it needs a redeploy. |
 
 ## Scripts
 
@@ -119,7 +183,7 @@ Run with `pnpm --filter @pokta-clinic/web <script>` or, from the root, `pnpm dev
 | `start` | `next start`. |
 | `lint` | `eslint`. |
 | `typecheck` | `next typegen && tsc --noEmit`. |
-| `test` | `vitest run`: unit tests of the scheduling rules. From the root: `pnpm test`. |
+| `test` | `vitest run`: unit tests of the scheduling rules, the outbox drain, the webhook signature check, the admin session and the Render call order. From the root: `pnpm test`. |
 
 `@/*` maps to `src/*`. [next.config.ts](next.config.ts) sets `transpilePackages: ["@pokta-clinic/fhir"]` because the shared package ships as TypeScript source.
 
@@ -138,6 +202,15 @@ Run with `pnpm --filter @pokta-clinic/web <script>` or, from the root, `pnpm dev
 | [src/scheduling/slots.ts](src/scheduling/slots.ts) | Practice rules: slot generation, filters, variety, labels, validation. |
 | [src/calendar/](src/calendar/) | `CalendarAdapter`, the Google and fake implementations, and the provider switch. |
 | [src/env.ts](src/env.ts) | Lazy env vars. |
+| [src/store/](src/store/) | `Store` interface, the Upstash and in-memory implementations, and the provider switch. |
+| [src/timeline/record.ts](src/timeline/record.ts) | Fire-and-forget write of one tool event. |
+| [src/outbox/](src/outbox/) | `queueForEhr`, the drain, and the public summary. |
+| [src/tools/save-history.ts](src/tools/save-history.ts) | The EHR half of `save_history`, shared by the tool and the drain. |
+| [src/ehr-control/](src/ehr-control/) | Render API client, EHR health and state, and the status used by the page and the drain trigger. |
+| [src/admin/session.ts](src/admin/session.ts) | Admin password check and the signed cookie. |
+| [src/webhooks/elevenlabs.ts](src/webhooks/elevenlabs.ts) | Signature check and payload mapping for the post-call webhook. |
+| [src/app/page.tsx](src/app/page.tsx), [src/components/](src/components/) | The live page. |
+| [vercel.json](vercel.json) | The outbox cron. |
 | [src/app/page.tsx](src/app/page.tsx), [layout.tsx](src/app/layout.tsx), [globals.css](src/app/globals.css) | Placeholder UI from create-next-app. |
 
 ## Adding a tool

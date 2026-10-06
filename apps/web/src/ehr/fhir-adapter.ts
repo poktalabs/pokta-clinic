@@ -2,6 +2,7 @@ import {
   CONVERSATION_SYSTEM,
   EXT,
   QUESTIONNAIRE_URL,
+  RED_FLAG_SEVERITY_EXT,
   SYSTEM,
   appointmentResource,
   communicationResource,
@@ -19,6 +20,7 @@ import {
 import {
   EhrRejectedError,
   type AppointmentRecord,
+  type CommunicationRecord,
   type ConsentRecord,
   type EhrAdapter,
   type HistoryAnswer,
@@ -227,7 +229,7 @@ export const fhirEhrAdapter: EhrAdapter = {
           severity: input.severity,
           patientId,
           practitionerId,
-          sent: new Date().toISOString(),
+          sent: input.sent ?? new Date().toISOString(),
           patientWords: input.patientWords,
           instruction: input.instruction,
         }),
@@ -240,5 +242,13 @@ export const fhirEhrAdapter: EhrAdapter = {
       else throw err;
     }
   },
-};
 
+  async findCommunicationsByConversation(conversationId) {
+    const { data } = await fhir<Bundle<Communication>>("GET", `/Communication?identifier=${conversationQuery(conversationId)}`);
+    return (data.entry ?? []).map(({ resource }) => ({
+      id: resource.id!,
+      severity: resource.extension?.find((e) => e.url === RED_FLAG_SEVERITY_EXT)?.valueString as CommunicationRecord["severity"],
+      patientWords: resource.payload[0]?.contentString ?? "",
+    }));
+  },
+};
