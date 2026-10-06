@@ -18,6 +18,8 @@ WORKDIR /app
 COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /out/package.json ./
 COPY --from=build /repo/apps/mock-ehr/dist ./dist
+# Migrations run on boot (src/db/bootstrap.ts).
+COPY --from=build /repo/apps/mock-ehr/drizzle ./drizzle
 USER node
 EXPOSE 8787
 CMD ["node", "dist/server.js"]
