@@ -8,10 +8,24 @@ Production runs the mock EHR and its Postgres on Render and the web app (agent t
 |---|---|---|---|
 | Mock EHR (Hono, FHIR R4) | Render web service, Docker | `pokta-clinic-ehr` | `apps/mock-ehr/Dockerfile`, context = repo root, health check `/healthz`, ohio |
 | Postgres | Render Postgres | `pokta-clinic-ehr-db` | ohio, same region as the EHR, internal connection string only |
-| Web app + tool endpoints | Vercel | `pokta-clinic-web` (suggested) | Root Directory `apps/web`, framework Next.js 16, pnpm workspace |
+| Web app + tool endpoints | Vercel | `pokta-clinic-web` (team poktalabs) | Root Directory `apps/web`, framework Next.js 16, pnpm workspace |
 | Voice agent | ElevenLabs | n/a | Calls `https://<web>/api/tools/*` with header `x-pokta-tool-secret` |
 
 Service and database names are referenced by the suspend/resume feature through the Render API, so do not rename them.
+
+## Current production
+
+Deployed 2026-10-05. IDs and URLs are not secrets; values of secrets live only in the platforms and in `.env.production.local`.
+
+| Piece | URL or ID | How it was created |
+|---|---|---|
+| GitHub repo | `poktalabs/pokta-clinic` (private) | `gh repo create --private --push` |
+| Render Postgres | `dpg-db27i6bbc2fs73fi6td0-a`, free plan, ohio, expires 2026-11-05 | Render API `POST /v1/postgres` |
+| Render EHR | `srv-db27nqek1f9s739ei9cg`, https://pokta-clinic-ehr.onrender.com, auto-deploys on push to `main` | Render API `POST /v1/services` with the same settings as `render.yaml` |
+| Vercel web | project `pokta-clinic-web` (team poktalabs), https://pokta-clinic-web.vercel.app | `vercel link`, root directory set through the Vercel API, `vercel deploy --prod` |
+| ElevenLabs | agent `agent_1701m47rjpwcfqasqaw19hph7qb4`, secret `tool_secret`, 3 tools | `pnpm agent:secret`, `pnpm agent:tools:push:apply`, `pnpm agent:push:apply` (see [agent.md](agent.md)) |
+
+Two differences from the generic steps below. First, the Render resources were created through the API, not as a Blueprint, so `render.yaml` is the reference definition and the rebuild path, not a synced Blueprint: a change to it does not apply itself. Second, Vercel is not connected to GitHub (its GitHub app has no access to the poktalabs org), so the web app deploys only with `vercel deploy --prod` from the repo root. Grant that access in Vercel to get deploys on push.
 
 ```mermaid
 flowchart LR
