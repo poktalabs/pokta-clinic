@@ -45,7 +45,7 @@ export function buildScenario(name: string): Scenario {
           { match: /apellido.*nombre|nombre.*apellido/, say: "Lucía, primer apellido Mendoza, segundo apellido Ríos." },
           { match: /apellido/, say: "Mendoza." },
           { match: /nacimiento|nacio|naciste/, say: "Nací el 14 de marzo de 1988." },
-          { match: /sexo|hombre o mujer/, say: "Hombre." },
+          { match: /sexo|hombre o mujer/, say: "Mujer." },
           { match: /nombre/, say: "Lucía." },
         ],
       };
