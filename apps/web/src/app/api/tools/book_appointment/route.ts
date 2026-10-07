@@ -160,13 +160,13 @@ export const POST = tool("book_appointment", Input, async (input, ctx) => {
     ctx.outcome(`slot booked ${input.branch} ${describeOutcomeStart(slot.start)}`);
     const result = await confirmed({ id: appointment.id, branch: input.branch, start: slot.start });
     closePendingCallbacks(input.patient_id);
-    return { ...result, emailed: await emailConfirmation(input, patient, result) };
+    return withEmail(result, await emailConfirmation(input, patient, result));
   } catch (err) {
     if (err instanceof EhrUnavailableError && (await queue(err))) {
       await rememberBooking(input.conversation_id, { ...booking, appointmentId: null });
       ctx.outcome(`slot booked ${input.branch} ${describeOutcomeStart(slot.start)}, queued in outbox`);
       const result = await confirmed({ id: null, branch: input.branch, start: slot.start }, true);
-      return { ...result, emailed: await emailConfirmation(input, patient, result) };
+      return withEmail(result, await emailConfirmation(input, patient, result));
     }
     // Compensate: no calendar event without an Appointment. Best effort, the original failure matters more.
     await calendar.deleteEvent(input.branch, event.id).catch(() => undefined);
@@ -178,6 +178,14 @@ export const POST = tool("book_appointment", Input, async (input, ctx) => {
     throw err;
   }
 });
+
+// The model must not promise an email that was never sent, so the message says it either way.
+function withEmail<T extends { message: string }>(result: T, emailed: boolean): T & { emailed: boolean } {
+  const note = emailed
+    ? " Before the goodbye, tell them an email with the details and a link to complete their data is on its way."
+    : " No email was sent: do not mention any email.";
+  return { ...result, emailed, message: result.message + note };
+}
 
 // The confirmation with the patient link goes to the email typed on the page, when there is one.
 async function emailConfirmation(

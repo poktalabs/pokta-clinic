@@ -69,7 +69,7 @@ export function buildScenario(name: string): Scenario {
     case "callback": {
       // Golden path until scheduling, then no offered slot works and the caller asks to be called back.
       const golden = buildScenario("golden");
-      const keep = golden.rules.filter((r) => !/primera opcion|No tengo preferencia/.test(r.say));
+      const keep = golden.rules.filter((r) => !/primera opci[oó]n|No tengo preferencia/i.test(r.say));
       return {
         ...golden,
         name,
