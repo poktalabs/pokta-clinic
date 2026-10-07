@@ -28,7 +28,7 @@ export default function AdminLogin() {
       <Link className="brand" href="/">
         <Image src="/poktacare-logo.svg" alt="" width={20} height={20} />
         <span className="wordmark">
-          pokta-<b>clinic</b>
+          Pokta<b>Clinic</b>
         </span>
       </Link>
       <div className="card">

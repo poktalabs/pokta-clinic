@@ -22,7 +22,7 @@ export default function Home() {
           <Link className="brand" href="/">
             <Image src="/poktacare-logo.svg" alt="" width={20} height={20} priority />
             <span className="wordmark">
-              pokta-<b>clinic</b>
+              Pokta<b>Clinic</b>
             </span>
           </Link>
           <span className="kicker muted">Pokta Labs demo</span>
@@ -78,7 +78,7 @@ export default function Home() {
           <p className="escalation">
             <strong>Escalation</strong> <span className="soft">at any point: a Red flag symptom (Emergencia or Urgencia) ends the intake, the patient gets safety guidance, and a Practitioner is notified.</span>
           </p>
-          <p className="flow">ElevenLabs agent → pokta-clinic tools on Vercel → EHR over FHIR R4 on Render + one Google Calendar per branch</p>
+          <p className="flow">ElevenLabs agent → PoktaClinic tools on Vercel → EHR over FHIR R4 on Render + one Google Calendar per branch</p>
         </section>
       </main>
 

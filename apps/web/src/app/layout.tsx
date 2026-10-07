@@ -6,7 +6,7 @@ import "@fontsource-variable/funnel-display";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "pokta-clinic: voice pre-consultation intake",
+  title: "PoktaClinic: voice pre-consultation intake",
   description: "Live demo of a voice agent that runs the pre-visit intake for Grupo Médico Articular, a fictional rheumatology network with three branches in the Mexico City area. All data is fictional.",
 };
 

@@ -31,9 +31,9 @@ export async function RootPage() {
   return (
     <Layout title="Expediente Demo">
       <h1>Expediente Demo</h1>
-      <p class="sub">A mock third-party EHR (HL7 FHIR R4) for the pokta-clinic voice agent demo</p>
+      <p class="sub">A mock third-party EHR (HL7 FHIR R4) for the PoktaClinic voice agent demo</p>
       <p>
-        Expediente Demo plays the vendor system that holds the Expediente of a private rheumatology clinic network in Mexico, with three branches. pokta-clinic reaches it only over FHIR R4. Everything stored here is fictional.
+        Expediente Demo plays the vendor system that holds the Expediente of a private rheumatology clinic network in Mexico, with three branches. PoktaClinic reaches it only over FHIR R4. Everything stored here is fictional.
       </p>
 
       <h2>The network</h2>

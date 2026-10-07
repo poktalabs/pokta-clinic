@@ -47,7 +47,7 @@ export function Timeline() {
           {offline ? "Reconnecting…" : "Live, refreshes every 1.5 s"}
         </span>
       </div>
-      <p className="sub small">Every call the agent makes to a pokta-clinic tool. No patient answers, names or phones are shown.</p>
+      <p className="sub small">Every call the agent makes to a PoktaClinic tool. No patient answers, names or phones are shown.</p>
       {ordered.length === 0 ? (
         <p className="empty" style={{ marginTop: 20 }}>No tool calls yet. Start a conversation with the widget above.</p>
       ) : (
