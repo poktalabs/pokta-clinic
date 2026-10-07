@@ -175,8 +175,8 @@
         "additional_tool_ids": [
           "tool_9301m4a2f32yeb69by32wphq5s34",
           "tool_3601m4a2f3hbepgvyn4yhxs2xwmt",
-          "PENDING_TOOL_ID_reschedule_appointment",
-          "PENDING_TOOL_ID_request_callback"
+          "tool_8301m4c9zrzgempvtgj9t2vq6f63",
+          "tool_8201m4c9ztb2ezmv4ybrbbxyr7f7"
         ],
         "edge_order": [
           "scheduling_to_escalation",
