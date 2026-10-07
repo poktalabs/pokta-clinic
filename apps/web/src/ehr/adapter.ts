@@ -127,6 +127,8 @@ export interface EhrAdapter {
   }): Promise<CallbackRecord>;
   // Requested (not yet completed or cancelled) callbacks of a Patient, newest first.
   pendingCallbacks(patientId: string): Promise<CallbackRecord[]>;
+  // Marks a callback as done (the patient booked, so the front desk no longer needs to call).
+  completeCallback(callbackId: string): Promise<void>;
   // Whether any Conversation finished the Questionnaire for this Patient.
   hasCompletedHistory(patientId: string): Promise<boolean>;
   getQuestionnaire(): Promise<QuestionnaireItemDef[]>;

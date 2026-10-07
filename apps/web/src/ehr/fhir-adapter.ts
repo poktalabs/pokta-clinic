@@ -352,6 +352,12 @@ export const fhirEhrAdapter: EhrAdapter = {
     return Promise.all((data.entry ?? []).map(({ resource }) => callbackRecord(resource)));
   },
 
+  async completeCallback(callbackId) {
+    const { data } = await fhir<Task>("GET", `/Task/${encodeURIComponent(callbackId)}`);
+    if (data.status !== "requested") return;
+    await fhir("PUT", `/Task/${encodeURIComponent(callbackId)}`, { ...data, status: "completed" });
+  },
+
   async hasCompletedHistory(patientId) {
     const { data } = await fhir<Bundle<QuestionnaireResponse>>("GET", `/QuestionnaireResponse?subject=${encodeURIComponent(`Patient/${patientId}`)}`);
     return (data.entry ?? []).some(({ resource }) => resource.status === "completed");

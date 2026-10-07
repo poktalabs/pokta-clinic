@@ -156,8 +156,9 @@ function CallPanel({
       return;
     }
     onStart();
-    // The platform fills tool bodies from this; the LLM never sees it.
-    startSession({ agentId, dynamicVariables: { caller_email: email.trim() } });
+    // The platform fills tool bodies from this; the LLM never sees it. WebSocket, not WebRTC: the
+    // LiveKit signal stream dropped on connect in the browser, while the socket path is reliable.
+    startSession({ agentId, connectionType: "websocket", dynamicVariables: { caller_email: email.trim() } });
   };
 
   return (

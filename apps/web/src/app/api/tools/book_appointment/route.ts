@@ -10,6 +10,7 @@ import { appointmentConfirmation } from "@/email/templates";
 import { patientLinkUrl } from "@/patient-link/token";
 import { branchDetails } from "@/tools/branch-details";
 import { callerEmail, resolveCallerEmail } from "@/tools/caller-email";
+import { closePendingCallbacks } from "@/tools/close-callbacks";
 import { sendLater } from "@/tools/notify";
 import { NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
 
@@ -158,6 +159,7 @@ export const POST = tool("book_appointment", Input, async (input, ctx) => {
     await rememberBooking(input.conversation_id, { ...booking, appointmentId: appointment.id });
     ctx.outcome(`slot booked ${input.branch} ${describeOutcomeStart(slot.start)}`);
     const result = await confirmed({ id: appointment.id, branch: input.branch, start: slot.start });
+    closePendingCallbacks(input.patient_id);
     return { ...result, emailed: await emailConfirmation(input, patient, result) };
   } catch (err) {
     if (err instanceof EhrUnavailableError && (await queue(err))) {
