@@ -29,6 +29,6 @@ export const POST = tool("record_consent", Input, async ({ conversation_id, gran
     granted,
     message: granted
       ? "Consent recorded. Continue with identification."
-      : "Refusal recorded. Do not collect any personal or health data. Offer to have the clinic call back, then end the call politely.",
+      : "Refusal recorded. Do not collect any personal or health data. Explain kindly that without consent the voice pre-consultation cannot continue, say they can contact the branch of their choice directly, and say goodbye.",
   };
 });

@@ -6,8 +6,8 @@ import { buildScenario, isGoodbye, normalize } from "./converse-scenarios.ts";
 
 const AGENT_ID = process.env.ELEVENLABS_AGENT_ID ?? "agent_1701m47rjpwcfqasqaw19hph7qb4";
 const API = "https://api.elevenlabs.io/v1/convai";
-const MAX_TURNS = 25;
-const MAX_MS = 4 * 60_000;
+const MAX_TURNS = 50;
+const MAX_MS = 10 * 60_000;
 
 const json = (v: unknown): string => JSON.stringify(v);
 const apiKey = process.env.ELEVENLABS_API_KEY;
@@ -58,7 +58,10 @@ async function converse(name: string): Promise<string> {
   await client.waitForAgent(from);
   for (let turn = 1; turn <= MAX_TURNS && Date.now() - started < MAX_MS && !client.closed; turn++) {
     const texts = client.agentTextsSince(from);
-    const last = normalize(texts.join(" "));
+    // Match the agent's last question when there is one, so a preamble ("gracias por su consentimiento") does not pick the rule.
+    const all = normalize(texts.join(" "));
+    const q = all.lastIndexOf("¿");
+    const last = q >= 0 ? all.slice(q) : all;
     let say: string | undefined;
     if (isGoodbye(texts.join(" "))) {
       if (farewellSent) break;

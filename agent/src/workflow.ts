@@ -91,7 +91,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "The caller refused consent (record_consent was called with granted false), was told they can contact a branch directly, and was given a goodbye.",
+          condition: "The caller refused consent (record_consent was called with granted false) and, after that tool call, the agent has already said in its own spoken message that they can contact a branch directly and said goodbye. The record_consent call alone does not meet this condition.",
         },
       },
 
