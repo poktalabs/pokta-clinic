@@ -11,6 +11,8 @@ const Input = z.object({
   branch: z.enum([...BRANCH_CODES, "any"]).optional(),
   preferred_date: z.iso.date().optional(),
   part_of_day: z.enum(["morning", "afternoon"]).optional(),
+  time_from: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
+  time_to: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
 });
 
 // Each branch's calendar says what is busy; the branch rules (src/scheduling) say what may be offered.
@@ -29,7 +31,7 @@ export const POST = tool("check_availability", Input, async (input, ctx) => {
   const failed = results.find((r) => r.status === "rejected");
   if (failed && !Object.keys(busy).length) throw failed.reason;
 
-  const picked = freeSlots({ now, busy, preferredDate: input.preferred_date, partOfDay: input.part_of_day });
+  const picked = freeSlots({ now, busy, preferredDate: input.preferred_date, partOfDay: input.part_of_day, timeFrom: input.time_from, timeTo: input.time_to });
   const details = new Map(await Promise.all([...new Set(picked.map((s) => s.branch))].map(async (b) => [b, await branchDetails(b)] as const)));
   const slots = picked.map(({ branch, start, label }) => ({
     branch,
@@ -42,7 +44,7 @@ export const POST = tool("check_availability", Input, async (input, ctx) => {
   if (!slots.length) {
     return {
       slots: [],
-      message: "No free slots for that request. Say so and ask for a different day, part of the day or branch, then call check_availability again.",
+      message: "No free slots for exactly that request. Say so and ask for a different day, time or branch, then call check_availability again. Do not claim anything about times you did not search for.",
     };
   }
   return {

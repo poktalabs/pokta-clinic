@@ -38,7 +38,7 @@ export function buildScenario(name: string): Scenario {
         farewell: "Gracias, hasta luego.",
         rules: [
           { match: /unos minutos|platicar/, say: "Sí, claro.", once: true },
-          { match: /consentimiento|acepta/, say: "Sí, acepto." },
+          { match: /consentimiento|acepta|autoriza/, say: "Sí, acepto." },
           { match: /(es|son) correct|es asi|me confirma|esta bien|lo tengo bien|hablo con/, say: "Sí, es correcto." },
           { match: /(telefono|numero)(?!.*nombre)/, say: `Mi teléfono es ${spell(phone)}.` },
           { match: /segundo apellido/, say: "Ríos." },
@@ -74,7 +74,7 @@ export function buildScenario(name: string): Scenario {
         farewell: "Gracias, adiós.",
         rules: [
           { match: /unos minutos|platicar/, say: "Sí, claro.", once: true },
-          { match: /consentimiento|acepta/, say: "No, no doy mi consentimiento." },
+          { match: /consentimiento|acepta|autoriza/, say: "No, no doy mi consentimiento." },
         ],
       };
     case "redflag":
@@ -85,7 +85,7 @@ export function buildScenario(name: string): Scenario {
         farewell: "Gracias, adiós.",
         rules: [
           { match: /unos minutos|platicar/, say: "Sí, claro.", once: true },
-          { match: /consentimiento|acepta/, say: "Sí, acepto.", once: true },
+          { match: /consentimiento|acepta|autoriza/, say: "Sí, acepto.", once: true },
           { match: /./, say: "Tengo dolor de pecho y me cuesta trabajo respirar desde hace una hora.", once: true },
           { match: /confirma|lo va a hacer/, say: "Sí, voy ahora mismo." },
         ],

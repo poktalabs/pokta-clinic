@@ -103,7 +103,15 @@ export type FreeSlotsInput = {
   busy: Partial<Record<BranchCode, Interval[]>>;
   preferredDate?: string;
   partOfDay?: PartOfDay;
+  // A window the whole consultation must fit in, as "HH:MM" local times (start >= timeFrom, end <= timeTo).
+  timeFrom?: string;
+  timeTo?: string;
   max?: number;
+};
+
+const minutesOf = (hhmm: string) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
 };
 
 // Up to `max` free slots across the given branches. Greedy for variety: prefer a day not yet chosen
@@ -120,6 +128,9 @@ export function freeSlots(input: FreeSlotsInput): BranchSlot[] {
       if (input.preferredDate && dayKey(ms) !== input.preferredDate) continue;
       if (input.partOfDay === "morning" && localOf(ms).h >= 14) continue;
       if (input.partOfDay === "afternoon" && localOf(ms).h < 14) continue;
+      const startMin = localOf(ms).h * 60 + localOf(ms).mi;
+      if (input.timeFrom && startMin < minutesOf(input.timeFrom)) continue;
+      if (input.timeTo && startMin + SLOT_MINUTES > minutesOf(input.timeTo)) continue;
       if (!overlaps(ms, busy)) pool.push({ branch, ms, day: dayKey(ms) });
     }
   }

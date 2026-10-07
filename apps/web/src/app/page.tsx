@@ -39,7 +39,7 @@ export default function Home() {
             Grupo Médico Articular is a rheumatology network with three branches in the Mexico City area: Del Valle, Polanco and Satélite (fictional). The agent talks to the patient and writes the result into the network&apos;s EHR over HL7 FHIR R4.
           </p>
           <p role="note" className="notice">
-            <strong>All data here is fictional and the agent is an AI, not a clinician.</strong> Do not share real personal or health information. This is a take-home demo, not medical advice.
+            <strong>All data here is fictional and the agent is an AI, not a clinician.</strong> Do not share real personal or health information. This is a take-home demo, not medical advice. The agent points callers to the <Link href="/privacidad">aviso de privacidad</Link> (fictional).
           </p>
         </section>
 

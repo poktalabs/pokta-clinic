@@ -56,6 +56,12 @@ describe("freeSlots at Del Valle (Mon-Fri 9-14 and 16-19)", () => {
     expect(afternoon.map((s) => hourOf(s.start))).toEqual([16, 17, 18]);
   });
 
+  it("fits the whole consultation inside a time window (11:00-14:00 gives 11, 12 and 13)", () => {
+    const slots = all("del-valle", { preferredDate: "2026-10-13", timeFrom: "11:00", timeTo: "14:00" });
+    expect(slots.map((s) => hourOf(s.start))).toEqual([11, 12, 13]);
+    expect(all("del-valle", { preferredDate: "2026-10-13", timeFrom: "13:30", timeTo: "14:00" })).toEqual([]);
+  });
+
   it("excludes slots that overlap a busy interval, including partial overlaps", () => {
     const busy = { "del-valle": [{ start: "2026-10-13T09:30:00-06:00", end: "2026-10-13T11:00:00-06:00" }] };
     const hours = freeSlots({ now: NOW, busy, max: 1000, preferredDate: "2026-10-13" }).map((s) => hourOf(s.start));

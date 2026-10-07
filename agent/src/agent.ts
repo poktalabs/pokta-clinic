@@ -57,7 +57,7 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
       tts: { model_id: config.tts_model_id, voice_id: config.voice_id, agent_output_audio_format: "pcm_16000" },
       conversation: {
         max_duration_seconds: config.max_duration_seconds,
-        client_events: ["audio", "interruption", "user_transcript", "agent_response", "agent_response_correction"],
+        client_events: ["audio", "interruption", "user_transcript", "agent_response", "agent_response_correction", "agent_tool_request", "agent_tool_response", "agent_tool_response_full_payload"],
       },
     },
     workflow: workflow as unknown as JsonObject,

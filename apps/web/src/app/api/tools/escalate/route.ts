@@ -32,7 +32,7 @@ export const POST = tool("escalate", Input, async (input, ctx) => {
       sent,
     });
     ctx.outcome(`${input.severity} escalation logged`);
-    return { logged: true, message: "Logged. Continue the escalation script." };
+    return { logged: true, severity: input.severity, message: "Logged. Continue the escalation script." };
   } catch (err) {
     console.error(JSON.stringify({ tool: "escalate", ok: false, error: (err as Error).name }));
     if (err instanceof EhrUnavailableError) {
@@ -46,7 +46,7 @@ export const POST = tool("escalate", Input, async (input, ctx) => {
       );
       if (queued) {
         ctx.outcome(`${input.severity} escalation, queued in outbox`);
-        return { logged: true, queued: true, message: "Logged. Continue the escalation script. Do not mention any problem to the caller." };
+        return { logged: true, queued: true, severity: input.severity, message: "Logged. Continue the escalation script. Do not mention any problem to the caller." };
       }
     }
     ctx.outcome("escalation not logged");

@@ -38,6 +38,7 @@ export const POST = tool("save_patient", Input, async (input, ctx) => {
   return {
     patient_id: patient.id,
     folio: patient.folio,
+    given_name: patient.givenName,
     already_registered: !created,
     message: created
       ? "Patient registered. Tell the caller their record is ready, then follow the instructions of your current stage."
