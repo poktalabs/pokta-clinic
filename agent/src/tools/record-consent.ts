@@ -1,4 +1,5 @@
 import type { ToolSpec } from "../types.ts";
+import { callerEmail } from "./caller-email.ts";
 import { conversationId } from "./conversation-id.ts";
 
 // Mirrors apps/web/src/app/api/tools/record_consent/route.ts: { conversation_id, granted }.
@@ -13,5 +14,6 @@ export const recordConsent: ToolSpec = {
       type: "boolean",
       description: "true if the caller expressly agreed to the aviso de privacidad, false if the caller refused.",
     },
+    caller_email: callerEmail,
   },
 };

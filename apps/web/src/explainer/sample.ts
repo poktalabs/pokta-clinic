@@ -56,6 +56,7 @@ export const SAMPLE: SampleStep[] = [
       branch_name: "GMA Del Valle",
       practitioner_name: "Dra. Elena Ruiz Castellanos",
       address: "Av. Insurgentes Sur 1234, Col. del Valle",
+      emailed: true,
     },
   },
   { at: s(51.5), say: "agent", text: "Su cita quedó el jueves 8 de octubre a las 11 de la mañana en GMA Del Valle, con la Dra. Elena Ruiz Castellanos. Que tenga un excelente día." },

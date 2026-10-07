@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Explainer } from "@/components/explainer";
 
 export const metadata: Metadata = {
@@ -21,7 +22,10 @@ export default function ExplainerPage() {
               Pokta<b>Clinic</b>
             </span>
           </Link>
-          <span className="kicker muted">Pokta Labs demo</span>
+          <span className="header-end">
+            <span className="kicker muted">Pokta Labs demo</span>
+            <ThemeToggle />
+          </span>
         </div>
       </header>
       <main className="wrap x-wide x-page">

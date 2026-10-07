@@ -69,6 +69,8 @@ const workflow = buildWorkflow(
     save_history: toolId("save_history"),
     check_availability: toolId("check_availability"),
     book_appointment: toolId("book_appointment"),
+    reschedule_appointment: toolId("reschedule_appointment"),
+    request_callback: toolId("request_callback"),
     escalate: toolId("escalate"),
   },
   config,

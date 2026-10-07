@@ -6,7 +6,11 @@ import { queueForEhr } from "@/outbox/queue";
 import { BRANCHES, type BranchCode } from "@/scheduling/branches";
 import { busyRange, describeStart, resolveSlot } from "@/scheduling/slots";
 import { store, type BookingRecord } from "@/store";
+import { appointmentConfirmation } from "@/email/templates";
+import { patientLinkUrl } from "@/patient-link/token";
 import { branchDetails } from "@/tools/branch-details";
+import { callerEmail, resolveCallerEmail } from "@/tools/caller-email";
+import { sendLater } from "@/tools/notify";
 import { NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
 
 const Input = z.object({
@@ -14,6 +18,7 @@ const Input = z.object({
   patient_id: z.string().min(1).max(100),
   branch: z.enum(BRANCH_CODES),
   start: z.string().min(1).max(40),
+  caller_email: callerEmail,
 });
 
 const SLOT_TAKEN = {
@@ -152,12 +157,14 @@ export const POST = tool("book_appointment", Input, async (input, ctx) => {
     const appointment = await ehr.createAppointment(appointmentInput);
     await rememberBooking(input.conversation_id, { ...booking, appointmentId: appointment.id });
     ctx.outcome(`slot booked ${input.branch} ${describeOutcomeStart(slot.start)}`);
-    return confirmed({ id: appointment.id, branch: input.branch, start: slot.start });
+    const result = await confirmed({ id: appointment.id, branch: input.branch, start: slot.start });
+    return { ...result, emailed: await emailConfirmation(input, patient, result) };
   } catch (err) {
     if (err instanceof EhrUnavailableError && (await queue(err))) {
       await rememberBooking(input.conversation_id, { ...booking, appointmentId: null });
       ctx.outcome(`slot booked ${input.branch} ${describeOutcomeStart(slot.start)}, queued in outbox`);
-      return confirmed({ id: null, branch: input.branch, start: slot.start }, true);
+      const result = await confirmed({ id: null, branch: input.branch, start: slot.start }, true);
+      return { ...result, emailed: await emailConfirmation(input, patient, result) };
     }
     // Compensate: no calendar event without an Appointment. Best effort, the original failure matters more.
     await calendar.deleteEvent(input.branch, event.id).catch(() => undefined);
@@ -169,6 +176,26 @@ export const POST = tool("book_appointment", Input, async (input, ctx) => {
     throw err;
   }
 });
+
+// The confirmation with the patient link goes to the email typed on the page, when there is one.
+async function emailConfirmation(
+  input: z.infer<typeof Input>,
+  patient: PatientDetail | null,
+  r: { label: string; branch_name: string; address: string; practitioner_name: string },
+): Promise<boolean> {
+  const to = await resolveCallerEmail(input.conversation_id, input.caller_email);
+  if (!to) return false;
+  const email = appointmentConfirmation({
+    to,
+    name: patient?.givenName ?? "",
+    label: r.label,
+    branchName: r.branch_name,
+    address: r.address,
+    practitioner: r.practitioner_name,
+    link: patientLinkUrl(input.patient_id),
+  });
+  return sendLater(email) > 0;
+}
 
 // "2026-10-13 09:00" in the practice's local time, for the timeline.
 function describeOutcomeStart(start: string): string {

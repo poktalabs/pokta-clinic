@@ -2,17 +2,17 @@ import { count } from "drizzle-orm";
 import type { AnyPgTable } from "drizzle-orm/pg-core";
 import { db } from "../db/client.js";
 import { RESOURCES } from "../capability.js";
-import { appointment, communication, consent, establishment, intake, organization, patient, practitioner, practitionerRole } from "../db/schema.js";
+import { appointment, callbackTask, communication, consent, establishment, intake, organization, patient, practitioner, practitionerRole } from "../db/schema.js";
 import { Layout } from "./layout.js";
 import { Network, loadNetwork } from "./network.js";
 
 // Public landing page: counts only, never patient data.
 export async function counts() {
   const of = async (table: AnyPgTable) => (await db.select({ n: count() }).from(table))[0].n;
-  const [organizations, locations, practitioners, roles, patients, consents, responses, appointments, communications] = await Promise.all(
-    [organization, establishment, practitioner, practitionerRole, patient, consent, intake, appointment, communication].map(of),
+  const [organizations, locations, practitioners, roles, patients, consents, responses, appointments, communications, tasks] = await Promise.all(
+    [organization, establishment, practitioner, practitionerRole, patient, consent, intake, appointment, communication, callbackTask].map(of),
   );
-  return { organizations, locations, practitioners, roles, patients, consents, responses, appointments, communications };
+  return { organizations, locations, practitioners, roles, patients, consents, responses, appointments, communications, tasks };
 }
 
 export async function RootPage() {
@@ -27,6 +27,7 @@ export async function RootPage() {
     ["QuestionnaireResponses", n.responses],
     ["Appointments", n.appointments],
     ["Communications", n.communications],
+    ["Tasks (callbacks)", n.tasks],
   ] as const;
   return (
     <Layout title="Expediente Demo">

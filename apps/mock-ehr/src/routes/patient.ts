@@ -5,7 +5,8 @@ import type { AuthVars } from "../auth.js";
 import { audit } from "../audit.js";
 import { db } from "../db/client.js";
 import { establishment, patient } from "../db/schema.js";
-import { fromFhir, normalizePhone, toFhir } from "../fhir/patient.js";
+import { contactFields, fromFhir, normalizePhone, toFhir } from "../fhir/patient.js";
+import { isUuid } from "../fhir/refs.js";
 
 export const patientRoutes = new Hono<AuthVars>();
 
@@ -64,4 +65,17 @@ patientRoutes.post("/", async (c) => {
     if ((e.code ?? e.cause?.code) === "23505") return c.json(operationOutcome("duplicate", "CURP already registered"), 409);
     throw err;
   }
+});
+
+// Updates only the contact and administrative fields (email, address, emergency contact, insurance), which the
+// patient completes through the patient link. Identity (name, phone, birth date, sexo, CURP) is ignored here.
+patientRoutes.put("/:id", async (c) => {
+  const id = c.req.param("id");
+  const parsed = Patient.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json(operationOutcome("invalid", parsed.error.message), 400);
+  if (parsed.data.id && parsed.data.id !== id) return c.json(operationOutcome("invalid", "Patient.id does not match the URL"), 400);
+  const [row] = isUuid(id) ? await db.update(patient).set(contactFields(parsed.data)).where(eq(patient.id, id)).returning() : [];
+  if (!row) return c.json(operationOutcome("not-found", "Patient not found"), 404);
+  await audit(c.get("clientId"), "update", "Patient", row.id, { fields: "contact" });
+  return c.json(toFhir(row));
 });

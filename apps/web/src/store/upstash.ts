@@ -1,7 +1,7 @@
 import { Redis } from "@upstash/redis";
 import { env } from "@/env";
 import { TTL_SECONDS } from "./types";
-import type { ConsentDecision, ConversationRecord, NewOutboxItem, OutboxItem, Store, ToolEvent } from "./types";
+import type { Lead, ConsentDecision, ConversationRecord, NewOutboxItem, OutboxItem, Store, ToolEvent } from "./types";
 
 const MAX_EVENTS = 200;
 
@@ -31,6 +31,8 @@ export function createUpstashStore(redis: Redis): Store {
     conv: (id: string) => `pc:conv:${id}`,
     convIndex: "pc:convs",
     lock: (name: string) => `pc:lock:${name}`,
+    lead: (c: string) => `pc:lead:${c}`,
+    leadIndex: "pc:leads",
   };
 
   async function getJson<T>(k: string): Promise<T | null> {
@@ -108,6 +110,19 @@ export function createUpstashStore(redis: Redis): Store {
       if (!ids.length) return [];
       const rows = await redis.mget<unknown[]>(...ids.map((id) => key.conv(id)));
       return rows.map((r) => parse<ConversationRecord>(r)).filter((r): r is ConversationRecord => !!r);
+    },
+
+    async putLead(lead) {
+      await redis.set(key.lead(lead.conversationId), JSON.stringify(lead), { ex: TTL_SECONDS });
+      await redis.zadd(key.leadIndex, { score: lead.at, member: lead.conversationId });
+      await redis.expire(key.leadIndex, TTL_SECONDS);
+    },
+    getLead: (c) => getJson(key.lead(c)),
+    async listLeads(limit) {
+      const ids = await redis.zrange<string[]>(key.leadIndex, 0, limit - 1, { rev: true });
+      if (!ids.length) return [];
+      const rows = await redis.mget<unknown[]>(...ids.map((id) => key.lead(id)));
+      return rows.map((r) => parse<Lead>(r)).filter((r): r is Lead => !!r);
     },
 
     async lock(name, ttlSeconds) {

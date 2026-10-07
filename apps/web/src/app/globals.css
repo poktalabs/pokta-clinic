@@ -267,3 +267,8 @@ a { color: var(--accent-text); text-underline-offset: 3px; }
 .x-page { padding-top: 20px; gap: 16px; }
 .x-page .headline { font-size: 1.5rem; }
 .x-page .notice { margin-top: 10px; padding: 8px 12px; max-width: none; }
+.header-end { display: inline-flex; align-items: center; gap: 16px; }
+.p-form { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); margin-top: 12px; }
+@media (min-width: 720px) { .p-form { grid-template-columns: 1fr 1fr; } .p-form .actions { grid-column: 1 / -1; } }
+.p-field { display: flex; flex-direction: column; gap: 4px; }
+.x-emails { margin: 0; padding-left: 18px; }

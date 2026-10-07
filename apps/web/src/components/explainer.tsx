@@ -156,7 +156,8 @@ function CallPanel({
       return;
     }
     onStart();
-    startSession({ agentId });
+    // The platform fills tool bodies from this; the LLM never sees it.
+    startSession({ agentId, dynamicVariables: { caller_email: email.trim() } });
   };
 
   return (
@@ -222,7 +223,7 @@ const BOX = {
   ehr: { x: 20, y: 380, w: 124, h: 64, title: "EHR", sub: "FHIR R4 · OAuth2" },
   calendar: { x: 152, y: 380, w: 124, h: 64, title: "Calendars", sub: "Google · 3 branches" },
   store: { x: 284, y: 380, w: 124, h: 64, title: "Store", sub: "Upstash · outbox" },
-  email: { x: 416, y: 380, w: 124, h: 64, title: "Email", sub: "Resend · next" },
+  email: { x: 416, y: 380, w: 124, h: 64, title: "Email", sub: "Resend" },
 } as const;
 
 const EDGES: { id: EdgeId; x: number; y1: number; y2: number; label: string }[] = [
@@ -312,7 +313,7 @@ function SystemPanel({
             (id === "api" && !!current && activeEdges.has("agent-api")) ||
             (id !== "caller" && id !== "agent" && id !== "api" && activeEdges.has(`api-${id}` as EdgeId));
           return (
-            <g key={id} className={`x-box ${on ? "is-on" : ""} ${id === "email" ? "is-planned" : ""}`}>
+            <g key={id} className={`x-box ${on ? "is-on" : ""}`}>
               <rect x={b.x} y={b.y} width={b.w} height={b.h} />
               <text x={b.x + 12} y={b.y + 20} className="x-box-title">
                 {b.title}
@@ -428,15 +429,22 @@ function ExpedientePanel({ stage, expediente: e }: { stage: Stage | null; expedi
             "Waiting"
           )}
         </Field>
-        <Field label="Appointment" state={e.appointment ? "ok" : null}>
+        <Field label="Appointment" state={e.appointment ? "ok" : e.callback ? "attn" : null}>
           {e.appointment ? (
             <>
+              {e.appointment.previous && <span className="muted">Moved from {e.appointment.previous} · </span>}
               {e.appointment.label}
               <br />
               <span className="soft">
                 {e.appointment.branch} · {e.appointment.practitioner}
               </span>
               {e.appointment.queued && <span className="muted"> · queued for the EHR</span>}
+            </>
+          ) : e.callback ? (
+            <>
+              Callback requested: {e.callback.availability}
+              <br />
+              <span className="soft">Task in the EHR · reminder in the {e.callback.branch} calendar</span>
             </>
           ) : e.slotsOffered !== null ? (
             `${e.slotsOffered} free slots offered`
@@ -449,8 +457,16 @@ function ExpedientePanel({ stage, expediente: e }: { stage: Stage | null; expedi
             {e.redFlag.severity === "emergencia" ? "Emergency: told to call 911" : "Urgent: told to go to the ER today"} · logged for the clinical team
           </Field>
         )}
-        <Field label="Email" state={null}>
-          Appointment details and a link to complete missing data (next)
+        <Field label="Email" state={e.emails.length ? "ok" : null}>
+          {e.emails.length ? (
+            <ul className="x-emails">
+              {e.emails.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ul>
+          ) : (
+            "Sent after booking or a callback request, with a link to complete missing data"
+          )}
         </Field>
       </dl>
     </section>

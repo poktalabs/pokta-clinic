@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { after } from "next/server";
 import { ehr } from "@/ehr";
+import { callerEmail, resolveCallerEmail } from "@/tools/caller-email";
 import { NO_CONSENT, cacheConsent, conversationId, grantedConsent, tool } from "@/tools/handler";
 import { INVALID_PHONE, normalizePhone } from "@/tools/phone";
 
@@ -12,6 +14,7 @@ const Input = z.object({
   telefono: z.string().min(1).max(30),
   fecha_nacimiento: z.iso.date().optional(),
   sexo: z.enum(["H", "M"]).optional(),
+  caller_email: callerEmail,
 });
 
 export const POST = tool("save_patient", Input, async (input, ctx) => {
@@ -34,6 +37,13 @@ export const POST = tool("save_patient", Input, async (input, ctx) => {
     await cacheConsent(input.conversation_id, { ...consent, patientId: patient.id });
   }
   ctx.outcome(created ? "patient registered" : "existing patient");
+  // The page's email goes on the new record, after the response so the call does not wait for it.
+  const email = created ? await resolveCallerEmail(input.conversation_id, input.caller_email) : null;
+  if (email) {
+    after(() =>
+      ehr.updatePatientProfile(patient.id, { email }).catch((err) => console.error(JSON.stringify({ patient_email: "write_failed", error: (err as Error).name }))),
+    );
+  }
 
   return {
     patient_id: patient.id,

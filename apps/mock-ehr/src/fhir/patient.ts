@@ -1,4 +1,4 @@
-import { EXT, SYSTEM, type Patient } from "@pokta-clinic/fhir";
+import { EMERGENCY_CONTACT, EXT, SYSTEM, type Patient } from "@pokta-clinic/fhir";
 import type { patient } from "../db/schema.js";
 
 type PatientRow = typeof patient.$inferSelect;
@@ -17,16 +17,31 @@ export function toFhir(row: PatientRow): Patient {
   const extension: NonNullable<Patient["extension"]> = [];
   if (row.sexo) extension.push({ url: EXT.sexoRenapo, valueString: row.sexo });
   if (row.curp) extension.push({ url: EXT.curpValidada, valueBoolean: row.curpValidada });
+  if (row.aseguradora) extension.push({ url: EXT.aseguradora, valueString: row.aseguradora });
+  if (row.poliza) extension.push({ url: EXT.poliza, valueString: row.poliza });
+
+  const telecom: Patient["telecom"] = [{ system: "phone", value: row.telefono }];
+  if (row.email) telecom.push({ system: "email", value: row.email });
+  const hasContact = row.contactoEmergenciaNombre || row.contactoEmergenciaTelefono;
 
   return {
     resourceType: "Patient",
     id: row.id,
     identifier,
     name: [{ use: "official", given: [row.nombre], family: familyParts.join(" "), _family: { extension: familyExt } }],
-    telecom: [{ system: "phone", value: row.telefono }],
+    telecom,
     gender: row.sexo ? GENDER[row.sexo] : undefined,
     birthDate: row.fechaNacimiento ?? undefined,
     address: row.domicilio || row.codigoPostal ? [{ text: row.domicilio ?? undefined, postalCode: row.codigoPostal ?? undefined }] : undefined,
+    contact: hasContact
+      ? [
+          {
+            relationship: [{ text: EMERGENCY_CONTACT }],
+            name: row.contactoEmergenciaNombre ? { text: row.contactoEmergenciaNombre } : undefined,
+            telecom: row.contactoEmergenciaTelefono ? [{ system: "phone", value: row.contactoEmergenciaTelefono }] : undefined,
+          },
+        ]
+      : undefined,
     extension: extension.length ? extension : undefined,
   };
 }
@@ -53,6 +68,24 @@ export function fromFhir(resource: Patient): PatientInput {
     sexo: sexo ?? null,
     domicilio: resource.address?.[0]?.text ?? null,
     codigoPostal: resource.address?.[0]?.postalCode ?? null,
+    ...contactFields(resource),
+  };
+}
+
+export type ContactFields = Pick<PatientInput, "email" | "domicilio" | "codigoPostal" | "contactoEmergenciaNombre" | "contactoEmergenciaTelefono" | "aseguradora" | "poliza">;
+
+// The contact and administrative fields of a Patient resource; what an update may change.
+export function contactFields(resource: Patient): ContactFields {
+  const contact = resource.contact?.find((c) => c.relationship?.some((r) => r.text === EMERGENCY_CONTACT)) ?? resource.contact?.[0];
+  const clean = (v: string | undefined) => (v && v.trim() ? v.trim() : null);
+  return {
+    email: clean(resource.telecom.find((t) => t.system === "email")?.value),
+    domicilio: clean(resource.address?.[0]?.text),
+    codigoPostal: clean(resource.address?.[0]?.postalCode),
+    contactoEmergenciaNombre: clean(contact?.name?.text),
+    contactoEmergenciaTelefono: contact?.telecom?.[0]?.value ? normalizePhone(contact.telecom[0].value) || null : null,
+    aseguradora: clean(ext(resource.extension, EXT.aseguradora)),
+    poliza: clean(ext(resource.extension, EXT.poliza)),
   };
 }
 

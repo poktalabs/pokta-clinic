@@ -66,6 +66,46 @@ export function buildScenario(name: string): Scenario {
           { match: /quedo bien|esta bien asi|alguna duda|algo mas/, say: "Sí, todo bien, gracias." },
         ],
       };
+    case "callback": {
+      // Golden path until scheduling, then no offered slot works and the caller asks to be called back.
+      const golden = buildScenario("golden");
+      const keep = golden.rules.filter((r) => !/primera opcion|No tengo preferencia/.test(r.say));
+      return {
+        ...golden,
+        name,
+        description: golden.description.replace("accepts the first offered slot", "rejects the offered slots and asks for a callback"),
+        rules: [
+          { match: /le llame|llamarle|horario (le podemos|para) llamar|en que horario/, say: "Sí, que me llamen, entre semana de once a dos." },
+          ...keep.filter((r) => !/Del Valle, por favor/.test(r.say)),
+          { match: /(cual|que) sucursal|sucursal.*(queda|conviene|prefiere)|queda mejor/, say: "Polanco, por favor." },
+          { match: /dia o (un )?horario|preferencia|manana o (en )?la tarde/, say: "Los sábados a las ocho de la mañana." },
+          { match: /(opcion|horario|tengo|disponible).*(\d|lunes|martes|miercoles|jueves|viernes|sabado)|cual le acomoda|cual prefiere|no hay/, say: "No, ninguno me queda. Mejor que me llamen." },
+        ],
+      };
+    }
+    case "returning": {
+      // A caller who already booked (SCENARIO_PHONE: the phone of an earlier golden run) changes the appointment.
+      const known = process.env.SCENARIO_PHONE;
+      if (!known) throw new Error("returning needs SCENARIO_PHONE=<10 digits of an existing patient with an upcoming appointment>");
+      return {
+        name,
+        description: `Returning patient ${known}: confirms the name, wants to change the upcoming appointment, takes the first offered slot.`,
+        fallback: "Sí, adelante.",
+        farewell: "Gracias, hasta luego.",
+        rules: [
+          { match: /unos minutos|platicar/, say: "Sí, claro.", once: true },
+          { match: /consentimiento|acepta|autoriza/, say: "Sí, acepto." },
+          { match: /hablo con|es usted/, say: "Sí, soy yo." },
+          { match: /mantener|cambiar|conservar/, say: "Quiero cambiarla, por favor." },
+          { match: /(es|son) correct|es asi|me confirma|lo tengo bien/, say: "Sí, es correcto." },
+          { match: /(telefono|numero)(?!.*nombre)/, say: `Mi teléfono es ${spell(known)}.` },
+          { match: /(cual|que) sucursal|sucursal.*(queda|conviene|prefiere)|queda mejor/, say: "La misma, Del Valle." },
+          { match: /dia o (un )?horario|preferencia|manana o (en )?la tarde/, say: "En la tarde, por favor." },
+          { match: /(opcion|horario|tengo|disponible).*(\d|lunes|martes|miercoles|jueves|viernes)|cual le acomoda|cual prefiere/, say: "La primera opción, por favor." },
+          { match: /quedo bien|esta bien asi|alguna duda|algo mas/, say: "Sí, todo bien, gracias." },
+        ],
+      };
+    }
     case "refuse":
       return {
         name,
@@ -91,6 +131,6 @@ export function buildScenario(name: string): Scenario {
         ],
       };
     default:
-      throw new Error(`unknown scenario "${name}" (golden | refuse | redflag)`);
+      throw new Error(`unknown scenario "${name}" (golden | callback | returning | refuse | redflag)`);
   }
 }

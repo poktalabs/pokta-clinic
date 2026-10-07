@@ -1,6 +1,8 @@
 import {
   BRANCH_CODES,
+  CALENDAR_EVENT_SYSTEM,
   CONVERSATION_SYSTEM,
+  EMERGENCY_CONTACT,
   EXT,
   QUESTIONNAIRE_URL,
   RED_FLAG_SEVERITY_EXT,
@@ -9,6 +11,7 @@ import {
   communicationResource,
   consentResource,
   questionnaireResponseResource,
+  taskResource,
   type Appointment,
   type Communication,
   type BranchCode,
@@ -20,11 +23,13 @@ import {
   type Questionnaire,
   type QuestionnaireResponse,
   type QuestionnaireResponseItem,
+  type Task,
 } from "@pokta-clinic/fhir";
 import {
   EhrRejectedError,
   type AppointmentRecord,
   type BranchRecord,
+  type CallbackRecord,
   type CommunicationRecord,
   type ConsentRecord,
   type EhrAdapter,
@@ -32,7 +37,10 @@ import {
   type HistoryRecord,
   type NewPatient,
   type PatientDetail,
+  type PatientProfile,
+  type PatientProfilePatch,
   type PatientSummary,
+  type UpcomingAppointment,
 } from "./adapter";
 import { fhir } from "./fhir-client";
 
@@ -43,6 +51,71 @@ function summary(resource: Patient): PatientSummary {
     id: resource.id!,
     folio: resource.identifier?.find((i) => i.system === SYSTEM.folio)?.value ?? null,
     givenName: resource.name[0]?.given.join(" ") ?? "",
+  };
+}
+
+const extValue = (resource: Patient, url: string) => resource.extension?.find((e) => e.url === url)?.valueString ?? null;
+const emergencyContact = (resource: Patient) =>
+  resource.contact?.find((c) => c.relationship?.some((r) => r.text === EMERGENCY_CONTACT)) ?? resource.contact?.[0];
+
+function profile(resource: Patient): PatientProfile {
+  const familyExt = resource.name[0]?._family?.extension;
+  const [fallbackPrimer, ...fallbackRest] = (resource.name[0]?.family ?? "").split(" ").filter(Boolean);
+  const contact = emergencyContact(resource);
+  return {
+    ...summary(resource),
+    primerApellido: familyExt?.find((e) => e.url === EXT.fathersFamily)?.valueString ?? fallbackPrimer ?? "",
+    segundoApellido: familyExt?.find((e) => e.url === EXT.mothersFamily)?.valueString ?? (fallbackRest.join(" ") || null),
+    phone: resource.telecom.find((t) => t.system === "phone")?.value ?? "",
+    birthDate: resource.birthDate ?? null,
+    email: resource.telecom.find((t) => t.system === "email")?.value ?? null,
+    address: resource.address?.[0]?.text ?? null,
+    postalCode: resource.address?.[0]?.postalCode ?? null,
+    emergencyContactName: contact?.name?.text ?? null,
+    emergencyContactPhone: contact?.telecom?.[0]?.value ?? null,
+    insurer: extValue(resource, EXT.aseguradora),
+    policyNumber: extValue(resource, EXT.poliza),
+  };
+}
+
+// The Patient resource with the patch applied to its contact and administrative fields; identity stays as read.
+function withProfilePatch(resource: Patient, current: PatientProfile, patch: PatientProfilePatch): Patient {
+  const next = { ...current, ...patch };
+  const telecom: Patient["telecom"] = resource.telecom.filter((t) => t.system !== "email");
+  if (next.email) telecom.push({ system: "email", value: next.email });
+  const extension = (resource.extension ?? []).filter((e) => e.url !== EXT.aseguradora && e.url !== EXT.poliza);
+  if (next.insurer) extension.push({ url: EXT.aseguradora, valueString: next.insurer });
+  if (next.policyNumber) extension.push({ url: EXT.poliza, valueString: next.policyNumber });
+  const hasContact = next.emergencyContactName || next.emergencyContactPhone;
+  return {
+    ...resource,
+    telecom,
+    address: next.address || next.postalCode ? [{ text: next.address ?? undefined, postalCode: next.postalCode ?? undefined }] : undefined,
+    contact: hasContact
+      ? [
+          {
+            relationship: [{ text: EMERGENCY_CONTACT }],
+            name: next.emergencyContactName ? { text: next.emergencyContactName } : undefined,
+            telecom: next.emergencyContactPhone ? [{ system: "phone", value: next.emergencyContactPhone }] : undefined,
+          },
+        ]
+      : undefined,
+    extension: extension.length ? extension : undefined,
+  };
+}
+
+async function callbackRecord(resource: Task): Promise<CallbackRecord> {
+  const locationId = resource.owner?.reference.slice("Location/".length);
+  return {
+    id: resource.id!,
+    conversationId: resource.identifier.find((i) => i.system === CONVERSATION_SYSTEM)?.value ?? "",
+    patientId: resource.for?.reference.slice("Patient/".length) ?? null,
+    branch: locationId ? await branchOfLocation(locationId) : null,
+    availability: resource.note[0]?.text ?? "",
+    reason: resource.reasonCode.text,
+    status: resource.status,
+    authoredOn: resource.authoredOn ?? "",
+    calendarEventId: resource.identifier.find((i) => i.system === CALENDAR_EVENT_SYSTEM)?.value ?? null,
   };
 }
 
@@ -202,6 +275,86 @@ export const fhirEhrAdapter: EhrAdapter = {
       if (err instanceof EhrRejectedError && err.status === 404) return null;
       throw err;
     }
+  },
+
+  async getPatientProfile(id) {
+    try {
+      const { data } = await fhir<Patient>("GET", `/Patient/${encodeURIComponent(id)}`);
+      return profile(data);
+    } catch (err) {
+      if (err instanceof EhrRejectedError && err.status === 404) return null;
+      throw err;
+    }
+  },
+
+  async updatePatientProfile(id, patch) {
+    const { data: current } = await fhir<Patient>("GET", `/Patient/${encodeURIComponent(id)}`);
+    const { data } = await fhir<Patient>("PUT", `/Patient/${encodeURIComponent(id)}`, withProfilePatch(current, profile(current), patch));
+    return profile(data);
+  },
+
+  async upcomingAppointments(patientId, after) {
+    const query = `patient=${encodeURIComponent(`Patient/${patientId}`)}&status=booked&date=${encodeURIComponent(`ge${after.toISOString()}`)}`;
+    const { data } = await fhir<Bundle<Appointment>>("GET", `/Appointment?${query}`);
+    return Promise.all(
+      (data.entry ?? []).map(async ({ resource }): Promise<UpcomingAppointment> => ({
+        ...(await appointmentRecord(resource)),
+        calendarEventId: resource.identifier.find((i) => i.system === CALENDAR_EVENT_SYSTEM)?.value ?? null,
+        practitionerId: resource.participant.map((p) => p.actor.reference).find((r) => r.startsWith("Practitioner/"))?.slice("Practitioner/".length) ?? "",
+      })),
+    );
+  },
+
+  async cancelAppointment(appointmentId) {
+    const { data } = await fhir<Appointment>("GET", `/Appointment/${encodeURIComponent(appointmentId)}`);
+    if (data.status === "cancelled") return;
+    await fhir("PUT", `/Appointment/${encodeURIComponent(appointmentId)}`, { ...data, status: "cancelled" });
+  },
+
+  async createCallback(input) {
+    // The owner is optional: without a branch (or when it cannot be resolved) the callback belongs to the network.
+    let locationId: string | null = null;
+    if (input.branch) {
+      try {
+        locationId = (await branchRecord(input.branch)).locationId;
+      } catch (err) {
+        if (!(err instanceof EhrRejectedError)) throw err;
+      }
+    }
+    const send = (patientId: string | null) =>
+      fhir<Task>(
+        "POST",
+        "/Task",
+        taskResource({
+          conversationId: input.conversationId,
+          patientId,
+          locationId,
+          status: "requested",
+          authoredOn: new Date().toISOString(),
+          availability: input.availability,
+          reason: input.reason,
+          calendarEventId: input.calendarEventId,
+        }),
+      );
+    try {
+      const { data } = await send(input.patientId);
+      return callbackRecord(data);
+    } catch (err) {
+      // The patient_id comes from the LLM; an unknown one must not lose the callback.
+      if (!(input.patientId && err instanceof EhrRejectedError && err.status === 404)) throw err;
+      const { data } = await send(null);
+      return callbackRecord(data);
+    }
+  },
+
+  async pendingCallbacks(patientId) {
+    const { data } = await fhir<Bundle<Task>>("GET", `/Task?patient=${encodeURIComponent(`Patient/${patientId}`)}&status=requested`);
+    return Promise.all((data.entry ?? []).map(({ resource }) => callbackRecord(resource)));
+  },
+
+  async hasCompletedHistory(patientId) {
+    const { data } = await fhir<Bundle<QuestionnaireResponse>>("GET", `/QuestionnaireResponse?subject=${encodeURIComponent(`Patient/${patientId}`)}`);
+    return (data.entry ?? []).some(({ resource }) => resource.status === "completed");
   },
 
   async getQuestionnaire() {

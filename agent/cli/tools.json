@@ -37,6 +37,14 @@
         },
         {
             "type": "webhook",
+            "config": "tool_configs/reschedule_appointment.json"
+        },
+        {
+            "type": "webhook",
+            "config": "tool_configs/request_callback.json"
+        },
+        {
+            "type": "webhook",
             "config": "tool_configs/escalate.json",
             "id": "tool_2201m4a2f3wqfmxaraa7epph7hds"
         }

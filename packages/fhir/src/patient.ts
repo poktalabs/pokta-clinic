@@ -15,7 +15,11 @@ export const EXT = {
   mothersFamily: "http://hl7.org/fhir/StructureDefinition/humanname-mothers-family",
   sexoRenapo: "urn:pokta-clinic:extension:sexo-renapo",
   curpValidada: "urn:pokta-clinic:extension:curp-validada",
+  aseguradora: "urn:pokta-clinic:extension:aseguradora",
+  poliza: "urn:pokta-clinic:extension:poliza",
 } as const;
+
+export const EMERGENCY_CONTACT = "Contacto de emergencia";
 
 const Extension = z.object({
   url: z.string(),
@@ -41,6 +45,16 @@ export const Patient = z.object({
   gender: z.enum(["male", "female", "other", "unknown"]).optional(),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   address: z.array(z.object({ text: z.string().optional(), postalCode: z.string().optional() })).optional(),
+  // The emergency contact the patient gives through the patient link.
+  contact: z
+    .array(
+      z.object({
+        relationship: z.array(z.object({ text: z.string() })).optional(),
+        name: z.object({ text: z.string() }).optional(),
+        telecom: z.array(z.object({ system: z.literal("phone"), value: z.string() })).optional(),
+      }),
+    )
+    .optional(),
   extension: z.array(Extension).optional(),
 });
 export type Patient = z.infer<typeof Patient>;

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { EhrPanel } from "@/components/ehr-panel";
 import { Timeline } from "@/components/timeline";
 import { VoiceWidget } from "@/components/voice-widget";
@@ -25,7 +26,10 @@ export default function Home() {
               Pokta<b>Clinic</b>
             </span>
           </Link>
-          <span className="kicker muted">Pokta Labs demo</span>
+          <span className="header-end">
+            <span className="kicker muted">Pokta Labs demo</span>
+            <ThemeToggle />
+          </span>
         </div>
       </header>
 

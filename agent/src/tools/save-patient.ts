@@ -1,4 +1,5 @@
 import type { ToolSpec } from "../types.ts";
+import { callerEmail } from "./caller-email.ts";
 import { conversationId } from "./conversation-id.ts";
 
 // Mirrors apps/web/src/app/api/tools/save_patient/route.ts. CURP is deliberately not collected.
@@ -25,5 +26,6 @@ export const savePatient: ToolSpec = {
       enum: ["H", "M"],
       description: "Sex as recorded on the caller's official ID: H for hombre, M for mujer. Omit it if the caller prefers not to say.",
     },
+    caller_email: callerEmail,
   },
 };

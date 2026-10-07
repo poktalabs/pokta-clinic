@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { and, desc, eq, gt, lt, sql } from "drizzle-orm";
-import { Appointment, CALENDAR_EVENT_SYSTEM, CONVERSATION_SYSTEM, appointmentResource, bundle, operationOutcome } from "@pokta-clinic/fhir";
+import { and, asc, desc, eq, gt, gte, lt, sql, type SQL } from "drizzle-orm";
+import { APPOINTMENT_STATUS, Appointment, CALENDAR_EVENT_SYSTEM, CONVERSATION_SYSTEM, appointmentResource, bundle, operationOutcome } from "@pokta-clinic/fhir";
 import type { AuthVars } from "../auth.js";
 import { audit } from "../audit.js";
 import { db } from "../db/client.js";
@@ -20,16 +20,18 @@ export const toFhir = (row: Row) =>
     calendarEventId: row.calendarEventId ?? "",
     conversationId: row.conversationId,
     description: row.description,
+    status: row.status,
   });
 
 export const appointmentRoutes = new Hono<AuthVars>();
 
 // Search by Patient (`?patient=Patient/<id>`), Location (`?location=Location/<id>`) or by identifier (`?identifier=urn:google:calendar:event|<id>`).
+// Optional filters: `status=booked|cancelled` and `date=ge<ISO instant>` (start at or after). With `date`, results are earliest first.
 appointmentRoutes.get("/", async (c) => {
   const patientParam = c.req.query("patient");
   const token = parseToken(c.req.query("identifier"));
   const locationParam = c.req.query("location");
-  let where;
+  let where: SQL | undefined;
   if (patientParam) {
     const id = idFromReference(patientParam, "Patient");
     where = eq(appointment.patientId, id && isUuid(id) ? id : "00000000-0000-0000-0000-000000000000");
@@ -43,7 +45,23 @@ appointmentRoutes.get("/", async (c) => {
   } else {
     return c.json(operationOutcome("required", "Search needs patient=Patient/<id>, location=Location/<id> or identifier=<system>|<value>"), 400);
   }
-  const rows = await db.select().from(appointment).where(where).orderBy(desc(appointment.start));
+  const filters: SQL[] = [where!];
+  const status = c.req.query("status");
+  if (status) {
+    if (!APPOINTMENT_STATUS.some((s) => s === status)) return c.json(operationOutcome("invalid", `status must be ${APPOINTMENT_STATUS.join(" or ")}`), 400);
+    filters.push(eq(appointment.status, status as (typeof APPOINTMENT_STATUS)[number]));
+  }
+  const date = c.req.query("date");
+  if (date) {
+    const from = date.startsWith("ge") ? new Date(date.slice(2)) : null;
+    if (!from || Number.isNaN(from.getTime())) return c.json(operationOutcome("invalid", "date must be ge<ISO instant>"), 400);
+    filters.push(gte(appointment.start, from));
+  }
+  const rows = await db
+    .select()
+    .from(appointment)
+    .where(and(...filters))
+    .orderBy(date ? asc(appointment.start) : desc(appointment.start));
   await audit(c.get("clientId"), "search", "Appointment", null, { hits: rows.length });
   return c.json(bundle(rows.map(toFhir)));
 });
@@ -106,4 +124,19 @@ appointmentRoutes.post("/", async (c) => {
   await audit(c.get("clientId"), "create", "Appointment", row.id, { start: data.start });
   c.header("Location", `/fhir/Appointment/${row.id}`);
   return c.json(toFhir(row), 201);
+});
+
+// Only a cancellation is supported: the resource must say status cancelled. The calendar event is the client's to remove.
+appointmentRoutes.put("/:id", async (c) => {
+  const id = c.req.param("id");
+  const parsed = Appointment.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json(operationOutcome("invalid", parsed.error.message), 400);
+  if (parsed.data.id && parsed.data.id !== id) return c.json(operationOutcome("invalid", "Appointment.id does not match the URL"), 400);
+  if (parsed.data.status !== "cancelled") return c.json(operationOutcome("business-rule", "Only a change of status to cancelled is supported"), 422);
+  const [existing] = isUuid(id) ? await db.select().from(appointment).where(eq(appointment.id, id)) : [];
+  if (!existing) return c.json(operationOutcome("not-found", "Appointment not found"), 404);
+  if (existing.status === "cancelled") return c.json(toFhir(existing));
+  const [row] = await db.update(appointment).set({ status: "cancelled" }).where(eq(appointment.id, id)).returning();
+  await audit(c.get("clientId"), "update", "Appointment", row.id, { status: "cancelled" });
+  return c.json(toFhir(row));
 });

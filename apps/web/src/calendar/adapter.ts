@@ -7,7 +7,8 @@ export type Interval = { start: string; end: string };
 
 export interface CalendarAdapter {
   busy(branch: BranchCode, from: string, to: string): Promise<Interval[]>;
-  createEvent(input: { branch: BranchCode; start: string; end: string; summary: string; description: string }): Promise<{ id: string }>;
+  // `transparent` events (callback reminders) show in the calendar but never count as busy.
+  createEvent(input: { branch: BranchCode; start: string; end: string; summary: string; description: string; transparent?: boolean }): Promise<{ id: string }>;
   deleteEvent(branch: BranchCode, id: string): Promise<void>;
 }
 

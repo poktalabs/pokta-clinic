@@ -6,6 +6,8 @@ import { findPatient } from "./find-patient.ts";
 import { getQuestionnaire } from "./get-questionnaire.ts";
 import { recordConsent } from "./record-consent.ts";
 import { saveHistory } from "./save-history.ts";
+import { requestCallback } from "./request-callback.ts";
+import { rescheduleAppointment } from "./reschedule-appointment.ts";
 import { savePatient } from "./save-patient.ts";
 
 export const TOOL_SPECS = {
@@ -16,6 +18,8 @@ export const TOOL_SPECS = {
   saveHistory,
   checkAvailability,
   bookAppointment,
+  rescheduleAppointment,
+  requestCallback,
   escalate,
 } as const;
 export const SECRET_HEADER = "x-pokta-tool-secret";

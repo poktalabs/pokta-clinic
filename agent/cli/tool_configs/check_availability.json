@@ -1,7 +1,7 @@
 {
   "type": "webhook",
   "name": "check_availability",
-  "description": "Returns up to 3 free first-consultation slots across the GMA branches, each with branch (code), branch_name, practitioner_name, an ISO start and a Spanish label to say aloud. Call it once you know which branch the caller prefers (or that they have no preference) and the History stage is saved as completed, and again if the caller asks for another day, another part of the day or another branch. Only offer slots this tool returned; never invent or adjust a time or a branch. If it returns no slots, say so and ask for a different day, part of the day or branch. The response has a message field that says what to do next; follow it.",
+  "description": "Returns up to 3 free first-consultation slots across the GMA branches, each with branch (code), branch_name, practitioner_name, an ISO start and a Spanish label to say aloud. Call it once you know which branch the caller prefers (or that they have no preference) and the History stage is saved as completed, and again if the caller asks for another day, another time or another branch. When the caller gives a time range, pass it as time_from and time_to so every slot returned fits it. Only offer slots this tool returned; never invent or adjust a time or a branch. If it returns no slots, say so and ask for a different day, part of the day or branch. The response has a message field that says what to do next; follow it.",
   "response_timeout_secs": 10,
   "api_schema": {
     "url": "https://pokta-clinic-web.vercel.app/api/tools/check_availability",
@@ -41,7 +41,15 @@
             "morning",
             "afternoon"
           ],
-          "description": "morning or afternoon if the caller expressed a preference. Omit it otherwise."
+          "description": "morning or afternoon if the caller expressed only a general preference. Omit it when you send time_from or time_to."
+        },
+        "time_from": {
+          "type": "string",
+          "description": "Earliest start the caller can do, as HH:MM in 24-hour Mexico City time, when they give a time or a range. Example: for 'de 11 a 2' send 11:00."
+        },
+        "time_to": {
+          "type": "string",
+          "description": "Latest time the 60-minute consultation must end by, as HH:MM in 24-hour Mexico City time. Example: for 'de 11 a 2' send 14:00."
         }
       }
     }

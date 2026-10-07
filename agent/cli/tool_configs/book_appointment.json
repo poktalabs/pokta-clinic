@@ -40,6 +40,10 @@
         "start": {
           "type": "string",
           "description": "The ISO start of the chosen slot, copied exactly as check_availability returned it. Never build or edit it yourself."
+        },
+        "caller_email": {
+          "type": "string",
+          "dynamic_variable": "caller_email"
         }
       }
     }

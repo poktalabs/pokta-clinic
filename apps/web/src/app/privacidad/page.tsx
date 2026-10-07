@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
   title: "Aviso de privacidad: Grupo Médico Articular (demo PoktaClinic)",
@@ -19,7 +20,10 @@ export default function Privacidad() {
               Pokta<b>Clinic</b>
             </span>
           </Link>
-          <span className="kicker muted">Pokta Labs demo</span>
+          <span className="header-end">
+            <span className="kicker muted">Pokta Labs demo</span>
+            <ThemeToggle />
+          </span>
         </div>
       </header>
 

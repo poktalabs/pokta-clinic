@@ -14,6 +14,7 @@ import { practitionerRoleRoutes } from "./routes/practitioner-role.js";
 import { practitionerRoutes } from "./routes/practitioner.js";
 import { questionnaireResponseRoutes } from "./routes/questionnaire-response.js";
 import { questionnaireRoutes } from "./routes/questionnaire.js";
+import { taskRoutes } from "./routes/task.js";
 
 // "Expediente Demo": a mock third-party EHR. pokta-clinic reaches it only over FHIR R4.
 export const app = new Hono<AuthVars>();
@@ -36,6 +37,7 @@ app.route("/fhir/QuestionnaireResponse", questionnaireResponseRoutes);
 app.route("/fhir/Consent", consentRoutes);
 app.route("/fhir/Appointment", appointmentRoutes);
 app.route("/fhir/Communication", communicationRoutes);
+app.route("/fhir/Task", taskRoutes);
 
 app.notFound((c) => c.json(operationOutcome("not-found", `No route for ${c.req.method} ${c.req.path}`), 404));
 app.onError((err, c) => {

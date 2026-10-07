@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { appointment, auditEvent, communication, consent, establishment, intake, patient } from "../db/schema.js";
+import { appointment, auditEvent, callbackTask, communication, consent, establishment, intake, patient } from "../db/schema.js";
 import { Layout } from "./layout.js";
 import { Network, loadNetwork } from "./network.js";
 
@@ -26,7 +26,7 @@ const Table = (props: { title: string; head: string[]; rows: unknown[][]; empty?
 
 // Read-only: the latest rows of each resource and the audit trail.
 export async function loadConsole() {
-  const [network, patients, consents, responses, appointments, communications, audits] = await Promise.all([
+  const [network, patients, consents, responses, appointments, communications, callbacks, audits] = await Promise.all([
     loadNetwork(),
     db.select().from(patient).orderBy(desc(patient.createdAt)).limit(20),
     db.select({ c: consent, folio: patient.folio }).from(consent).leftJoin(patient, eq(consent.patientId, patient.id)).orderBy(desc(consent.recordedAt)).limit(20),
@@ -39,9 +39,16 @@ export async function loadConsole() {
       .orderBy(desc(appointment.start))
       .limit(20),
     db.select().from(communication).orderBy(desc(communication.sentAt)).limit(20),
+    db
+      .select({ t: callbackTask, nombre: patient.nombre, primerApellido: patient.primerApellido, folio: patient.folio, branch: establishment.nombre })
+      .from(callbackTask)
+      .leftJoin(patient, eq(callbackTask.patientId, patient.id))
+      .leftJoin(establishment, eq(callbackTask.establishmentId, establishment.id))
+      .orderBy(desc(callbackTask.authoredAt))
+      .limit(20),
     db.select().from(auditEvent).orderBy(desc(auditEvent.at)).limit(30),
   ]);
-  return { network, patients, consents, responses, appointments, communications, audits };
+  return { network, patients, consents, responses, appointments, communications, callbacks, audits };
 }
 
 export function ConsolePage(d: Awaited<ReturnType<typeof loadConsole>>) {
@@ -55,8 +62,17 @@ export function ConsolePage(d: Awaited<ReturnType<typeof loadConsole>>) {
 
       <Table
         title="Patients"
-        head={["Folio", "Name", "Phone", "Created"]}
-        rows={d.patients.map((p) => [p.folio, [p.nombre, p.primerApellido, p.segundoApellido].filter(Boolean).join(" "), maskPhone(p.telefono), when(p.createdAt)])}
+        head={["Folio", "Name", "Phone", "Email", "Address", "Emergency contact", "Insurance", "Created"]}
+        rows={d.patients.map((p) => [
+          p.folio,
+          [p.nombre, p.primerApellido, p.segundoApellido].filter(Boolean).join(" "),
+          maskPhone(p.telefono),
+          p.email ?? "",
+          [p.domicilio, p.codigoPostal].filter(Boolean).join(", "),
+          [p.contactoEmergenciaNombre, p.contactoEmergenciaTelefono && maskPhone(p.contactoEmergenciaTelefono)].filter(Boolean).join(" · "),
+          [p.aseguradora, p.poliza].filter(Boolean).join(" · "),
+          when(p.createdAt),
+        ])}
       />
       <Table
         title="Consents"
@@ -76,8 +92,20 @@ export function ConsolePage(d: Awaited<ReturnType<typeof loadConsole>>) {
       />
       <Table
         title="Appointments"
-        head={["Patient (folio)", "Branch", "Start (America/Mexico_City)", "Calendar event"]}
-        rows={d.appointments.map(({ a, folio, branch }) => [folio, branch, when(a.start), a.calendarEventId ?? ""])}
+        head={["Patient (folio)", "Branch", "Start (America/Mexico_City)", "Status", "Calendar event"]}
+        rows={d.appointments.map(({ a, folio, branch }) => [folio, branch, when(a.start), a.status, a.calendarEventId ?? ""])}
+      />
+      <Table
+        title="Callback requests (Tasks)"
+        head={["Patient", "Branch", "Availability", "Reason", "Status", "Requested"]}
+        rows={d.callbacks.map(({ t, nombre, primerApellido, folio, branch }) => [
+          nombre ? `${nombre} ${primerApellido ?? ""} (${folio})` : "not identified",
+          branch ?? "any branch",
+          t.availability,
+          t.reason,
+          t.status,
+          when(t.authoredAt),
+        ])}
       />
       <Table
         title="Communications (Red flag Escalations)"

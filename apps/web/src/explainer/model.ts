@@ -74,8 +74,29 @@ export const TOOLS: Record<string, ToolInfo> = {
       { edge: "api-calendar", request: "events.insert" },
       { edge: "api-ehr", request: "POST /Appointment" },
       { edge: "api-store", request: "booking record" },
+      { edge: "api-email", request: "confirmation + patient link" },
     ],
     guardrails: ["consent-gate", "real-slots", "idempotent-booking", "outbox"],
+  },
+  reschedule_appointment: {
+    stage: "scheduling",
+    summary: "Books the new slot first, then cancels the old appointment",
+    touches: [
+      { edge: "api-calendar", request: "events.insert + events.delete" },
+      { edge: "api-ehr", request: "POST /Appointment, PUT /Appointment (cancelled)" },
+      { edge: "api-email", request: "change confirmation + patient link" },
+    ],
+    guardrails: ["consent-gate", "real-slots", "idempotent-booking"],
+  },
+  request_callback: {
+    stage: "scheduling",
+    summary: "Turns 'call me back' into work for the front desk",
+    touches: [
+      { edge: "api-ehr", request: "POST /Task (callback)" },
+      { edge: "api-calendar", request: "events.insert (reminder, not busy)" },
+      { edge: "api-email", request: "front desk + caller" },
+    ],
+    guardrails: ["consent-gate", "tool-secret"],
   },
   escalate: {
     stage: "escalation",
@@ -103,11 +124,13 @@ export type Expediente = {
   patient: { name: string | null; folio: string | null; returning: boolean } | null;
   history: { status: string; missing: string[] } | null;
   slotsOffered: number | null;
-  appointment: { label: string; branch: string; practitioner: string; address: string; queued: boolean } | null;
+  appointment: { label: string; branch: string; practitioner: string; address: string; queued: boolean; previous: string | null } | null;
+  callback: { availability: string; branch: string } | null;
+  emails: string[];
   redFlag: { severity: string } | null;
 };
 
-export const EMPTY_EXPEDIENTE: Expediente = { consent: null, patient: null, history: null, slotsOffered: null, appointment: null, redFlag: null };
+export const EMPTY_EXPEDIENTE: Expediente = { consent: null, patient: null, history: null, slotsOffered: null, appointment: null, callback: null, emails: [], redFlag: null };
 
 const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
 
@@ -127,7 +150,8 @@ export function applyResult(exp: Expediente, call: Call): Expediente {
     case "check_availability":
       return { ...exp, slotsOffered: Array.isArray(r.slots) ? r.slots.length : 0 };
     case "book_appointment":
-      return r.booked
+    case "reschedule_appointment":
+      return r.booked || r.rescheduled
         ? {
             ...exp,
             appointment: {
@@ -136,7 +160,17 @@ export function applyResult(exp: Expediente, call: Call): Expediente {
               practitioner: str(r.practitioner_name) ?? "",
               address: str(r.address) ?? "",
               queued: r.queued === true,
+              previous: str(r.old_label),
             },
+            emails: r.emailed ? [...exp.emails, call.tool === "book_appointment" ? "Appointment confirmation with the patient link" : "Change confirmation with the patient link"] : exp.emails,
+          }
+        : exp;
+    case "request_callback":
+      return r.requested
+        ? {
+            ...exp,
+            callback: { availability: str(r.availability) ?? "", branch: str(r.branch_name) ?? "" },
+            emails: [...exp.emails, "Front desk: callback request", ...(r.emailed_caller ? ["Caller: we will call you, with the patient link"] : [])],
           }
         : exp;
     case "escalate":

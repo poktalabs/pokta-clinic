@@ -5,7 +5,7 @@ const token = (name: string) => ({ name, type: "token" });
 const reference = (name: string) => ({ name, type: "reference" });
 
 export const RESOURCES = [
-  { type: "Patient", interaction: ["read", "search-type", "create"], searchParam: [token("phone"), token("identifier")] },
+  { type: "Patient", interaction: ["read", "search-type", "create", "update"], searchParam: [token("phone"), token("identifier")] },
   { type: "Organization", interaction: ["read", "search-type"], searchParam: [] },
   { type: "Location", interaction: ["read", "search-type"], searchParam: [token("identifier")] },
   { type: "Practitioner", interaction: ["read", "search-type"], searchParam: [] },
@@ -17,8 +17,13 @@ export const RESOURCES = [
     searchParam: [token("identifier"), reference("subject")],
   },
   { type: "Consent", interaction: ["create", "search-type", "update"], searchParam: [token("identifier")] },
-  { type: "Appointment", interaction: ["read", "create", "search-type"], searchParam: [reference("patient"), reference("location"), token("identifier")] },
+  {
+    type: "Appointment",
+    interaction: ["read", "create", "update", "search-type"],
+    searchParam: [reference("patient"), reference("location"), token("identifier"), token("status"), { name: "date", type: "date" }],
+  },
   { type: "Communication", interaction: ["create", "search-type"], searchParam: [token("identifier")] },
+  { type: "Task", interaction: ["read", "create", "update", "search-type"], searchParam: [reference("patient"), token("identifier"), token("status")] },
 ] as const;
 
 export const capabilityStatement = () => ({

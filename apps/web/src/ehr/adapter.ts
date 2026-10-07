@@ -26,6 +26,25 @@ export type ConsentRecord = {
 
 export type PatientDetail = PatientSummary & { primerApellido: string };
 
+// The full record, including the contact and administrative data the patient completes through the patient link.
+export type PatientProfile = PatientDetail & {
+  segundoApellido: string | null;
+  phone: string;
+  birthDate: string | null;
+  email: string | null;
+  address: string | null;
+  postalCode: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+  insurer: string | null;
+  policyNumber: string | null;
+};
+
+// What the patient may change. A field left out keeps its value; null clears it.
+export type PatientProfilePatch = Partial<
+  Pick<PatientProfile, "email" | "address" | "postalCode" | "emergencyContactName" | "emergencyContactPhone" | "insurer" | "policyNumber">
+>;
+
 export type QuestionnaireItemDef = {
   linkId: string;
   text: string;
@@ -52,6 +71,24 @@ export type AppointmentRecord = {
   branch: BranchCode | null;
 };
 
+export type UpcomingAppointment = AppointmentRecord & { calendarEventId: string | null; practitionerId: string };
+
+export type CallbackStatus = "requested" | "completed" | "cancelled";
+
+// A callback request (FHIR Task): the branch's front desk calls the caller back.
+export type CallbackRecord = {
+  id: string;
+  conversationId: string;
+  patientId: string | null;
+  // Null when the caller had no preferred branch.
+  branch: BranchCode | null;
+  availability: string;
+  reason: string;
+  status: CallbackStatus;
+  authoredOn: string;
+  calendarEventId: string | null;
+};
+
 // A branch (Location) with the Practitioner who works there (PractitionerRole), as the EHR holds them.
 export type BranchRecord = {
   locationId: string;
@@ -72,6 +109,26 @@ export interface EhrAdapter {
   latestConsent(conversationId: string): Promise<ConsentRecord | null>;
   linkConsent(consent: ConsentRecord, conversationId: string, patientId: string): Promise<void>;
   getPatient(id: string): Promise<PatientDetail | null>;
+  getPatientProfile(id: string): Promise<PatientProfile | null>;
+  // Rejects with EhrRejectedError(404) when the Patient does not exist.
+  updatePatientProfile(id: string, patch: PatientProfilePatch): Promise<PatientProfile>;
+  // Booked Appointments of a Patient starting after `after`, earliest first.
+  upcomingAppointments(patientId: string, after: Date): Promise<UpcomingAppointment[]>;
+  // Cancelling an already cancelled Appointment is a no-op. The calendar event is the caller's to remove.
+  cancelAppointment(appointmentId: string): Promise<void>;
+  // Conditional create: returns the existing callback of the Conversation if there is one.
+  createCallback(input: {
+    conversationId: string;
+    patientId: string | null;
+    branch: BranchCode | null;
+    availability: string;
+    reason: string;
+    calendarEventId: string | null;
+  }): Promise<CallbackRecord>;
+  // Requested (not yet completed or cancelled) callbacks of a Patient, newest first.
+  pendingCallbacks(patientId: string): Promise<CallbackRecord[]>;
+  // Whether any Conversation finished the Questionnaire for this Patient.
+  hasCompletedHistory(patientId: string): Promise<boolean>;
   getQuestionnaire(): Promise<QuestionnaireItemDef[]>;
   findQuestionnaireResponse(conversationId: string): Promise<HistoryRecord | null>;
   // Creates the response of this Conversation, or replaces it when `existing` is given.

@@ -74,6 +74,9 @@ export type ConversationRecord = {
   evaluation: Record<string, { result: string; rationale: string | null }>;
 };
 
+// An email typed on the explainer page before a call: lead capture and where the clinic writes back.
+export type Lead = { email: string; conversationId: string; at: number };
+
 export interface Store {
   addEvent(event: ToolEvent): Promise<void>;
   // Newest last.
@@ -98,6 +101,12 @@ export interface Store {
   getConversation(id: string): Promise<ConversationRecord | null>;
   // Newest first.
   listConversations(limit: number): Promise<ConversationRecord[]>;
+
+  // One Lead per Conversation; a repeat overwrites it.
+  putLead(lead: Lead): Promise<void>;
+  getLead(conversationId: string): Promise<Lead | null>;
+  // Newest first.
+  listLeads(limit: number): Promise<Lead[]>;
 
   // Returns a release function, or null when someone else holds the lock.
   lock(name: string, ttlSeconds: number): Promise<(() => Promise<void>) | null>;

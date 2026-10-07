@@ -25,6 +25,10 @@
         "granted": {
           "type": "boolean",
           "description": "true if the caller expressly agreed to the aviso de privacidad, false if the caller refused."
+        },
+        "caller_email": {
+          "type": "string",
+          "dynamic_variable": "caller_email"
         }
       }
     }

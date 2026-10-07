@@ -36,3 +36,4 @@ export * from "./questionnaire.ts";
 export * from "./questionnaire-response.ts";
 export * from "./appointment.ts";
 export * from "./communication.ts";
+export * from "./task.ts";

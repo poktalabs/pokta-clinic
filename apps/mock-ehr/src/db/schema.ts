@@ -76,6 +76,12 @@ export const patient = pgTable("patient", {
   telefono: text("telefono").notNull(),
   domicilio: text("domicilio"),
   codigoPostal: text("codigo_postal"),
+  // Administrative data the patient completes later through the patient link.
+  email: text("email"),
+  contactoEmergenciaNombre: text("contacto_emergencia_nombre"),
+  contactoEmergenciaTelefono: text("contacto_emergencia_telefono"),
+  aseguradora: text("aseguradora"),
+  poliza: text("poliza"),
   createdAt: createdAt(),
   // NOM-004 5.4: kept at least 5 years from the last medical act; soft delete only.
   retainUntil: date("retain_until"),
@@ -153,6 +159,24 @@ export const communication = pgTable("communication", {
   patientWords: text("patient_words").notNull(),
   instruction: text("instruction"),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: createdAt(),
+});
+
+// A callback request (FHIR Task): the caller did not book and the branch's front desk calls them back.
+export const callbackStatusEnum = pgEnum("callback_status", ["requested", "completed", "cancelled"]);
+export const callbackTask = pgTable("callback_task", {
+  id: id(),
+  // Null when the caller asks for a callback before being identified.
+  patientId: uuid("patient_id").references(() => patient.id),
+  // The branch that owns the callback; null when the caller had no preference.
+  establishmentId: uuid("establishment_id").references(() => establishment.id),
+  conversationId: text("conversation_id").notNull().unique(),
+  status: callbackStatusEnum("status").notNull().default("requested"),
+  availability: text("availability").notNull(),
+  reason: text("reason").notNull(),
+  description: text("description"),
+  calendarEventId: text("calendar_event_id"),
+  authoredAt: timestamp("authored_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: createdAt(),
 });
 

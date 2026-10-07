@@ -31,6 +31,8 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
         language: config.language,
         first_message: prompt("first-message"),
         disable_first_message_interruptions: true,
+        // Filled by the explainer page at session start; empty for the plain widget. Tools read it, the LLM does not.
+        dynamic_variables: { dynamic_variable_placeholders: { caller_email: "" } },
         prompt: {
           prompt: prompt("base"),
           llm: config.llm,
@@ -80,7 +82,11 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
         },
         appointment_booked: {
           type: "boolean",
-          description: "True only if book_appointment returned a confirmed appointment during the call, false otherwise.",
+          description: "True only if book_appointment or reschedule_appointment returned a confirmed appointment during the call, false otherwise.",
+        },
+        callback_requested: {
+          type: "boolean",
+          description: "True only if request_callback returned requested true during the call, false otherwise.",
         },
         patient_type: {
           type: "string",

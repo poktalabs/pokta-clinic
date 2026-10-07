@@ -7,6 +7,8 @@ import { ref, reference } from "./reference.ts";
 export const CALENDAR_EVENT_SYSTEM = "urn:google:calendar:event";
 export const FIRST_VISIT_SERVICE = "Primera consulta de reumatologia";
 export const FIRST_VISIT_MINUTES = 60;
+// A cancelled Appointment stays on file; only booked ones hold the Practitioner's time.
+export const APPOINTMENT_STATUS = ["booked", "cancelled"] as const;
 
 const Participant = z.object({
   actor: z.union([reference("Patient"), reference("Practitioner"), reference("Location")]),
@@ -17,7 +19,7 @@ export const Appointment = z.object({
   resourceType: z.literal("Appointment"),
   id: z.string().optional(),
   identifier: z.array(Identifier).min(1),
-  status: z.literal("booked"),
+  status: z.enum(APPOINTMENT_STATUS),
   serviceType: z.array(z.object({ text: z.string() })).optional(),
   start: z.iso.datetime({ offset: true }),
   end: z.iso.datetime({ offset: true }),
@@ -38,6 +40,7 @@ export function appointmentResource(input: {
   calendarEventId: string;
   conversationId?: string | null;
   description?: string | null;
+  status?: (typeof APPOINTMENT_STATUS)[number];
 }): Appointment {
   const identifier = [{ system: CALENDAR_EVENT_SYSTEM, value: input.calendarEventId }];
   if (input.conversationId) identifier.push({ system: CONVERSATION_SYSTEM, value: input.conversationId });
@@ -45,7 +48,7 @@ export function appointmentResource(input: {
     resourceType: "Appointment",
     id: input.id,
     identifier,
-    status: "booked",
+    status: input.status ?? "booked",
     serviceType: [{ text: FIRST_VISIT_SERVICE }],
     start: input.start,
     end: input.end,

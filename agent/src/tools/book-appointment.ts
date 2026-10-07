@@ -1,4 +1,5 @@
 import type { ToolSpec } from "../types.ts";
+import { callerEmail } from "./caller-email.ts";
 import { conversationId } from "./conversation-id.ts";
 
 // Mirrors apps/web/src/app/api/tools/book_appointment/route.ts: { conversation_id, patient_id, branch, start }.
@@ -22,5 +23,6 @@ export const bookAppointment: ToolSpec = {
       type: "string",
       description: "The ISO start of the chosen slot, copied exactly as check_availability returned it. Never build or edit it yourself.",
     },
+    caller_email: callerEmail,
   },
 };

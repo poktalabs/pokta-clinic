@@ -10,6 +10,8 @@ export interface WorkflowToolIds {
   save_history: string;
   check_availability: string;
   book_appointment: string;
+  reschedule_appointment: string;
+  request_callback: string;
   escalate: string;
 }
 
@@ -23,7 +25,11 @@ const RED_FLAG =
 const IDENTIFIED =
   "The caller was identified (confirmed their name on an existing record) or was registered with save_patient, and was told the questions about their health come next.";
 const STOPPED =
-  "The caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye.";
+  "Either: the caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye. Or: a returning caller confirmed their name, wants to keep the upcoming appointment find_patient returned, and was given a goodbye.";
+// A returning caller skips History when there is nothing to ask: they want to change their appointment,
+// would rather schedule than wait for a pending callback, or their questions are already saved.
+const RETURNING_TO_SCHEDULING =
+  "A returning caller confirmed their name on an existing record, and either: they want to change the upcoming appointment find_patient returned, or they want to schedule now instead of waiting for the pending callback, or find_patient returned history_completed true. They were told you will look for a day and time.";
 
 // Start -> Consent -> Identification -> History -> Scheduling -> End. Escalation is reachable from every
 // stage after Start through an LLM-condition edge, and is listed first so it is evaluated first.
@@ -46,7 +52,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         label: "Identification",
         additional_prompt: prompt("identification"),
         additional_tool_ids: [ids.find_patient, ids.save_patient],
-        edge_order: ["identification_to_escalation", "identification_to_history", "identification_to_end"],
+        edge_order: ["identification_to_escalation", "identification_to_scheduling", "identification_to_history", "identification_to_end"],
       },
       // Free-form, adaptive interview guided by the Questionnaire. The model picks order and follow-ups, so
       // it gets a stronger tool-capable LLM than the scripted stages.
@@ -64,7 +70,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         type: "override_agent",
         label: "Scheduling",
         additional_prompt: prompt("scheduling"),
-        additional_tool_ids: [ids.check_availability, ids.book_appointment],
+        additional_tool_ids: [ids.check_availability, ids.book_appointment, ids.reschedule_appointment, ids.request_callback],
         edge_order: ["scheduling_to_escalation", "scheduling_to_end"],
       },
       // The escalate tool works without consent: a red flag is a safety event.
@@ -99,6 +105,11 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         source: "identification",
         target: "escalation",
         forward_condition: { type: "llm", condition: RED_FLAG },
+      },
+      identification_to_scheduling: {
+        source: "identification",
+        target: "scheduling",
+        forward_condition: { type: "llm", condition: RETURNING_TO_SCHEDULING },
       },
       identification_to_history: {
         source: "identification",
@@ -135,7 +146,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "Either: book_appointment confirmed the appointment, its day, date and time were read back, and the caller was given a goodbye. Or: the caller declined to book or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye.",
+          condition: "Either: book_appointment or reschedule_appointment confirmed the appointment, its day, date and time were read back, and the caller was given a goodbye. Or: request_callback was called, the caller was told when the clinic will call, and was given a goodbye. Or: the caller declined both an appointment and a callback, and was given a goodbye.",
         },
       },
 

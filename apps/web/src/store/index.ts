@@ -32,6 +32,9 @@ export const store: Store = {
   putConversation: (r) => select().putConversation(r),
   getConversation: (id) => select().getConversation(id),
   listConversations: (n) => select().listConversations(n),
+  putLead: (l) => select().putLead(l),
+  getLead: (c) => select().getLead(c),
+  listLeads: (n) => select().listLeads(n),
   lock: (name, ttl) => select().lock(name, ttl),
 };
 

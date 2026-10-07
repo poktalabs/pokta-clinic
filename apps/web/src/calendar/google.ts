@@ -53,10 +53,11 @@ export const googleCalendar: CalendarAdapter = {
     return (cal.busy ?? []).map((b) => ({ start: b.start, end: b.end }));
   },
 
-  async createEvent({ branch, start, end, summary, description }) {
+  async createEvent({ branch, start, end, summary, description, transparent }) {
     const event = await call<{ id?: string }>("POST", eventsUrl(branch), {
       summary,
       description,
+      ...(transparent ? { transparency: "transparent" } : {}),
       start: { dateTime: start, timeZone: TIME_ZONE },
       end: { dateTime: end, timeZone: TIME_ZONE },
     });

@@ -1,6 +1,6 @@
 // Holds a scripted, text-only conversation with the deployed agent over the Agents WebSocket API,
 // then fetches the stored conversation to show workflow nodes, tool calls and analysis.
-// Usage: pnpm agent:converse <golden|refuse|redflag> [--audio]   (reads ELEVENLABS_API_KEY from .env.local)
+// Usage: pnpm agent:converse <golden|callback|returning|refuse|redflag> [--audio]   (reads ELEVENLABS_API_KEY from .env.local)
 import { ConverseClient, type AgentEvent } from "./converse-client.ts";
 import { buildScenario, isGoodbye, normalize } from "./converse-scenarios.ts";
 
@@ -123,7 +123,7 @@ async function report(id: string): Promise<void> {
 async function main(): Promise<void> {
   const name = process.argv[2];
   if (!name) {
-    console.error("usage: pnpm agent:converse <golden|refuse|redflag> [--audio]");
+    console.error("usage: pnpm agent:converse <golden|callback|returning|refuse|redflag> [--audio]");
     process.exit(1);
   }
   const id = await converse(name);

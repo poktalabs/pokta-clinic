@@ -69,6 +69,23 @@ export const env = {
   get webhookSecret() {
     return required("ELEVENLABS_WEBHOOK_SECRET");
   },
+  // Optional: without it emails are skipped (logged), never fatal to a tool call.
+  get resendApiKey(): string | null {
+    return process.env.RESEND_API_KEY || null;
+  },
+  get emailFrom() {
+    return process.env.EMAIL_FROM || "Grupo Médico Articular (demo) <citas@mail.poktalabs.com>";
+  },
+  // The front desk inbox that receives callback requests.
+  get clinicNotifyEmail() {
+    return process.env.CLINIC_NOTIFY_EMAIL || "dev@poktalabs.com";
+  },
+  // Absolute origin for links in emails (patient link).
+  get publicBaseUrl() {
+    if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/$/, "");
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    return "http://localhost:3123";
+  },
   get renderApiKey() {
     return required("RENDER_API_KEY");
   },
