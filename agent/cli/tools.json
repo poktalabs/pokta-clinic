@@ -17,23 +17,28 @@
         },
         {
             "type": "webhook",
-            "config": "tool_configs/get_questionnaire.json"
+            "config": "tool_configs/get_questionnaire.json",
+            "id": "tool_4001m4a2f27ff55aj02j2pkd688f"
         },
         {
             "type": "webhook",
-            "config": "tool_configs/save_history.json"
+            "config": "tool_configs/save_history.json",
+            "id": "tool_4101m4a2f2mwfrmt7kqjxs28b6cr"
         },
         {
             "type": "webhook",
-            "config": "tool_configs/check_availability.json"
+            "config": "tool_configs/check_availability.json",
+            "id": "tool_9301m4a2f32yeb69by32wphq5s34"
         },
         {
             "type": "webhook",
-            "config": "tool_configs/book_appointment.json"
+            "config": "tool_configs/book_appointment.json",
+            "id": "tool_3601m4a2f3hbepgvyn4yhxs2xwmt"
         },
         {
             "type": "webhook",
-            "config": "tool_configs/escalate.json"
+            "config": "tool_configs/escalate.json",
+            "id": "tool_2201m4a2f3wqfmxaraa7epph7hds"
         }
     ]
 }

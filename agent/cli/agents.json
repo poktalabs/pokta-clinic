@@ -2,7 +2,9 @@
     "agents": [
         {
             "config": "agent_configs/pokta-clinic.json",
-            "id": "agent_1701m47rjpwcfqasqaw19hph7qb4"
+            "id": "agent_1701m47rjpwcfqasqaw19hph7qb4",
+            "branch_id": "agtbrch_5201m47rjs3hfx6sh0qfayydtdgd",
+            "version_id": "agtvrsn_0201m4a2fes3ebd83d9ctba8jch8"
         }
     ]
 }
