@@ -146,7 +146,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "Either: book_appointment or reschedule_appointment confirmed the appointment, its day, date and time were read back, and the caller was given a goodbye. Or: request_callback was called, the caller was told when the clinic will call, and was given a goodbye. Or: the caller declined both an appointment and a callback, and was given a goodbye.",
+          condition: "After the last tool result, the agent has already said, in its own spoken message, a goodbye to the caller, and either: book_appointment or reschedule_appointment confirmed the appointment and its day, date and time were read back; or request_callback was called and the caller was told when the clinic will call; or the caller declined both an appointment and a callback. A tool call or tool result alone does not meet this condition.",
         },
       },
 
