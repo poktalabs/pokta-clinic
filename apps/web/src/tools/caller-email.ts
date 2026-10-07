@@ -2,9 +2,9 @@ import { z } from "zod";
 import { isEmail } from "@/email/send";
 import { store } from "@/store";
 
-// The email the caller typed on the explainer page, passed to the agent as the `caller_email` dynamic
-// variable and filled into tool bodies by the platform (the LLM never sees or supplies it). Calls from
-// the plain widget have no email: the placeholder is an empty string.
+// The email the caller typed on the explainer page, registered by the page through /api/lead when the
+// call connects; tools look it up by conversation id. The agent never carries it (a tool parameter bound
+// to a dynamic variable makes ElevenLabs refuse every call that does not pass it, like the plain widget).
 export const callerEmail = z.string().max(300).optional();
 
 export async function rememberLead(conversationId: string, email: string | undefined): Promise<void> {

@@ -48,10 +48,6 @@
             "tools_failed"
           ],
           "description": "no_suitable_slot if none of the offered slots worked, caller_prefers if they asked to be called, tools_failed if the scheduling tools did not respond."
-        },
-        "caller_email": {
-          "type": "string",
-          "dynamic_variable": "caller_email"
         }
       }
     }

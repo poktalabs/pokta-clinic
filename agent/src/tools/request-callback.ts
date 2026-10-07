@@ -1,5 +1,4 @@
 import type { ToolSpec } from "../types.ts";
-import { callerEmail } from "./caller-email.ts";
 import { conversationId } from "./conversation-id.ts";
 
 // Mirrors apps/web/src/app/api/tools/request_callback/route.ts.
@@ -28,6 +27,5 @@ export const requestCallback: ToolSpec = {
       enum: ["no_suitable_slot", "caller_prefers", "tools_failed"],
       description: "no_suitable_slot if none of the offered slots worked, caller_prefers if they asked to be called, tools_failed if the scheduling tools did not respond.",
     },
-    caller_email: callerEmail,
   },
 };

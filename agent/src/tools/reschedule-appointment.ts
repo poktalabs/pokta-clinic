@@ -1,5 +1,4 @@
 import type { ToolSpec } from "../types.ts";
-import { callerEmail } from "./caller-email.ts";
 import { conversationId } from "./conversation-id.ts";
 
 // Mirrors apps/web/src/app/api/tools/reschedule_appointment/route.ts.
@@ -18,6 +17,5 @@ export const rescheduleAppointment: ToolSpec = {
       description: "The branch code of the chosen slot, copied exactly as check_availability returned it.",
     },
     start: { type: "string", description: "The ISO start of the chosen slot, copied exactly as check_availability returned it." },
-    caller_email: callerEmail,
   },
 };

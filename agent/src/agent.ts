@@ -31,8 +31,6 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
         language: config.language,
         first_message: prompt("first-message"),
         disable_first_message_interruptions: true,
-        // Filled by the explainer page at session start; empty for the plain widget. Tools read it, the LLM does not.
-        dynamic_variables: { dynamic_variable_placeholders: { caller_email: "" } },
         prompt: {
           prompt: prompt("base"),
           llm: config.llm,

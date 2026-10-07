@@ -67,6 +67,7 @@ export function Explainer({ agentId }: { agentId: string | null }) {
 
   // Plays SAMPLE through the same handlers a live call uses, so the diagrams behave identically.
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pendingEmail = useRef("");
   const [replaying, setReplaying] = useState(false);
   const stopReplay = () => {
     timers.current.forEach(clearTimeout);
@@ -103,7 +104,11 @@ export function Explainer({ agentId }: { agentId: string | null }) {
 
   return (
     <ConversationProvider
-      onConnect={({ conversationId: id }) => setConversationId(id)}
+      onConnect={({ conversationId: id }) => {
+        setConversationId(id);
+        // Best effort: without it the call still works, only the emails are skipped.
+        if (pendingEmail.current) fetch("/api/lead", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ conversation_id: id, email: pendingEmail.current }) }).catch(() => undefined);
+      }}
       onDisconnect={() => setStage((s) => (s === "escalation" ? s : "end"))}
       onError={(message) => setError(String(message))}
       onMessage={({ message, role, event_id }) => setTurns((old) => [...old, { id: event_id ?? old.length, role, text: message }])}
@@ -111,7 +116,7 @@ export function Explainer({ agentId }: { agentId: string | null }) {
       onAgentToolResponse={onToolResponse}
     >
       <div className="explainer">
-        <CallPanel agentId={agentId} turns={turns} error={error} onStart={() => { stopReplay(); reset(); }} replaying={replaying} onReplay={replay} onStopReplay={stopReplay} />
+        <CallPanel agentId={agentId} turns={turns} error={error} onStart={(email) => { stopReplay(); reset(); pendingEmail.current = email; }} replaying={replaying} onReplay={replay} onStopReplay={stopReplay} />
         <SystemPanel stage={stage} calls={calls} conversationId={conversationId} setCalls={setCalls} />
         <ExpedientePanel stage={stage} expediente={expediente} />
       </div>
@@ -131,7 +136,7 @@ function CallPanel({
   agentId: string;
   turns: Turn[];
   error: string | null;
-  onStart: () => void;
+  onStart: (email: string) => void;
   replaying: boolean;
   onReplay: () => void;
   onStopReplay: () => void;
@@ -155,10 +160,10 @@ function CallPanel({
       setMicError("Allow the microphone to talk to the agent.");
       return;
     }
-    onStart();
-    // The platform fills tool bodies from this; the LLM never sees it. WebSocket, not WebRTC: the
-    // LiveKit signal stream dropped on connect in the browser, while the socket path is reliable.
-    startSession({ agentId, connectionType: "websocket", dynamicVariables: { caller_email: email.trim() } });
+    onStart(email.trim());
+    // WebSocket, not WebRTC: the LiveKit signal stream dropped on connect in the browser, while the
+    // socket path is reliable. The email goes to our server on connect (see onConnect), not to the agent.
+    startSession({ agentId, connectionType: "websocket" });
   };
 
   return (

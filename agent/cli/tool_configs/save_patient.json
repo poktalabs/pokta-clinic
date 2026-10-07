@@ -51,10 +51,6 @@
             "M"
           ],
           "description": "Sex as recorded on the caller's official ID: H for hombre, M for mujer. Omit it if the caller prefers not to say."
-        },
-        "caller_email": {
-          "type": "string",
-          "dynamic_variable": "caller_email"
         }
       }
     }
