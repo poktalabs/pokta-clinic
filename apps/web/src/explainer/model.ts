@@ -142,7 +142,8 @@ export function applyResult(exp: Expediente, call: Call): Expediente {
     case "record_consent":
       return { ...exp, consent: { granted: r.granted === true, at: call.startedAt } };
     case "find_patient":
-      return r.found ? { ...exp, patient: { id: str(r.patient_id), name: str(r.given_name), folio: null, returning: true } } : exp;
+      // Before the date of birth is verified the result carries no patient, only found and verification_required.
+      return r.found && r.patient_id ? { ...exp, patient: { id: str(r.patient_id), name: str(r.given_name), folio: null, returning: true } } : exp;
     case "save_patient":
       return { ...exp, patient: { id: str(r.patient_id), name: str(r.given_name), folio: str(r.folio), returning: r.already_registered === true } };
     case "save_history":

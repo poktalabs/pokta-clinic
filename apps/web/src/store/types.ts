@@ -17,8 +17,9 @@ export type ToolEvent = {
   outcome: string;
 };
 
-// The Consent decision of a Conversation, cached so the gate works while the EHR is down.
-export type ConsentDecision = { granted: boolean; consentId: string | null; patientId: string | null; at: number };
+// The Consent decision of a Conversation, cached so the gate works while the EHR is down. verifyFailures
+// counts the dates of birth find_patient rejected in this Conversation (identity check, at most two tries).
+export type ConsentDecision = { granted: boolean; consentId: string | null; patientId: string | null; at: number; verifyFailures?: number };
 
 // The booking of a Conversation: makes book_appointment idempotent when the EHR cannot be asked.
 export type BookingRecord = { appointmentId: string | null; branch: BranchCode; patientId: string; start: string; end: string; calendarEventId: string };

@@ -4,6 +4,7 @@ import {
   CONVERSATION_SYSTEM,
   EMERGENCY_CONTACT,
   EXT,
+  LINK_ID,
   QUESTIONNAIRE_URL,
   RED_FLAG_SEVERITY_EXT,
   SYSTEM,
@@ -36,6 +37,7 @@ import {
   type HistoryAnswer,
   type HistoryRecord,
   type NewPatient,
+  type PatientMatch,
   type PatientDetail,
   type PatientProfile,
   type PatientProfilePatch,
@@ -242,7 +244,7 @@ function patientResource(input: NewPatient): Patient {
 export const fhirEhrAdapter: EhrAdapter = {
   async findPatientsByPhone(phone) {
     const { data } = await fhir<Bundle<Patient>>("GET", `/Patient?phone=${encodeURIComponent(phone)}`);
-    return (data.entry ?? []).map((e) => summary(e.resource));
+    return (data.entry ?? []).map((e): PatientMatch => ({ ...summary(e.resource), birthDate: e.resource.birthDate ?? null }));
   },
 
   async createPatient(input) {
@@ -358,9 +360,14 @@ export const fhirEhrAdapter: EhrAdapter = {
     await fhir("PUT", `/Task/${encodeURIComponent(callbackId)}`, { ...data, status: "completed" });
   },
 
-  async hasCompletedHistory(patientId) {
+  async historySummary(patientId) {
     const { data } = await fhir<Bundle<QuestionnaireResponse>>("GET", `/QuestionnaireResponse?subject=${encodeURIComponent(`Patient/${patientId}`)}`);
-    return (data.entry ?? []).some(({ resource }) => resource.status === "completed");
+    const responses = (data.entry ?? []).map((e) => e.resource).sort((a, b) => (b.authored ?? "").localeCompare(a.authored ?? ""));
+    const complaint = responses
+      .map((r) => r.item.find((i) => i.linkId === LINK_ID.chiefComplaint)?.answer[0])
+      .map((a) => (a && "valueString" in a ? a.valueString.trim() : ""))
+      .find(Boolean);
+    return { completed: responses.some((r) => r.status === "completed"), chiefComplaint: complaint ?? null };
   },
 
   async getQuestionnaire() {

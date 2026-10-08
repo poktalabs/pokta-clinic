@@ -31,7 +31,7 @@ export const POST = tool("save_patient", Input, async (input, ctx) => {
     fechaNacimiento: input.fecha_nacimiento,
     sexo: input.sexo,
   });
-  // Link only a record this call created; an existing record waits until the caller confirms the name.
+  // Link only a record this call created; an existing record is reached only through the identity check.
   if (created && !consent.patientId) {
     await ehr.linkConsent(consent, input.conversation_id, patient.id);
     await cacheConsent(input.conversation_id, { ...consent, patientId: patient.id });
@@ -45,6 +45,15 @@ export const POST = tool("save_patient", Input, async (input, ctx) => {
     );
   }
 
+  // A phone that already has a record says nothing about it unless this Conversation verified or registered
+  // it: the identity check (find_patient with the date of birth) is the only way into an existing record.
+  if (!created && consent.patientId !== patient.id) {
+    return {
+      already_registered: true,
+      message:
+        "This phone already has a record, so do not register it again. If you have not checked the caller's date of birth with find_patient yet, do that now; otherwise say that for their security you cannot continue with this record by phone, that they can contact any GMA branch directly, and say goodbye.",
+    };
+  }
   return {
     patient_id: patient.id,
     folio: patient.folio,
@@ -52,6 +61,6 @@ export const POST = tool("save_patient", Input, async (input, ctx) => {
     already_registered: !created,
     message: created
       ? `Patient registered. Say in one plain sentence that their record is ready, then follow the instructions of your current stage.${CALM}`
-      : `This phone already belongs to ${patient.givenName}. Confirm the name with the caller before you continue.`,
+      : "This phone's record is the one already identified in this conversation. Continue with your current stage.",
   };
 });

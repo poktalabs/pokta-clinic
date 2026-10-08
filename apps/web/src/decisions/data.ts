@@ -339,12 +339,39 @@ export const DECISIONS: Decision[] = [
     date: "2026-10-05",
     status: "current",
     decision:
-      "Every tool except record_consent and escalate refuses with consent_required until the Conversation has a granted Consent (store first, EHR second). find_patient returns the given name only; save_patient links the Consent only to a record it created.",
+      "Every tool except record_consent and escalate refuses with consent_required until the Conversation has a granted Consent (store first, EHR second). find_patient reveals nothing about a found record until the date of birth matches; save_patient links the Consent only to a record it created.",
     context: "The original scope said consent before any write.",
     alternatives: ["Gate writes only."],
     why: "Reading back a name to an unidentified caller is already a disclosure.",
     tradeoff: "A refusal blocks everything after it, so a caller who declines cannot be identified or booked by the agent.",
     code: [{ label: "apps/web/src/tools/handler.ts", path: "apps/web/src/tools/handler.ts" }],
+  },
+  {
+    id: "identity-by-birth-date",
+    group: "safety",
+    title: "Consent per call; identity verified by date of birth before revealing anything",
+    date: "2026-10-08",
+    status: "current",
+    decision:
+      "Every call asks for consent again, returning callers included. After the phone matches a record, find_patient says nothing about it, not even the name, until the caller's date of birth matches Patient.birthDate (checked server side, a second find_patient call with birth_date). Two tries per conversation; after the second miss the record stays closed, the caller is referred to a branch, and the agent does not register a duplicate. On a match it returns the upcoming appointment and the chief complaint of the latest questionnaire, so the agent can read both back, and links the Consent to that patient.",
+    context:
+      "Looking up a stored consent needs personal data first: the phone is the only key, and a phone is not proof of who is calling. The earlier check (\"¿Hablo con Lucía?\") read the name out before anything was proven.",
+    alternatives: [
+      "Reuse the consent stored on the record and skip the aviso for returning callers.",
+      "Confirm by name only, as before.",
+      "A separate verify_patient tool (one more tool, node attachment, mock and catalog entry for the same lookup).",
+    ],
+    why:
+      "The date of birth is already on every record the agent registers, the caller knows it, and the server compares it, so the model never sees it and cannot leak or guess it. One optional parameter on find_patient keeps the tool count at ten.",
+    tradeoff:
+      "A returning call is a few seconds longer (aviso plus one question). A date of birth is weak proof against someone close to the patient; a real deployment would add an OTP to the phone. With more time: verify identity first, then reuse the stored consent instead of asking again. A record saved without a date of birth cannot be reached by phone. Retention is explicit too: ElevenLabs keeps transcripts and audio 30 days (platform_settings.privacy), not the unlimited default, with voice recording on and zero retention off because reviewers need the evidence.",
+    code: [
+      { label: "apps/web/src/tools/find-patient.ts", path: "apps/web/src/tools/find-patient.ts" },
+      { label: "agent/src/prompts/identification.md", path: "agent/src/prompts/identification.md" },
+      { label: "agent/src/agent.ts (privacy)", path: "agent/src/agent.ts" },
+      { label: "docs/agent.md (Identity verification, Data retention)", path: "docs/agent.md" },
+    ],
+    related: [{ label: "find_patient on the tools page", href: "/tools" }],
   },
   {
     id: "fhir-edge",

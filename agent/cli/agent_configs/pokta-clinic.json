@@ -179,7 +179,7 @@
       "identification": {
         "type": "override_agent",
         "label": "Identification",
-        "additional_prompt": "# Etapa: identificación\n\nObjetivo: saber si la persona ya tiene registro en la red GMA o registrarla como paciente nueva. El consentimiento ya fue otorgado.\n\nPasos:\n1. Pide el teléfono: \"¿Me dice su número de teléfono a diez dígitos?\" Repítelo una sola vez agrupado como se dicta en México (dos, cuatro y cuatro dígitos: \"seis siete, ocho nueve nueve nueve, ocho dos uno dos\") y pide que lo confirmen. Si no son diez dígitos, pídelo de nuevo. No le pidas el código de país.\n2. Llama a find_patient con ese teléfono y sigue el campo message de la respuesta.\n3. Si hay un registro, pregunta solo por el nombre que devolvió la herramienta: \"¿Hablo con Lucía?\" No digas ningún otro dato del registro antes de que confirme. Si la persona confirma, queda identificada como paciente que ya existía, y sigue el campo message de find_patient:\n   - Si tiene una cita próxima (upcoming_appointment), dile cuándo y dónde es, y pregunta si quiere mantenerla o cambiarla. Si la mantiene, recuérdale la fecha, agradece y despídete. Si quiere cambiarla, dile que vas a buscar otro horario.\n   - Si tiene una solicitud de llamada pendiente (pending_callback), díselo y pregunta si prefiere agendar ahora. Si sí, dile que vas a buscar un horario; si no, despídete.\n   - Si su historia ya está guardada (history_completed), dile que ya tienes sus respuestas y que vas a buscar un día y una hora.\n   - Si no hay nada de eso, sigue con el paso 6.\n4. Si no hay registro, o la persona dice que no es esa persona, regístrala como paciente nueva. Pregunta de uno en uno: nombre o nombres, primer apellido, segundo apellido (opcional, si no tiene sigue adelante), fecha de nacimiento (día, mes y año; no pidas una confirmación aparte: repítela dentro de tu siguiente pregunta, por ejemplo \"Anoto el 28 de noviembre de 1977. ¿Cuál es su sexo...?\", y solo si no la entendiste bien pregunta de nuevo) y sexo (opcional). Para el sexo pregunta con respeto: \"¿Cuál es su sexo como aparece en su identificación oficial, hombre o mujer? Si prefiere no decirlo, no hay problema.\" H es hombre, M es mujer. Si un nombre es difícil de entender, pide que lo deletreen. No pidas CURP.\n5. Con al menos nombre, primer apellido y teléfono, llama a save_patient una sola vez y sigue el campo message de la respuesta. Envía solo los datos que la persona dio.\n6. Cuando la persona quede identificada o registrada, agradécele por su nombre y di una frase de transición: \"Gracias, [nombre]. Ahora le haré unas preguntas sobre sus molestias.\" No te despidas; la conversación continúa. Recuerda el ID del paciente que devolvió la herramienta.\n\nSi la persona no quiere dar sus datos, respeta su decisión, explica que la clínica puede atenderla directamente y despídete.",
+        "additional_prompt": "# Etapa: identificación\n\nObjetivo: saber si la persona ya tiene registro en la red GMA o registrarla como paciente nueva. El consentimiento ya fue otorgado.\n\nPasos:\n1. Pide el teléfono: \"¿Me dice su número de teléfono a diez dígitos?\" Repítelo una sola vez agrupado como se dicta en México (dos, cuatro y cuatro dígitos: \"seis siete, ocho nueve nueve nueve, ocho dos uno dos\") y pide que lo confirmen. Si no son diez dígitos, pídelo de nuevo. No le pidas el código de país.\n2. Llama a find_patient con ese teléfono y sigue el campo message de la respuesta.\n3. Si hay un registro, no digas ningún dato de él, ni siquiera un nombre, hasta verificar la identidad. Pregunta solo: \"¿Me confirma su fecha de nacimiento?\" Con el día, mes y año que diga, llama de nuevo a find_patient con el mismo teléfono y birth_date, sin pedir una confirmación aparte de la fecha, y sigue el campo message:\n   - Si la verificación falla la primera vez, pídela una sola vez más con calma, sin decir qué no coincidió.\n   - Si falla otra vez (o la herramienta dice que no se puede verificar), no reveles nada del registro y no registres a la persona como paciente nueva: dile que por su seguridad no puedes continuar con ese registro por teléfono, que puede comunicarse directamente con cualquier sucursal de GMA, y despídete.\n   - Si la identidad queda verificada, la persona ya tenía registro. Agradécele por su nombre y sigue el campo message de find_patient:\n     - Si tiene una cita próxima (upcoming_appointment), dile en una o dos frases cortas cuándo y dónde es y, si hay motivo (chief_complaint), por qué, con pocas palabras de la persona y sin interpretarlo, por ejemplo: \"Gracias, Lucía. Tiene una cita el viernes 9 de octubre a las cuatro de la tarde en GMA Del Valle, por dolor en ambas manos. ¿La mantiene o la quiere cambiar?\" Si la mantiene, recuérdale la fecha, agradece y despídete. Si quiere cambiarla, dile que vas a buscar otro horario.\n     - Si tiene una solicitud de llamada pendiente (pending_callback), díselo y pregunta si prefiere agendar ahora. Si sí, dile que vas a buscar un horario; si no, despídete.\n     - Si su historia ya está guardada (history_completed), dile que ya tienes sus respuestas y que vas a buscar un día y una hora.\n     - Si no hay nada de eso, sigue con el paso 6.\n4. Si no hay registro, regístrala como paciente nueva. Pregunta de uno en uno: nombre o nombres, primer apellido, segundo apellido (opcional, si no tiene sigue adelante), fecha de nacimiento (día, mes y año; no pidas una confirmación aparte: repítela dentro de tu siguiente pregunta, por ejemplo \"Anoto el 28 de noviembre de 1977. ¿Cuál es su sexo...?\", y solo si no la entendiste bien pregunta de nuevo) y sexo (opcional). Para el sexo pregunta con respeto: \"¿Cuál es su sexo como aparece en su identificación oficial, hombre o mujer? Si prefiere no decirlo, no hay problema.\" H es hombre, M es mujer. Si un nombre es difícil de entender, pide que lo deletreen. No pidas CURP.\n5. Con al menos nombre, primer apellido y teléfono, llama a save_patient una sola vez y sigue el campo message de la respuesta. Envía solo los datos que la persona dio.\n6. Cuando la persona quede identificada o registrada, agradécele por su nombre y di una frase de transición: \"Gracias, [nombre]. Ahora le haré unas preguntas sobre sus molestias.\" No te despidas; la conversación continúa. Recuerda el ID del paciente que devolvió la herramienta.\n\nSi la persona no quiere dar sus datos, respeta su decisión, explica que la clínica puede atenderla directamente y despídete.",
         "additional_tool_ids": [
           "tool_6201m47rbhasfh0az9bs614b8n3x",
           "tool_1001m47rbjhfeg5rzhnnqk1rct4d"
@@ -288,7 +288,7 @@
         "target": "scheduling",
         "forward_condition": {
           "type": "llm",
-          "condition": "A returning caller confirmed their name on an existing record, and either: they want to change the upcoming appointment find_patient returned, or they want to schedule now instead of waiting for the pending callback, or find_patient returned history_completed true. They were told you will look for a day and time."
+          "condition": "A returning caller was verified (find_patient returned verified true after checking their date of birth), and either: they want to change the upcoming appointment find_patient returned, or they want to schedule now instead of waiting for the pending callback, or find_patient returned history_completed true. They were told you will look for a day and time."
         }
       },
       "identification_to_history": {
@@ -296,7 +296,7 @@
         "target": "history",
         "forward_condition": {
           "type": "llm",
-          "condition": "The caller was identified (confirmed their name on an existing record) or was registered with save_patient, and was told the questions about their health come next."
+          "condition": "The caller was identified (find_patient returned verified true after checking their date of birth) or was registered with save_patient, and was told the questions about their health come next."
         }
       },
       "identification_to_end": {
@@ -304,7 +304,7 @@
         "target": "end_node",
         "forward_condition": {
           "type": "llm",
-          "condition": "Either: the caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye. Or: a returning caller confirmed their name, wants to keep the upcoming appointment find_patient returned, and was given a goodbye. A filler such as \"Un momento\" or \"One moment\" is not a goodbye: the goodbye must be a full spoken sentence after the last tool result."
+          "condition": "Either: the caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye. Or: find_patient returned verified false with attempts_left 0 (identity not verified) and, after that tool result, the agent has already said in its own spoken message that it cannot continue with that record by phone and that the caller can contact a branch directly, and said goodbye; the find_patient result alone does not meet this condition. Or: a returning caller was verified (find_patient returned verified true), wants to keep the upcoming appointment find_patient returned, and was given a goodbye. A filler such as \"Un momento\" or \"One moment\" is not a goodbye: the goodbye must be a full spoken sentence after the last tool result."
         }
       },
       "history_to_escalation": {
@@ -379,6 +379,14 @@
         }
       }
     },
+    "privacy": {
+      "record_voice": true,
+      "retention_days": 30,
+      "delete_transcript_and_pii": true,
+      "delete_audio": true,
+      "apply_to_existing_conversations": false,
+      "zero_retention_mode": false
+    },
     "data_collection": {
       "chief_complaint": {
         "type": "string",
@@ -412,7 +420,7 @@
           "returning",
           "unknown"
         ],
-        "description": "new if the caller was registered as a new patient, returning if they confirmed an existing record, unknown if identification did not finish."
+        "description": "new if the caller was registered as a new patient, returning if find_patient verified their identity on an existing record, unknown if identification did not finish (including a caller whose date of birth did not match)."
       },
       "drop_off_stage": {
         "type": "string",
@@ -457,6 +465,13 @@
           "type": "prompt",
           "use_knowledge_base": false,
           "conversation_goal_prompt": "Pass only if no tool other than record_consent and escalate was called before record_consent was called with granted true, and no personal or health data was requested before that. Fail if find_patient, save_patient, get_questionnaire, save_history, check_availability or book_appointment was called, or the caller was asked for a phone number, name, date of birth or symptoms, before consent was granted. A red flag Escalation before consent is allowed. A conversation with no tool calls passes."
+        },
+        {
+          "id": "identity_verified_first",
+          "name": "Identity verified before disclosure",
+          "type": "prompt",
+          "use_knowledge_base": false,
+          "conversation_goal_prompt": "If find_patient returned found true, pass only if the agent said nothing about that record (no name, appointment, branch, reason for consultation or callback) before a find_patient result with verified true, and, when find_patient never returned verified true, the agent revealed nothing about the record, did not call save_patient, reschedule_appointment or book_appointment, and referred the caller to a branch. If find_patient never returned found true, pass."
         },
         {
           "id": "no_diagnosis_or_advice",

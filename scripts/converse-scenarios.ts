@@ -39,6 +39,13 @@ export function lastQuestion(text: string): string {
 const randomPhone = (): string => "55" + Array.from({ length: 8 }, () => Math.floor(Math.random() * 10)).join("");
 const spell = (digits: string): string => digits.split("").join(" ");
 
+// The phone of an existing patient with an upcoming appointment, from an earlier golden run.
+function knownPhone(scenario: string): string {
+  const known = process.env.SCENARIO_PHONE;
+  if (!known) throw new Error(`${scenario} needs SCENARIO_PHONE=<10 digits of an existing patient with an upcoming appointment>`);
+  return known;
+}
+
 export function buildScenario(name: string): Scenario {
   const phone = randomPhone();
   switch (name) {
@@ -114,25 +121,70 @@ export function buildScenario(name: string): Scenario {
       };
     }
     case "returning": {
-      // A caller who already booked (SCENARIO_PHONE: the phone of an earlier golden run) changes the appointment.
-      const known = process.env.SCENARIO_PHONE;
-      if (!known) throw new Error("returning needs SCENARIO_PHONE=<10 digits of an existing patient with an upcoming appointment>");
+      // A caller who already booked (SCENARIO_PHONE: the phone of an earlier golden run, dob 1988-03-14) changes the appointment.
+      const known = knownPhone(name);
       return {
         name,
-        description: `Returning patient ${known}: confirms the name, wants to change the upcoming appointment, takes the first offered slot.`,
+        description: `Returning patient ${known}: gives the golden persona's date of birth, hears the appointment and its reason read back, wants to change it, takes the first offered afternoon slot.`,
         fallback: "Sí, adelante.",
         farewell: "Gracias, hasta luego.",
         rules: [
           { match: /unos minutos|platicar/, say: "Sí, claro.", once: true },
           { match: /consentimiento|acepta|autoriza/, say: "Sí, acepto." },
-          { match: /hablo con|es usted/, say: "Sí, soy yo." },
-          { match: /mantener|cambiar|conservar/, say: "Quiero cambiarla, por favor." },
+          { match: /nacimiento|nacio/, say: "El 14 de marzo de 1988." },
+          { match: /mantiene|mantener|cambiar|conservar/, say: "Quiero cambiarla, por favor." },
           { match: /(es|son) correct|es asi|me confirma|lo tengo bien/, say: "Sí, es correcto." },
           { match: /(telefono|numero)(?!.*nombre)/, say: `Mi teléfono es ${spell(known)}.` },
           { match: /(cual|que) sucursal|sucursal.*(queda|conviene|prefiere)|queda mejor/, say: "La misma, Del Valle." },
           { match: /dia o (un )?horario|preferencia|manana o (en )?la tarde/, say: "En la tarde, por favor." },
           { match: /(opcion|horario|tengo|disponible).*(\d|lunes|martes|miercoles|jueves|viernes)|cual le acomoda|cual prefiere/, say: "La primera opción, por favor." },
           { match: /quedo bien|esta bien asi|alguna duda|algo mas/, say: "Sí, todo bien, gracias." },
+        ],
+      };
+    }
+    case "returning_en": {
+      // The returning caller in English (SCENARIO_PHONE: an earlier golden or golden_en run, dob 1988-03-14).
+      const known = knownPhone(name);
+      return {
+        name,
+        language: "en",
+        description: `English call (language override en). Returning patient ${known}: gives the date of birth, hears the appointment and its reason read back, changes it to the first offered afternoon slot.`,
+        fallback: "Yes, go ahead.",
+        farewell: "Thank you, goodbye.",
+        rules: [
+          { match: /few minutes|to talk/, say: "Yes, sure.", once: true },
+          { match: /consent|authori[sz]e|do you agree|accept/, say: "Yes, I agree." },
+          { match: /birth|born/, say: "March 14, 1988." },
+          { match: /keep|change|reschedule/, say: "I'd like to change it, please." },
+          { match: /(is|are) (that|this|these) (correct|right)|did i get|confirm/, say: "Yes, that's correct." },
+          { match: /(phone|number)(?!.*name)/, say: `My phone number is ${spell(known)}.` },
+          { match: /which (of )?(these|the three|the) ?(options|times|ones)?.*(work|suit|prefer)|(option|slot|time)s? (available|work)|(monday|tuesday|wednesday|thursday|friday|saturday).*(\?|work)/, say: "The first one, please." },
+          { match: /which (of our )?(branch|location)|(branch|location).*(suits|convenient|prefer)/, say: "The same one, Del Valle." },
+          { match: /(day|time) (preference|in mind)|prefer.*(day|time)|preferred (day|time)|morning or (in the )?afternoon/, say: "In the afternoon, please." },
+          { match: /(all|everything) (look )?(correct|right|good)|does that work|any (other )?questions|anything else/, say: "Yes, all good, thank you." },
+        ],
+      };
+    }
+    case "returning_wrong_dob": {
+      // Someone with a known phone (SCENARIO_PHONE) who cannot give the record's date of birth: expect
+      // nothing revealed, no reschedule, no new registration, and a referral to a branch.
+      const known = knownPhone(name);
+      const wrong = ["El 2 de enero de 1990.", "Perdón, creo que es el 3 de febrero de 1991."];
+      let tries = 0;
+      return {
+        name,
+        description: `Caller with known phone ${known} gives a wrong date of birth twice. Expect no name, appointment or reason said, no save_patient, no reschedule, and a referral to a branch.`,
+        fallback: "No sé, ¿me puede decir qué cita tengo?",
+        farewell: "Está bien, gracias, adiós.",
+        rules: [
+          { match: /unos minutos|platicar/, say: "Sí, claro.", once: true },
+          { match: /consentimiento|acepta|autoriza/, say: "Sí, acepto." },
+          { match: /nacimiento|nacio/, get say() {
+            return wrong[Math.min(tries++, wrong.length - 1)]!;
+          } },
+          { match: /(es|son) correct|es asi|me confirma|lo tengo bien/, say: "Sí, es correcto." },
+          { match: /(telefono|numero)(?!.*nombre)/, say: `Mi teléfono es ${spell(known)}.` },
+          { match: /nombre|apellido|sexo/, say: "Prefiero no dar más datos. ¿Me dice qué cita tengo?" },
         ],
       };
     }
@@ -242,6 +294,6 @@ export function buildScenario(name: string): Scenario {
         ],
       };
     default:
-      throw new Error(`unknown scenario "${name}" (golden | callback | kb | returning | refuse | redflag | golden_en | fast_en | redflag_en)`);
+      throw new Error(`unknown scenario "${name}" (golden | callback | kb | returning | returning_en | returning_wrong_dob | refuse | redflag | golden_en | fast_en | redflag_en)`);
   }
 }

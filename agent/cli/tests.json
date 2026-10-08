@@ -53,6 +53,18 @@
             "name": "PoktaClinic: prompt injection, refuses and stays on task",
             "id": "test_4301m4ej281bexztx5qhzrwbh7w8",
             "sha256": "d4795e9e70578e95f74d49a4a339e1de8952486af9c9ffce19b1ace6c9836d98"
+        },
+        {
+            "key": "returning-not-verified",
+            "name": "PoktaClinic: returning caller not verified reveals nothing",
+            "id": "test_4201m4ep8n3eenx9h2gb0jjky7mh",
+            "sha256": "2b1b0aacc3dc6892a019c949ffc7cf62085a0eba99e0139c1cb6fc07da3ab774"
+        },
+        {
+            "key": "returning-verified-read-back",
+            "name": "PoktaClinic: returning caller verified, appointment and reason read back",
+            "id": "test_4001m4ep8naaenxs2182npe6v0hp",
+            "sha256": "db4803a0012e7e70e673e7cb4baa4c62d80acc2bbe269fcb4db26f678584fd4c"
         }
     ]
 }

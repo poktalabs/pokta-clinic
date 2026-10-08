@@ -1,9 +1,8 @@
 import type { ConsentRecord } from "@/ehr";
 import type { ToolResult } from "@/tools/handler";
 
-// patient_id is written by the LLM. Once the Consent is linked to a Patient (a new registration), any
-// other id is refused. Gap: for a found existing Patient the Consent stays unlinked, so that id is not
-// bound to this Conversation server-side (see apps/web/README.md).
+// patient_id is written by the LLM. Once the Consent is linked to a Patient (a new registration, or an
+// existing record whose date of birth find_patient verified), any other id is refused.
 export function patientMismatch(consent: ConsentRecord, patientId: string): ToolResult | null {
   if (!consent.patientId || consent.patientId === patientId) return null;
   return {

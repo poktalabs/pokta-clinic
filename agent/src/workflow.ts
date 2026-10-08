@@ -23,13 +23,13 @@ const RED_FLAG =
 // node must merge those reasons into one edge condition ("Either: A Or: B"), as this workflow did
 // while Identification led only to End.
 const IDENTIFIED =
-  "The caller was identified (confirmed their name on an existing record) or was registered with save_patient, and was told the questions about their health come next.";
+  "The caller was identified (find_patient returned verified true after checking their date of birth) or was registered with save_patient, and was told the questions about their health come next.";
 const STOPPED =
-  "Either: the caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye. Or: a returning caller confirmed their name, wants to keep the upcoming appointment find_patient returned, and was given a goodbye. A filler such as \"Un momento\" or \"One moment\" is not a goodbye: the goodbye must be a full spoken sentence after the last tool result.";
+  "Either: the caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye. Or: find_patient returned verified false with attempts_left 0 (identity not verified) and, after that tool result, the agent has already said in its own spoken message that it cannot continue with that record by phone and that the caller can contact a branch directly, and said goodbye; the find_patient result alone does not meet this condition. Or: a returning caller was verified (find_patient returned verified true), wants to keep the upcoming appointment find_patient returned, and was given a goodbye. A filler such as \"Un momento\" or \"One moment\" is not a goodbye: the goodbye must be a full spoken sentence after the last tool result.";
 // A returning caller skips History when there is nothing to ask: they want to change their appointment,
 // would rather schedule than wait for a pending callback, or their questions are already saved.
 const RETURNING_TO_SCHEDULING =
-  "A returning caller confirmed their name on an existing record, and either: they want to change the upcoming appointment find_patient returned, or they want to schedule now instead of waiting for the pending callback, or find_patient returned history_completed true. They were told you will look for a day and time.";
+  "A returning caller was verified (find_patient returned verified true after checking their date of birth), and either: they want to change the upcoming appointment find_patient returned, or they want to schedule now instead of waiting for the pending callback, or find_patient returned history_completed true. They were told you will look for a day and time.";
 
 // Start -> Consent -> Identification -> History -> Scheduling -> End. Escalation is reachable from every
 // stage after Start through an LLM-condition edge, and is listed first so it is evaluated first.

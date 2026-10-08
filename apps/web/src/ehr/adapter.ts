@@ -9,6 +9,9 @@ export type PatientSummary = {
   givenName: string;
 };
 
+// A phone match, with the date of birth the identity check compares against (FHIR Patient.birthDate).
+export type PatientMatch = PatientSummary & { birthDate: string | null };
+
 export type NewPatient = {
   nombre: string;
   primerApellido: string;
@@ -62,6 +65,8 @@ export type HistoryRecord = {
   answers: HistoryAnswer[];
 };
 
+export type HistorySummary = { completed: boolean; chiefComplaint: string | null };
+
 export type AppointmentRecord = {
   id: string;
   patientId: string;
@@ -103,7 +108,7 @@ export type Severity = "emergencia" | "urgencia";
 export type CommunicationRecord = { id: string; severity: Severity; patientWords: string };
 
 export interface EhrAdapter {
-  findPatientsByPhone(phone: string): Promise<PatientSummary[]>;
+  findPatientsByPhone(phone: string): Promise<PatientMatch[]>;
   createPatient(input: NewPatient): Promise<{ patient: PatientSummary; created: boolean }>;
   recordConsent(conversationId: string, granted: boolean): Promise<ConsentRecord>;
   latestConsent(conversationId: string): Promise<ConsentRecord | null>;
@@ -129,8 +134,9 @@ export interface EhrAdapter {
   pendingCallbacks(patientId: string): Promise<CallbackRecord[]>;
   // Marks a callback as done (the patient booked, so the front desk no longer needs to call).
   completeCallback(callbackId: string): Promise<void>;
-  // Whether any Conversation finished the Questionnaire for this Patient.
-  hasCompletedHistory(patientId: string): Promise<boolean>;
+  // Whether any Conversation finished the Questionnaire for this Patient, and the chief complaint of the
+  // latest response that has one (the patient's words as the agent saved them).
+  historySummary(patientId: string): Promise<HistorySummary>;
   getQuestionnaire(): Promise<QuestionnaireItemDef[]>;
   findQuestionnaireResponse(conversationId: string): Promise<HistoryRecord | null>;
   // Creates the response of this Conversation, or replaces it when `existing` is given.

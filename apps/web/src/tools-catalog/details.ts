@@ -58,33 +58,52 @@ export const DETAILS: Record<string, ToolDetail> = {
     related: ["apps/web/src/tools/handler.ts"],
   },
   find_patient: {
-    purpose: "Looks the caller up by 10-digit phone and returns only the given name to confirm, plus what a returning patient has pending.",
+    purpose:
+      "Looks the caller up by 10-digit phone. A found record stays closed until the caller's date of birth matches it; then it returns the name and what a returning patient has pending, including the upcoming appointment and its reason.",
     sideEffects: false,
     consentGate: "checked",
     downstream: [
       {
         system: "ehr",
         calls: [
-          "GET /Patient?phone=",
+          "GET /Patient?phone= (with birthDate for the check)",
           "GET /Appointment (upcoming, booked)",
           "GET /Task?status=requested (pending callback)",
-          "GET /QuestionnaireResponse?subject= (history done)",
+          "GET /QuestionnaireResponse?subject= (history done, latest chief complaint)",
+          "PUT /Consent (links the verified patient to this conversation's Consent)",
         ],
       },
-      { system: "store", calls: [TIMELINE] },
+      { system: "store", calls: ["Failed date-of-birth tries on the Consent decision cache", TIMELINE] },
     ],
     guardrails: [
       "Consent gate",
       "Phone normalized to 10 digits (+52, spaces, dashes stripped); anything else is refused",
-      "Returns the given name only: a phone is not proof of identity, the agent confirms the name first",
+      "Reveals nothing about a found record, not even the name, until birth_date matches Patient.birthDate",
+      "Two tries per conversation; after the second miss the record stays closed, even to the right date",
+      "Binds the Consent to the verified patient, so later tools refuse any other patient_id",
     ],
-    fields: ["found", "patient_id", "given_name", "upcoming_appointment", "pending_callback", "history_completed"],
+    fields: ["found", "verification_required", "verified", "attempts_left", "patient_id", "given_name", "upcoming_appointment", "chief_complaint", "pending_callback", "history_completed"],
     replies: [
       { when: "no record", message: "No record for this phone. Treat the caller as a new patient and collect the registration data." },
-      { when: "found", message: "A record exists. Ask the caller to confirm they are {given_name} before you continue. Once they confirm, {next step}" },
+      {
+        when: "found, phone only",
+        message:
+          "A record exists for this phone. Do not say any name or detail of it yet. Ask the caller for their date of birth (day, month and year), then call find_patient again with the same phone and birth_date.",
+      },
+      {
+        when: "date of birth does not match (first try)",
+        message:
+          "The date of birth does not match. Do not say anything about the record. Ask the caller to say their date of birth once more (day, month and year), then call find_patient again with the same phone and the new birth_date.",
+      },
+      {
+        when: "not verified (second miss, or no date of birth on record)",
+        message:
+          "Identity not verified. Do not reveal anything about the record and do not register the caller as a new patient. Say that for their security you cannot continue with this record by phone, that they can contact any GMA branch directly, and say goodbye.",
+      },
+      { when: "verified", message: "Identity verified: this is {given_name}. Thank them by name and {next step}", composed: true },
       { when: "bad phone", message: "The phone number does not have 10 digits. Ask the patient to say it again, digit by digit." },
     ],
-    related: ["apps/web/src/tools/phone.ts"],
+    related: ["apps/web/src/tools/find-patient.ts", "apps/web/src/tools/phone.ts"],
   },
   save_patient: {
     purpose: "Registers a new patient with the NOM-024 fields a call can collect (no CURP).",
@@ -97,13 +116,17 @@ export const DETAILS: Record<string, ToolDetail> = {
     guardrails: [
       "Consent gate",
       "Phone normalized to 10 digits",
-      "Idempotent by phone: a second call returns the existing record and asks the agent to confirm the name",
+      "Idempotent by phone: a phone that already has a record returns nothing about it unless this conversation verified or registered it",
       "Binds the Consent to the new patient, so later tools refuse any other patient_id",
     ],
     fields: ["patient_id", "folio", "given_name", "already_registered"],
     replies: [
       { when: "created", message: "Patient registered. Say in one plain sentence that their record is ready, then follow the instructions of your current stage." },
-      { when: "phone already registered", message: "This phone already belongs to {given_name}. Confirm the name with the caller before you continue." },
+      {
+        when: "phone already registered",
+        message:
+          "This phone already has a record, so do not register it again. If you have not checked the caller's date of birth with find_patient yet, do that now; otherwise say that for their security you cannot continue with this record by phone, that they can contact any GMA branch directly, and say goodbye.",
+      },
     ],
   },
   get_questionnaire: {
