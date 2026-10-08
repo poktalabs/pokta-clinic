@@ -84,7 +84,7 @@ export function buildAgent({ config, env, workflow, globalToolIds, knowledgeBase
         turn_eagerness: "patient",
         turn_timeout: 10,
         soft_timeout_config: {
-          timeout_seconds: 3,
+          timeout_seconds: 4,
           message: "Un momento.",
           additional_soft_timeout_messages: [],
           use_llm_generated_message: false,

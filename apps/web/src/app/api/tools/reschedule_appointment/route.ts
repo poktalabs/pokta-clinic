@@ -122,6 +122,6 @@ export const POST = tool("reschedule_appointment", Input, async (input, ctx) => 
     start: slot.start,
     label: slot.label,
     emailed: Boolean(to),
-    message: `Rescheduled. Tell the caller their appointment of ${oldLabel} is cancelled and read back the new one: ${slot.label} at ${name} with ${practitionerName}. Say the address once${to ? " and that they will get an email with the details" : "; no email was sent, so do not mention any email"}. Then follow the instructions of your current stage.${CALM}`,
+    message: `Rescheduled. Tell the caller their appointment of ${oldLabel} is cancelled and read back the new one: ${slot.label} at ${name} with ${practitionerName}. Do not read the address unless they ask${to ? " and that they will get an email with the details" : "; no email was sent, so do not mention any email"}. Then follow the instructions of your current stage.${CALM}`,
   };
 });

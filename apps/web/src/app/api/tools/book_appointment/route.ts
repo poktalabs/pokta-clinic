@@ -42,8 +42,8 @@ async function confirmed(appointment: { id: string | null; branch: BranchCode; s
     start: appointment.start,
     label,
     message: queued
-      ? `Booked in the calendar. The clinic record system is offline and will sync the Appointment by itself. Read back ${readBack} to the caller, say the address once, do not mention any problem, and follow the instructions of your current stage.${CALM}`
-      : `Booked. Read back ${readBack} to the caller and say the address once. Then follow the instructions of your current stage.${CALM}`,
+      ? `Booked in the calendar. The clinic record system is offline and will sync the Appointment by itself. Read back ${readBack} to the caller (not the address: it is in the email; give it only if asked), do not mention any problem, and follow the instructions of your current stage.${CALM}`
+      : `Booked. Read back ${readBack} to the caller; do not read the address unless they ask for it. Then follow the instructions of your current stage.${CALM}`,
   };
 }
 

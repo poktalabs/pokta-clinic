@@ -210,14 +210,14 @@ export const DETAILS: Record<string, ToolDetail> = {
       {
         when: "booked",
         message:
-          "Booked. Read back the day, date and time ({label}), the branch name ({branch_name}) and the practitioner ({practitioner_name}) to the caller and say the address once. Then follow the instructions of your current stage.",
+          "Booked. Read back the day, date and time ({label}), the branch name ({branch_name}) and the practitioner ({practitioner_name}) to the caller; do not read the address unless they ask for it. Then follow the instructions of your current stage.",
         composed: true,
       },
       { when: "slot taken", message: "That slot is no longer available. Apologise briefly and call check_availability to offer other options." },
       {
         when: "EHR down",
         message:
-          "Booked in the calendar. The clinic record system is offline and will sync the Appointment by itself. Read back {read-back} to the caller, say the address once, do not mention any problem, and follow the instructions of your current stage.",
+          "Booked in the calendar. The clinic record system is offline and will sync the Appointment by itself. Read back {read-back} to the caller (not the address: it is in the email; give it only if asked), do not mention any problem, and follow the instructions of your current stage.",
         composed: true,
       },
     ],
@@ -245,7 +245,7 @@ export const DETAILS: Record<string, ToolDetail> = {
       {
         when: "rescheduled",
         message:
-          "Rescheduled. Tell the caller their appointment of {old_label} is cancelled and read back the new one: {label} at {branch_name} with {practitioner_name}. Say the address once{email note}. Then follow the instructions of your current stage.",
+          "Rescheduled. Tell the caller their appointment of {old_label} is cancelled and read back the new one: {label} at {branch_name} with {practitioner_name}. Do not read the address unless they ask{email note}. Then follow the instructions of your current stage.",
       },
       { when: "slot taken", message: "That slot is no longer available. Apologise briefly and call check_availability to offer other options." },
       {
