@@ -8,11 +8,7 @@
   --mono: "Deck Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   position: fixed; inset: 0; z-index: 50; overflow: hidden;
   color: var(--foreground); font-family: var(--font-sans);
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--primary-ink) 5%, transparent) 1px, transparent 1px),
-    linear-gradient(0deg, color-mix(in srgb, var(--primary-ink) 4%, transparent) 1px, transparent 1px),
-    var(--background);
-  background-size: 4rem 4rem;
+  background: var(--background);
 }
 .deck button { font: inherit; }
 
