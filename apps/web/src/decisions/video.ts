@@ -44,7 +44,7 @@ export const VIDEO: VideoItem[] = [
     cards: [{ id: "identity-by-birth-date", label: "Identity check" }],
     title: "Returning callers verified first",
     what: "Consent on every call; the date of birth is checked server side before the appointment or reason is read back.",
-    why: "A phone is not proof of identity; the model never sees the date of birth.",
+    why: "A phone is not proof of identity; the server compares the date, the model never sees the record.",
   },
 ];
 
