@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TestResults } from "@/components/test-results";
 import { DECISIONS, GROUPS, REPO_BLOB, type Decision } from "@/decisions/data";
+import { ROADMAP, type RoadmapItem } from "@/decisions/roadmap";
 import styles from "./decisions.module.css";
 
 export const metadata: Metadata = {
@@ -84,6 +85,55 @@ function Card({ d }: { d: Decision }) {
   );
 }
 
+function RoadmapCard({ r }: { r: RoadmapItem }) {
+  return (
+    <article id={r.id} className={styles.card} aria-labelledby={`${r.id}-h`}>
+      <header className={styles.cardHead}>
+        <div className={styles.cardMeta}>
+          <span className={`${styles.pill} ${styles.pillOk}`}>{r.kind}</span>
+        </div>
+        <h3 id={`${r.id}-h`} className={styles.cardTitle}>
+          <a href={`#${r.id}`} className={styles.anchor} aria-label={`Link to ${r.title}`}>
+            #
+          </a>
+          {r.title}
+        </h3>
+      </header>
+
+      <p className={styles.decision}>{r.what}</p>
+
+      <dl className={styles.fields}>
+        <div>
+          <dt>Why</dt>
+          <dd>{r.why}</dd>
+        </div>
+        <div>
+          <dt>How it plugs in</dt>
+          <dd>{r.how}</dd>
+        </div>
+        <div>
+          <dt>Effort</dt>
+          <dd>{r.effort}</dd>
+        </div>
+      </dl>
+
+      <footer className={styles.links}>
+        <span className={styles.linksLabel}>Sources</span>
+        {r.sources.map((s) => (
+          <a key={s.href} href={s.href} className={styles.pageLink} target="_blank" rel="noreferrer">
+            {s.label} ↗
+          </a>
+        ))}
+        {r.code?.map((c) => (
+          <a key={c.path} href={`${REPO_BLOB}${c.path}`} className={styles.codeLink} target="_blank" rel="noreferrer">
+            {c.label}
+          </a>
+        ))}
+      </footer>
+    </article>
+  );
+}
+
 // The decision log a Forward Deployed Engineer would want in a handoff. Content: src/decisions/data.ts.
 export default function DecisionsPage() {
   const superseded = DECISIONS.filter((d) => d.status === "superseded").length;
@@ -139,6 +189,20 @@ export default function DecisionsPage() {
             </div>
           </section>
         ))}
+
+        <section id="roadmap" aria-labelledby="roadmap-h" className={styles.group}>
+          <div className={styles.groupHead}>
+            <h2 id="roadmap-h" className="headline">
+              Roadmap and expansion
+            </h2>
+            <p className="muted">Where the clinic gets more value from more ElevenLabs products. Not built yet.</p>
+          </div>
+          <div className={styles.cards}>
+            {ROADMAP.map((r) => (
+              <RoadmapCard key={r.id} r={r} />
+            ))}
+          </div>
+        </section>
 
         <p className={`small muted ${styles.back}`}>
           <a href="#dl-h">Back to the index</a>
