@@ -25,7 +25,7 @@ const RED_FLAG =
 const IDENTIFIED =
   "The caller was identified (confirmed their name on an existing record) or was registered with save_patient, and was told the questions about their health come next.";
 const STOPPED =
-  "Either: the caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye. Or: a returning caller confirmed their name, wants to keep the upcoming appointment find_patient returned, and was given a goodbye.";
+  "Either: the caller does not want to give their data or asks to stop, or the tools failed repeatedly, and the caller was told the clinic will contact them and given a goodbye. Or: a returning caller confirmed their name, wants to keep the upcoming appointment find_patient returned, and was given a goodbye. A filler such as \"Un momento\" or \"One moment\" is not a goodbye: the goodbye must be a full spoken sentence after the last tool result.";
 // A returning caller skips History when there is nothing to ask: they want to change their appointment,
 // would rather schedule than wait for a pending callback, or their questions are already saved.
 const RETURNING_TO_SCHEDULING =
@@ -103,7 +103,7 @@ export function buildWorkflow(
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "The caller refused consent (record_consent was called with granted false) and, after that tool call, the agent has already said in its own spoken message that they can contact a branch directly and said goodbye. The record_consent call alone does not meet this condition.",
+          condition: "The caller refused consent (record_consent was called with granted false) and, after that tool call, the agent has already said in its own spoken message that they can contact a branch directly and said goodbye. The record_consent call alone does not meet this condition. A filler such as \"Un momento\" or \"One moment\" is not a goodbye: the goodbye must be a full spoken sentence after the last tool result.",
         },
       },
 
@@ -142,7 +142,7 @@ export function buildWorkflow(
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "The caller wants to stop the questions or the tools failed repeatedly, save_history was called with status in-progress (if any answer had been given), and the caller was told the clinic will contact them and given a goodbye.",
+          condition: "The caller wants to stop the questions or the tools failed repeatedly, save_history was called with status in-progress (if any answer had been given), and the caller was told the clinic will contact them and given a goodbye. A filler such as \"Un momento\" or \"One moment\" is not a goodbye: the goodbye must be a full spoken sentence after the last tool result.",
         },
       },
 
@@ -152,7 +152,7 @@ export function buildWorkflow(
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "Both of these happened within the Scheduling step itself, after it started: first, either book_appointment or reschedule_appointment returned a confirmed result and its day, date and time were read back, or request_callback was called and the caller was told when the clinic will call, or the caller declined both an appointment and a callback; and then, after that, the agent said a goodbye to the caller in its own spoken message. An appointment mentioned or read back during Identification (the upcoming appointment find_patient returned) does not count, and neither does a caller saying they want to change it. A tool call or tool result alone does not meet this condition.",
+          condition: "Both of these happened within the Scheduling step itself, after it started: first, either book_appointment or reschedule_appointment returned a confirmed result and its day, date and time were read back, or request_callback was called and the caller was told when the clinic will call, or the caller declined both an appointment and a callback; and then, after that, the agent said a goodbye to the caller in its own spoken message. An appointment mentioned or read back during Identification (the upcoming appointment find_patient returned) does not count, and neither does a caller saying they want to change it. A tool call or tool result alone does not meet this condition. A filler such as \"Un momento\" or \"One moment\" is not a goodbye: the goodbye must be a full spoken sentence after the last tool result.",
         },
       },
 
