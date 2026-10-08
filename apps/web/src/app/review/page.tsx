@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TestResults } from "@/components/test-results";
 import { formatClock } from "@/review/replay";
 import { reviewIndex } from "@/review/files";
 
@@ -42,7 +41,9 @@ export default function ReviewIndexPage() {
             ))}
           </ul>
         )}
-        <TestResults id="testing" kicker="Platform tests" title="How the agent is tested" compact />
+        <p className="small">
+          <Link href="/testing">How it is tested →</Link>
+        </p>
       </main>
     </>
   );

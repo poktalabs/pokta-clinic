@@ -1,6 +1,6 @@
 // Exports the ElevenLabs platform test suite and its latest results for reviewers who cannot open our
 // ElevenLabs workspace (the agent's Tests tab). Writes apps/web/src/test-results/results.json, which the
-// /decisions, /review and home pages render (apps/web/src/components/test-results.tsx).
+// /testing and home pages render (apps/web/src/components/test-results.tsx).
 //
 // Reads the test definitions (agent/src/tests/index.ts), the pushed test IDs (agent/cli/tests.json), the
 // evaluation criteria and data collection (agent/cli/agent_configs/pokta-clinic.json) and the scripted

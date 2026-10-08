@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TestResults } from "@/components/test-results";
 import { DECISIONS, GROUPS, REPO_BLOB, type Decision } from "@/decisions/data";
 import { ROADMAP, type RoadmapItem } from "@/decisions/roadmap";
 import styles from "./decisions.module.css";
@@ -147,14 +146,12 @@ export default function DecisionsPage() {
           </h1>
           <p className={styles.lede}>
             {DECISIONS.length} decisions ({superseded} superseded), each with its context, the alternatives, the trade-off and links to the code. Dates are commit dates. Related: the <Link href="/tools">tool reference</Link> and the{" "}
-            <Link href="/explainer">live system view</Link>.
+            <Link href="/explainer">live system view</Link>. <Link href="/testing">How it is tested →</Link>
           </p>
           <p role="note" className={styles.note}>
             The GitHub repository (poktalabs/pokta-clinic) is private: code links work for people with access.
           </p>
         </section>
-
-        <TestResults id="testing" kicker="Evidence" title="How it is tested" />
 
         <nav aria-label="Decision index" className={styles.index}>
           {GROUPS.map((g) => (

@@ -1,0 +1,5 @@
+/* /testing: semantic tokens from globals.css only, so light and dark both follow the theme. */
+
+.page { gap: 32px; }
+.intro { display: flex; flex-direction: column; gap: 12px; max-width: 72ch; }
+.lede { font-family: var(--font-serif); font-size: 1.125rem; line-height: 1.55; color: var(--foreground-soft); }

@@ -1,7 +1,7 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExpedientePanel, SystemPanel } from "@/components/explainer";
-import { TestResults } from "@/components/test-results";
 import { STAGES, TOOLS, type Call } from "@/explainer/model";
 import type { ReviewConversation } from "@/review/export";
 import type { ConfigIndex, ReviewManifest } from "@/review/files";
@@ -46,7 +46,9 @@ export function Review({ conversation, manifest, config }: { conversation: Revie
       </div>
       <ToolsPanel replay={replay} t={player.t} inspected={inspected} onSelect={setSelected} onSeek={player.seek} />
       <AnalysisPanel conversation={conversation} />
-      <TestResults id="testing" kicker="5b · Platform tests" title="How the agent is tested before calls like this one" compact />
+      <p className="small">
+        <Link href="/testing">How it is tested →</Link>
+      </p>
       {config && <ConfigPanel config={config} manifest={manifest} />}
     </>
   );
