@@ -63,11 +63,13 @@ function Column({ heading, items, brand }: { heading: string; items: ReactNode[]
   );
 }
 
-function Timeline({ steps }: { steps: { code: string; title: string; sub: ReactNode; lead?: boolean; branches?: { title: string; sub: string }[] }[] }) {
+type Step = { code: string; title: string; sub: ReactNode; lead?: boolean; cost?: boolean; mark?: ReactNode; branches?: { title: string; sub: string }[] };
+
+function Timeline({ steps, even }: { steps: Step[]; even?: boolean }) {
   return (
-    <ol className={s.timeline}>
+    <ol className={even ? `${s.timeline} ${s.even}` : s.timeline}>
       {steps.map((step) => (
-        <li key={step.code} className={step.lead ? s.lead : undefined}>
+        <li key={step.code} className={[step.lead ? s.lead : "", step.cost ? s.cost : ""].join(" ").trim() || undefined}>
           <span className={s.code}>{step.code}</span>
           <h2>{step.title}</h2>
           <p>{step.sub}</p>
@@ -81,6 +83,7 @@ function Timeline({ steps }: { steps: { code: string; title: string; sub: ReactN
               ))}
             </ul>
           ) : null}
+          {step.mark ? <span className={s.mark}>{step.mark}</span> : null}
         </li>
       ))}
     </ol>
@@ -128,104 +131,89 @@ export const SLIDES: Slide[] = [
     notes: "I'm Mel. This is a handoff of PoktaClinic: an ElevenLabs voice agent that runs pre-consultation calls for a Mexico City rheumatology network.",
   },
   {
-    label: "The queue",
+    label: "Who it's for",
     body: (
       <>
-        <Kicker>01 / The queue</Kicker>
-        <h1>
-          <span className={s.em}>24 months</span> from referral to a rheumatology <span className={s.nowrap}>pre-consultation.</span>
-        </h1>
-        <div className={s.stats}>
-          <div className={s.stat}>
-            <div className={`${s.v} ${s.tone}`}>0.58</div>
-            <div className={s.l}>rheumatologists per 100,000 people (minimum recommended 1.0)</div>
-          </div>
-          <div className={s.stat}>
-            <div className={s.v}>733</div>
-            <div className={s.l}>certified and active rheumatologists</div>
-          </div>
-          <div className={s.stat}>
-            <div className={s.v}>58%</div>
-            <div className={s.l}>of them in three metro areas</div>
-          </div>
-          <div className={s.stat}>
-            <div className={`${s.v} ${s.tone}`}>24 mo</div>
-            <div className={s.l}>median wait, referral to pre-consultation (INR, 2023-24 cohort)</div>
-          </div>
-        </div>
+        <Kicker>01 / Who it&apos;s for</Kicker>
+        <h1 className={s.compact}>Grupo Médico Articular: three rheumatology clinics in Mexico City.</h1>
+        <p className={s.note}>A fictional network, built for this scenario. Today&apos;s first visit:</p>
+        <Timeline
+          even
+          steps={[
+            { code: "01", title: "A new patient calls", sub: "The branch front desk answers, office hours only.", cost: true, mark: "Cost: after-hours calls" },
+            { code: "02", title: "Reception does the intake", sub: "Takes consent and registers by hand, then books.", cost: true, mark: "Cost: front-desk hours" },
+            { code: "03", title: "The patient arrives", sub: "First visit at the branch." },
+            { code: "04", title: "The rheumatologist re-takes the history", sub: "The start of the visit goes to intake questions.", cost: true, mark: "Cost: specialist minutes" },
+          ]}
+        />
         <p className={s.sources}>
-          Sources:{" "}
+          Rheumatologists are scarce in Mexico: 0.58 per 100,000 people, about half the recommended minimum.{" "}
           <Source href="https://www.reumatologiaclinica.org/es-situacion-reumatologia-mexico-deficit-reumatologos-avance-S1699258X22000171">Reumatología Clínica, 2022</Source>
-          {" · "}
-          <Source href="https://dsm.inr.gob.mx/indiscap/index.php/INDISCAP/article/view/769">Instituto Nacional de Rehabilitación (INR)</Source>
         </p>
       </>
     ),
-    notes: "Mexico has half the recommended rheumatologists; the median wait for a first pre-consultation is 24 months.",
+    notes: "The customer: three rheumatology clinics in Mexico City. Front desks register patients by hand, then rheumatologists re-take the history.",
   },
   {
-    label: "Who pays",
+    label: "What it replaces",
     body: (
       <>
-        <Kicker>02 / Who pays, and what it replaces</Kicker>
-        <h1>
-          Front desks take the calls. Specialists <span className={s.nowrap}>re-take</span> the history.
-        </h1>
-        <Split>
-          <Column
-            heading="Today · Grupo Médico Articular (fictional, 3 branches)"
-            items={[
-              "Front desks answer every call, office hours only",
-              <>
-                Approx. MXN 9,670/month per receptionist, per branch <small>CDMX, Indeed MX</small>
-              </>,
-              "Takes consent, registers the patient, books",
-              "The specialist spends the first visit re-taking the history",
-            ]}
-          />
-          <Column
-            brand
-            heading="With PoktaClinic"
-            items={[
-              "Consent under the LFPDPPP, then identification",
-              <>
-                Structured first-visit history into the EHR <small>FHIR QuestionnaireResponse, pending clinician review</small>
-              </>,
-              "Booking into the real branch calendars",
-              "Red-flag escalation",
-            ]}
-          />
-        </Split>
-        <p className={s.metric}>
-          <span>Success metric</span> specialist minutes saved per first visit <b>·</b> calls answered <b>·</b> no-shows
-        </p>
-        <p className={s.sources}>
-          Source: <Source href="https://mx.indeed.com/career/recepcionista/salaries/Ciudad-de-M%C3%A9xico">Indeed MX, receptionist salaries in Mexico City (approx.)</Source>
+        <Kicker>02 / What it replaces</Kicker>
+        <h1 className={s.compact}>The first call does the intake, so the first visit starts with the history taken.</h1>
+        <Timeline
+          even
+          steps={[
+            { code: "01", title: "The agent answers", sub: "Any hour. Consent first, under the LFPDPPP.", lead: true, mark: "Was: front desk, office hours" },
+            {
+              code: "02",
+              title: "Intake on the call",
+              sub: (
+                <>
+                  Identifies or registers the patient, takes the first-visit history into the EHR, books a real branch slot. <small>History pending clinician review</small>
+                </>
+              ),
+              lead: true,
+              mark: "Was: registration by hand",
+            },
+            { code: "03", title: "The patient arrives", sub: "Same branch, same visit." },
+            { code: "04", title: "The rheumatologist starts with the history", sub: "Reviews it instead of re-taking it.", lead: true, mark: "Was: re-taking the history" },
+          ]}
+        />
+        <p className={`${s.metric} ${s.alert}`}>
+          <span>Red flags</span> From any step, the agent sends the caller to 911 or the ER instead of booking.
         </p>
       </>
     ),
-    notes: "The buyer is the operations lead, paying front desks about 9,670 pesos a month per receptionist, office hours only, while specialists re-take the history. Metric: specialist minutes saved, calls answered, no-shows.",
+    notes: "PoktaClinic does that intake on the first call, any hour: consent, registration, history into the EHR, a real booking. Red flags go to 911.",
   },
   {
-    label: "Market proof",
+    label: "Why they pay",
     body: (
       <>
-        <Kicker>03 / Market proof</Kicker>
-        <h1>Voice front desks for healthcare are being bought now.</h1>
+        <Kicker>03 / Why they pay</Kicker>
+        <h1 className={s.compact}>Buyer: the network&apos;s operations lead.</h1>
         <Sequence cols={3}>
-          <Item code="Jun 2026" title="Assort Health" lead tag={<Source href="https://hitconsultant.net/2026/06/24/assort-health-raises-120-million-series-c-menlo/">HIT Consultant</Source>}>
-            $120M Series C at a $1.2B valuation. ~15,000 doctors.
+          <Item code="01" title="Every call answered">
+            After hours too.
           </Item>
-          <Item code="Sep 2025" title="Hello Patient">
-            $22.5M Series A.
+          <Item code="02" title="Specialist minutes back">
+            On every first visit, so the same doctors see more patients.
           </Item>
-          <Item code="Oct 2026" title="Banner Health" tag={<Source href="https://elevenlabs.io/blog/banner-health">ElevenLabs blog</Source>}>
-            Live on ElevenAgents for scheduling.
+          <Item code="03" title="Front-desk hours freed" tag={<Source href="https://mx.indeed.com/career/recepcionista/salaries/Ciudad-de-M%C3%A9xico">Indeed MX, CDMX receptionist salaries (approx.)</Source>}>
+            Approx. MXN 9,670/month per receptionist, per branch.
           </Item>
         </Sequence>
+        <p className={s.metric}>
+          <span>Measured by</span> specialist minutes per first visit <b>·</b> calls answered <b>·</b> no-shows
+        </p>
+        <p className={s.sources}>
+          The category is being bought:{" "}
+          <Source href="https://hitconsultant.net/2026/06/24/assort-health-raises-120-million-series-c-menlo/">Assort Health valued at $1.2B (US, June 2026)</Source>;{" "}
+          <Source href="https://elevenlabs.io/blog/banner-health">Banner Health runs scheduling on ElevenAgents</Source>.
+        </p>
       </>
     ),
-    notes: "Buyers are paying: Assort Health is valued at 1.2 billion, and Banner Health runs on ElevenAgents.",
+    notes: "The operations lead pays for every call answered, specialist minutes back and front-desk hours freed. We track specialist minutes, calls answered and no-shows.",
   },
   {
     label: "Beyond the reference build",
