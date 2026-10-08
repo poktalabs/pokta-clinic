@@ -6,12 +6,15 @@ import { flipTheme, toggleFullscreen } from "@/app/deck/controls";
 import d from "@/app/deck/deck.module.css";
 import { DECISIONS, GROUPS, KEY_ORDER, type Decision } from "@/decisions/data";
 import { ROADMAP } from "@/decisions/roadmap";
+import { VIDEO, type VideoItem } from "@/decisions/video";
 import s from "./present.module.css";
 
 // The decision log as a deck, on the /deck look and mechanics: one slide per decision, deep link per
 // slide (#N), arrows / PageUp / PageDown / Space to move, Home / End to jump, F fullscreen, T theme.
-// The roadmap's Scribe v2 Medical items close it. By default only the key decisions, in the order of
-// the walkthrough (KEY_ORDER); ?all=1 shows all of them in log order.
+// The roadmap's Scribe v2 Medical items close it. By default the 5 video decisions (video.ts), in
+// speaking order; ?all=1 shows every decision in log order, ?key=1 the key ones in KEY_ORDER.
+
+export type PresentMode = "video" | "key" | "all";
 
 type PresentSlide = {
   key: string;
@@ -50,8 +53,27 @@ const ROADMAP_SLIDES: PresentSlide[] = ROADMAP.filter((r) => r.inPresent).map((r
 }));
 
 const BY_ID = new Map(DECISIONS.map((x) => [x.id, x]));
-const KEY_SLIDES = [...KEY_ORDER.flatMap((id) => BY_ID.get(id) ?? []).map(decisionSlide), ...ROADMAP_SLIDES];
-const ALL_SLIDES = [...DECISIONS.map(decisionSlide), ...ROADMAP_SLIDES];
+
+// A video slide condenses one or more cards: their group, superseded flag (none here) and code links.
+const videoSlide = (v: VideoItem, i: number): PresentSlide => {
+  const cards = v.cards.flatMap((c) => BY_ID.get(c.id) ?? []);
+  return {
+    key: v.cards[0].id,
+    kicker: `${i + 1} of ${VIDEO.length} · ${[...new Set(cards.map((c) => GROUP_LABEL[c.group]))].join(" · ")}`,
+    title: v.title,
+    rows: [
+      { label: "What", text: v.what },
+      { label: "Why", text: v.why },
+    ],
+    code: [...new Set(cards.flatMap((c) => c.code.map((x) => x.label)))],
+  };
+};
+
+const SLIDES: Record<PresentMode, PresentSlide[]> = {
+  video: [...VIDEO.map(videoSlide), ...ROADMAP_SLIDES],
+  key: [...KEY_ORDER.flatMap((id) => BY_ID.get(id) ?? []).map(decisionSlide), ...ROADMAP_SLIDES],
+  all: [...DECISIONS.map(decisionSlide), ...ROADMAP_SLIDES],
+};
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const onHashChange = (cb: () => void) => {
@@ -59,8 +81,9 @@ const onHashChange = (cb: () => void) => {
   return () => window.removeEventListener("hashchange", cb);
 };
 
-export function Present({ all }: { all: boolean }) {
-  const slides = all ? ALL_SLIDES : KEY_SLIDES;
+export function Present({ mode }: { mode: PresentMode }) {
+  const slides = SLIDES[mode];
+  const all = mode === "all";
   const count = slides.length;
   const clamp = useCallback((n: number) => Math.max(0, Math.min(count - 1, n)), [count]);
   // The URL hash is the slide state: deep links, reloads and back/forward all land on the same slide.
@@ -114,8 +137,8 @@ export function Present({ all }: { all: boolean }) {
           </div>
         </div>
         <div className={d.meta}>
-          <Link href={all ? "/decisions/present#1" : "/decisions/present?all=1#1"} className={s.exit} aria-label={all ? `Show the ${KEY_ORDER.length} key decisions only` : `Show all ${DECISIONS.length} decisions`}>
-            {all ? `Key ${KEY_ORDER.length}` : `All ${DECISIONS.length}`}
+          <Link href={all ? "/decisions/present#1" : "/decisions/present?all=1#1"} className={s.exit} aria-label={all ? `Show the ${VIDEO.length} video decisions only` : `Show all ${DECISIONS.length} decisions`}>
+            {all ? `Video ${VIDEO.length}` : `All ${DECISIONS.length}`}
           </Link>
           <b aria-live="polite">
             {pad(index + 1)} / {pad(count)}

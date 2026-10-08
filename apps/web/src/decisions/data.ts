@@ -19,7 +19,7 @@ export type Decision = {
   date: string;
   status: "current" | "superseded";
   statusNote?: string;
-  /** A must-say decision for the walkthrough: listed first in the index and shown by default in present mode. */
+  /** A must-say decision: listed first in the index and shown in present mode with ?key=1 (the default is video.ts). */
   key?: true;
   /** The decision in one sentence (max ~20 words): the index, the collapsed card and present mode. */
   summary: string;
@@ -35,7 +35,7 @@ export type Decision = {
   related?: { label: string; href: string }[];
 };
 
-// The key decisions in the order the walkthrough video covers them: present mode follows this order.
+// The key decisions in walkthrough order: present mode with ?key=1 follows this order.
 // Must list exactly the decisions with key: true (data.test.ts checks it).
 export const KEY_ORDER = [
   "workflow-nodes",

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DECISIONS, GROUPS, KEY_ORDER, REPO_BLOB, keyFirst, type Decision } from "@/decisions/data";
 import { ROADMAP, type RoadmapItem } from "@/decisions/roadmap";
+import { VIDEO, VIDEO_LENGTH } from "@/decisions/video";
 import { OpenFromHash } from "./open-from-hash";
 import styles from "./decisions.module.css";
 
@@ -9,6 +10,8 @@ export const metadata: Metadata = {
   title: "PoktaClinic: decision log",
   description: "The design decisions behind PoktaClinic, with context, alternatives, trade-offs and links to the code.",
 };
+
+const BY_ID = new Map(DECISIONS.map((d) => [d.id, d]));
 
 const DATE = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" });
 const formatDate = (iso: string) => DATE.format(new Date(`${iso}T00:00:00Z`));
@@ -161,31 +164,72 @@ function RoadmapCard({ r }: { r: RoadmapItem }) {
   );
 }
 
-// The decision log a Forward Deployed Engineer would want in a handoff: an index of one-line decisions,
-// then collapsed cards. /decisions/present shows the same content one decision per screen.
-// Content: src/decisions/data.ts and roadmap.ts.
+// The decision log a Forward Deployed Engineer would want in a handoff. Above the fold, the 5 decisions the
+// walkthrough video covers (src/decisions/video.ts); below it, an index of one-line decisions, then collapsed cards. /decisions/present shows the same content one decision per screen.
+// Content: src/decisions/data.ts, roadmap.ts and video.ts.
 export default function DecisionsPage() {
   const superseded = DECISIONS.filter((d) => d.status === "superseded").length;
   return (
     <>
       <OpenFromHash />
       <main className={`wrap page ${styles.page}`}>
-        <section aria-labelledby="dl-h" className={styles.intro}>
-          <p className="kicker">Decision log</p>
-          <h1 id="dl-h" className="headline">
-            Why PoktaClinic is built the way it is.
-          </h1>
+        <header className={styles.top}>
+          <div className={styles.topCopy}>
+            <p className="kicker">Decision log</p>
+            <h1 id="dl-h" className="headline">
+              Why PoktaClinic is built the way it is.
+            </h1>
+          </div>
+          <Link href="/decisions/present" className={`btn btn-primary ${styles.present}`}>
+            Present ▸
+          </Link>
+        </header>
+
+        <section aria-labelledby="video-h" className={styles.video}>
+          <div className={styles.videoHead}>
+            <h2 id="video-h" className={styles.videoTitle}>
+              Architecture in {VIDEO.length} decisions
+            </h2>
+            <span className={styles.videoTime}>{VIDEO_LENGTH}</span>
+          </div>
+          <ol className={styles.videoList}>
+            {VIDEO.map((v, i) => (
+              <li key={v.cards[0].id} className={styles.videoItem}>
+                <span className={styles.videoNum} aria-hidden="true">
+                  {i + 1}
+                </span>
+                <h3 className={styles.videoItemTitle}>
+                  <a href={`#${v.cards[0].id}`}>{v.title}</a>
+                </h3>
+                <div className={styles.videoText}>
+                  <p className={styles.videoWhat}>{v.what}</p>
+                  <p className={styles.videoWhy}>
+                    <span className={styles.whyLabel}>Why</span> {v.why}
+                  </p>
+                  <p className={styles.videoCards}>
+                    <span className={styles.videoCardsLabel}>{v.cards.length > 1 ? "Full cards" : "Full card"}</span>
+                    {v.cards.map((c) => (
+                      <a key={c.id} href={`#${c.id}`} title={BY_ID.get(c.id)?.title}>
+                        {c.label}
+                      </a>
+                    ))}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section aria-labelledby="all-h" className={styles.intro}>
+          <h2 id="all-h" className="headline">
+            All decisions
+          </h2>
           <p className={styles.lede}>
             {DECISIONS.length} decisions ({superseded} superseded), each in one sentence with why; the {KEY_ORDER.length} marked Key come first. Open a card&apos;s details for the context, the alternatives, the trade-off and links to the code. Dates are commit dates.
           </p>
-          <div className={styles.actions}>
-            <Link href="/decisions/present" className={`btn btn-primary ${styles.present}`}>
-              Present ▸
-            </Link>
-            <span className="small muted">
-              The {KEY_ORDER.length} key decisions, one per screen. Related: <Link href="/tools">tools</Link>, <Link href="/explainer">live system view</Link>, <Link href="/testing">how it is tested →</Link>
-            </span>
-          </div>
+          <p className="small muted">
+            Present mode shows the {VIDEO.length} above, one per screen; <Link href="/decisions/present?all=1">all {DECISIONS.length}</Link> or <Link href="/decisions/present?key=1">the {KEY_ORDER.length} key ones</Link> are a click away. Related: <Link href="/tools">tools</Link>, <Link href="/explainer">live system view</Link>, <Link href="/testing">how it is tested →</Link>
+          </p>
           <p role="note" className={styles.note}>
             The GitHub repository (poktalabs/pokta-clinic) is private: code links work for people with access.
           </p>
@@ -259,7 +303,7 @@ export default function DecisionsPage() {
         </section>
 
         <p className={`small muted ${styles.back}`}>
-          <a href="#dl-h">Back to the index</a>
+          <a href="#all-h">Back to the index</a>
         </p>
       </main>
     </>
