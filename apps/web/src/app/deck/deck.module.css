@@ -1,11 +1,9 @@
 /* /deck: the standalone slide-cycling framework (pokta-care rheumai-beta-launch deck), on the PoktaClinic
-   tokens from globals.css. Serif, sans and display come from the site; IBM Plex Mono (OFL) is self-hosted. */
+   tokens from globals.css. Serif, sans and display come from the site; mono is the site's system stack. */
 
-@font-face { font-family: "Deck Plex Mono"; src: url("/deck/fonts/mono-400.woff2") format("woff2"); font-display: swap; font-weight: 400; }
-@font-face { font-family: "Deck Plex Mono"; src: url("/deck/fonts/mono-700.woff2") format("woff2"); font-display: swap; font-weight: 700; }
 
 .deck {
-  --mono: "Deck Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   position: fixed; inset: 0; z-index: 50; overflow: hidden;
   color: var(--foreground); font-family: var(--font-sans);
   background: var(--background);
