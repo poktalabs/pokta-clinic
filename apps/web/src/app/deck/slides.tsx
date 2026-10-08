@@ -278,7 +278,7 @@ export const SLIDES: Slide[] = [
               lead: true,
               sub: (
                 <>
-                  Workflow: consent, identification, history, scheduling, escalation. <small>Gemini Flash; Claude Sonnet on History</small>
+                  Workflow: consent, identification, history, scheduling, escalation. <small>Gemini Flash; Claude Sonnet on History and Scheduling</small>
                 </>
               ),
             },

@@ -57,7 +57,7 @@
     {
       "id": "scheduling",
       "label": "Scheduling",
-      "llm": "gemini-3.5-flash",
+      "llm": "claude-sonnet-5",
       "tools": [
         "check_availability",
         "book_appointment",

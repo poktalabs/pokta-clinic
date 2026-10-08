@@ -7,7 +7,7 @@ export const STAGES: { id: Stage; label: string; model: string }[] = [
   { id: "consent", label: "Consent", model: "Gemini 3.5 Flash" },
   { id: "identification", label: "Identification", model: "Gemini 3.5 Flash" },
   { id: "history", label: "History", model: "Claude Sonnet 5" },
-  { id: "scheduling", label: "Scheduling", model: "Gemini 3.5 Flash" },
+  { id: "scheduling", label: "Scheduling", model: "Claude Sonnet 5" },
 ];
 
 export type SystemId = "caller" | "agent" | "api" | "ehr" | "calendar" | "store" | "email";

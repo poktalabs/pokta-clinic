@@ -223,6 +223,14 @@
           "tool_8301m4c9zrzgempvtgj9t2vq6f63",
           "tool_8201m4c9ztb2ezmv4ybrbbxyr7f7"
         ],
+        "conversation_config": {
+          "agent": {
+            "prompt": {
+              "llm": "claude-sonnet-5",
+              "reasoning_effort": "low"
+            }
+          }
+        },
         "edge_order": [
           "scheduling_to_escalation",
           "scheduling_to_end"

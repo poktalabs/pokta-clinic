@@ -58,11 +58,11 @@ export const DECISIONS: Decision[] = [
   {
     id: "per-node-llm",
     group: "agent",
-    title: "Per-node LLMs: Gemini 3.5 Flash for speed, Claude Sonnet 5 on History",
+    title: "Per-node LLMs: Gemini 3.5 Flash for speed, Claude Sonnet 5 on History and Scheduling",
     date: "2026-10-06",
     status: "current",
     decision:
-      "gemini-3.5-flash (reasoning effort low, temperature 0.3) runs every node except History. History overrides the model through the node's conversation_config: claude-sonnet-5, reasoning effort low.",
+      "gemini-3.5-flash (reasoning effort low, temperature 0.3) runs Consent, Identification and Escalation. History and Scheduling override the model through the node's conversation_config: claude-sonnet-5, reasoning effort low. Scheduling moved to Sonnet on 2026-10-08: on Gemini its end edge sometimes fired mid-scheduling for returning callers, before check_availability, which would end a live call; on Sonnet 4 of 4 returning runs and every platform test passed.",
     context:
       "History is the one open-ended node: the model chooses question order and follow-ups, tracks eleven required Questionnaire items across turns and builds a nested save_history payload. The other nodes are short, scripted turns where latency matters most.",
     alternatives: [

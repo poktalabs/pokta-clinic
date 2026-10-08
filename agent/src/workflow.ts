@@ -77,6 +77,11 @@ export function buildWorkflow(
         label: "Scheduling",
         additional_prompt: prompt("scheduling"),
         additional_tool_ids: [ids.check_availability, ids.book_appointment, ids.reschedule_appointment, ids.request_callback],
+        // Same model as History: on Gemini Flash the end edge sometimes fired mid-scheduling for returning
+        // callers (before check_availability), ending a live call. Sonnet never misjudged an edge in testing.
+        conversation_config: {
+          agent: { prompt: { llm: config.history_llm, reasoning_effort: config.history_llm_reasoning_effort } },
+        },
         edge_order: ["scheduling_to_escalation", "scheduling_to_end"],
       },
       // The escalate tool works without consent: a red flag is a safety event.
