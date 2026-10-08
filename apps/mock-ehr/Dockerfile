@@ -20,6 +20,8 @@ COPY --from=build /out/package.json ./
 COPY --from=build /repo/apps/mock-ehr/dist ./dist
 # Migrations run on boot (src/db/bootstrap.ts).
 COPY --from=build /repo/apps/mock-ehr/drizzle ./drizzle
+# Self-hosted fonts for the client console (src/assets.ts reads ../public from dist/).
+COPY --from=build /repo/apps/mock-ehr/public ./public
 USER node
 EXPOSE 8787
 CMD ["node", "dist/server.js"]

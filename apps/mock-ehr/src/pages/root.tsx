@@ -53,6 +53,12 @@ export async function RootPage() {
       <h2>Links</h2>
       <ul>
         <li>
+          <a href="/">/</a>: the PoktaClinic client console for the clinic administrator (read-only, password protected)
+        </li>
+        <li>
+          <a href="/console">/console</a>: raw tables and audit trail (read-only, password protected)
+        </li>
+        <li>
           <a href="/fhir/metadata">/fhir/metadata</a>: CapabilityStatement (public)
         </li>
         <li>

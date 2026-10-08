@@ -87,8 +87,8 @@ export default function Home() {
       </main>
 
       <footer className="wrap site-footer">
-        <a href={EHR_URL} target="_blank" rel="noreferrer">
-          EHR info page
+        <a href={`${EHR_URL}/developer`} target="_blank" rel="noreferrer">
+          EHR developer page
         </a>
         <a href={`${EHR_URL}/fhir/metadata`} target="_blank" rel="noreferrer">
           FHIR metadata (CapabilityStatement)

@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { operationOutcome } from "@pokta-clinic/fhir";
+import { fontAsset } from "./assets.js";
 import { requireToken, tokenEndpoint, type AuthVars } from "./auth.js";
 import { capabilityStatement } from "./capability.js";
 import { RootPage } from "./pages/root.js";
 import { appointmentRoutes } from "./routes/appointment.js";
+import { clientRoutes } from "./routes/client.js";
 import { communicationRoutes } from "./routes/communication.js";
 import { consoleRoutes } from "./routes/console.js";
 import { consentRoutes } from "./routes/consent.js";
@@ -22,9 +24,13 @@ export const app = new Hono<AuthVars>();
 app.get("/healthz", (c) => c.json({ ok: true }));
 app.post("/oauth/token", tokenEndpoint);
 
-app.get("/", async (c) => c.html(`<!DOCTYPE html>${await RootPage()}`));
+// Public developer landing (counts and the network only, never patient data). It lived at "/" before the client console.
+app.get("/developer", async (c) => c.html(`<!DOCTYPE html>${await RootPage()}`));
+app.get("/assets/fonts/:file", fontAsset);
 app.get("/fhir/metadata", (c) => c.json(capabilityStatement()));
 app.route("/console", consoleRoutes);
+// The client console (PoktaClinic for the clinic administrator) at "/" and its sections; behind the console password.
+app.route("/", clientRoutes);
 
 app.use("/fhir/*", requireToken);
 app.route("/fhir/Patient", patientRoutes);
