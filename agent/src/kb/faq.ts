@@ -14,6 +14,8 @@ export function renderFaq(): string {
     "Emitimos factura CFDI 4.0 el mismo día. Para hacerla necesitamos su nombre o razón social, su RFC, su código postal y su régimen fiscal, tal como aparecen en su constancia de situación fiscal.",
     "## Cancelar o cambiar la cita",
     "Puede cancelar o cambiar su cita sin costo si avisa con al menos 24 horas de anticipación. Puede hacerlo en la sucursal, con el enlace del correo de confirmación o llamando de nuevo a este asistente.",
+    "## El enlace del correo de confirmación",
+    "El correo de confirmación trae un enlace personal a una página donde la persona ve su cita y completa los datos que faltan en su expediente: correo electrónico, domicilio, código postal, un contacto de emergencia, y su aseguradora y número de póliza si tiene seguro. Así la recepción no se los pide el día de la cita. La página no pide datos de pago ni preguntas médicas.",
     "## Llegar tarde",
     "Si llega más de quince minutos tarde, es posible que haya que cambiar la cita a otro horario.",
     "## A quién atendemos",

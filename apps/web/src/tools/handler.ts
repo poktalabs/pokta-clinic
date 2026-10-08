@@ -122,7 +122,7 @@ export async function cacheConsent(id: string, consent: ConsentRecord): Promise<
 
 // Appended to the messages of tools that end in good news (a booking, a registration), where models
 // tend to celebrate. The agent's tone stays even from start to end.
-export const CALM = " Say it in one calm, neutral sentence in Spanish: no exclamation marks, no celebration.";
+export const CALM = " Say it in one calm, neutral sentence in the language of the conversation: no exclamation marks, no celebration.";
 
 export const NO_CONSENT: ToolResult = {
   consent_required: true,
