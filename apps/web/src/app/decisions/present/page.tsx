@@ -8,6 +8,8 @@ export const metadata: Metadata = {
 
 // One decision per screen for the walkthrough video. Full screen, no site header (CHROMELESS_PREFIXES in
 // site-nav.tsx); keyboard driven like /deck (see present.tsx).
-export default function PresentPage() {
-  return <Present />;
+// Defaults to the key decisions; ?all=1 shows every decision.
+export default async function PresentPage({ searchParams }: PageProps<"/decisions/present">) {
+  const { all } = await searchParams;
+  return <Present all={all === "1"} />;
 }

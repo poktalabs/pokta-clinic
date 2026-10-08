@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { flipTheme, toggleFullscreen } from "@/app/deck/controls";
 import d from "@/app/deck/deck.module.css";
-import { DECISIONS, GROUPS } from "@/decisions/data";
+import { DECISIONS, GROUPS, KEY_ORDER, type Decision } from "@/decisions/data";
 import { ROADMAP } from "@/decisions/roadmap";
 import s from "./present.module.css";
 
 // The decision log as a deck, on the /deck look and mechanics: one slide per decision, deep link per
 // slide (#N), arrows / PageUp / PageDown / Space to move, Home / End to jump, F fullscreen, T theme.
-// The roadmap's Scribe v2 Medical items close it.
+// The roadmap's Scribe v2 Medical items close it. By default only the key decisions, in the order of
+// the walkthrough (KEY_ORDER); ?all=1 shows all of them in log order.
 
 type PresentSlide = {
   key: string;
@@ -23,31 +24,34 @@ type PresentSlide = {
 
 const GROUP_LABEL = Object.fromEntries(GROUPS.map((g) => [g.id, g.label]));
 
-const SLIDES: PresentSlide[] = [
-  ...DECISIONS.map((x) => ({
-    key: x.id,
-    kicker: GROUP_LABEL[x.group],
-    flag: x.status === "superseded" ? `Superseded${x.statusNote ? ` · ${x.statusNote}` : ""}` : undefined,
-    title: x.title,
-    rows: [
-      { label: "Decision", text: x.summary },
-      { label: "Why", text: x.presentWhy },
-      { label: "Trade-off", text: x.presentTradeoff },
-    ],
-    code: x.code.map((c) => c.label),
-  })),
-  ...ROADMAP.filter((r) => r.inPresent).map((r) => ({
-    key: r.id,
-    kicker: `Roadmap and expansion · ${r.kind}`,
-    title: r.title,
-    rows: [
-      { label: "What", text: r.summary },
-      { label: "Why", text: r.presentWhy },
-      { label: "Effort", text: r.effort },
-    ],
-    code: r.code?.map((c) => c.label) ?? [],
-  })),
-];
+const decisionSlide = (x: Decision): PresentSlide => ({
+  key: x.id,
+  kicker: GROUP_LABEL[x.group],
+  flag: x.status === "superseded" ? `Superseded${x.statusNote ? ` · ${x.statusNote}` : ""}` : undefined,
+  title: x.title,
+  rows: [
+    { label: "Decision", text: x.summary },
+    { label: "Why", text: x.presentWhy },
+    { label: "Trade-off", text: x.presentTradeoff },
+  ],
+  code: x.code.map((c) => c.label),
+});
+
+const ROADMAP_SLIDES: PresentSlide[] = ROADMAP.filter((r) => r.inPresent).map((r) => ({
+  key: r.id,
+  kicker: `Roadmap and expansion · ${r.kind}`,
+  title: r.title,
+  rows: [
+    { label: "What", text: r.summary },
+    { label: "Why", text: r.presentWhy },
+    { label: "Effort", text: r.effort },
+  ],
+  code: r.code?.map((c) => c.label) ?? [],
+}));
+
+const BY_ID = new Map(DECISIONS.map((x) => [x.id, x]));
+const KEY_SLIDES = [...KEY_ORDER.flatMap((id) => BY_ID.get(id) ?? []).map(decisionSlide), ...ROADMAP_SLIDES];
+const ALL_SLIDES = [...DECISIONS.map(decisionSlide), ...ROADMAP_SLIDES];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const onHashChange = (cb: () => void) => {
@@ -55,8 +59,8 @@ const onHashChange = (cb: () => void) => {
   return () => window.removeEventListener("hashchange", cb);
 };
 
-export function Present() {
-  const slides = SLIDES;
+export function Present({ all }: { all: boolean }) {
+  const slides = all ? ALL_SLIDES : KEY_SLIDES;
   const count = slides.length;
   const clamp = useCallback((n: number) => Math.max(0, Math.min(count - 1, n)), [count]);
   // The URL hash is the slide state: deep links, reloads and back/forward all land on the same slide.
@@ -110,6 +114,9 @@ export function Present() {
           </div>
         </div>
         <div className={d.meta}>
+          <Link href={all ? "/decisions/present#1" : "/decisions/present?all=1#1"} className={s.exit} aria-label={all ? `Show the ${KEY_ORDER.length} key decisions only` : `Show all ${DECISIONS.length} decisions`}>
+            {all ? `Key ${KEY_ORDER.length}` : `All ${DECISIONS.length}`}
+          </Link>
           <b aria-live="polite">
             {pad(index + 1)} / {pad(count)}
           </b>

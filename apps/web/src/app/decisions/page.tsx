@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DECISIONS, GROUPS, REPO_BLOB, type Decision } from "@/decisions/data";
+import { DECISIONS, GROUPS, KEY_ORDER, REPO_BLOB, keyFirst, type Decision } from "@/decisions/data";
 import { ROADMAP, type RoadmapItem } from "@/decisions/roadmap";
 import { OpenFromHash } from "./open-from-hash";
 import styles from "./decisions.module.css";
@@ -40,6 +40,7 @@ function Card({ d }: { d: Decision }) {
     <article id={d.id} className={styles.card} aria-labelledby={`${d.id}-h`}>
       <header className={styles.cardHead}>
         <div className={styles.cardMeta}>
+          {d.key && <span className={styles.keyTag}>Key</span>}
           <StatusPill d={d} />
           <time dateTime={d.date} className="small muted">
             {formatDate(d.date)}
@@ -175,14 +176,14 @@ export default function DecisionsPage() {
             Why PoktaClinic is built the way it is.
           </h1>
           <p className={styles.lede}>
-            {DECISIONS.length} decisions ({superseded} superseded), each in one sentence with why. Open a card&apos;s details for the context, the alternatives, the trade-off and links to the code. Dates are commit dates.
+            {DECISIONS.length} decisions ({superseded} superseded), each in one sentence with why; the {KEY_ORDER.length} marked Key come first. Open a card&apos;s details for the context, the alternatives, the trade-off and links to the code. Dates are commit dates.
           </p>
           <div className={styles.actions}>
             <Link href="/decisions/present" className={`btn btn-primary ${styles.present}`}>
               Present ▸
             </Link>
             <span className="small muted">
-              One decision per screen. Related: <Link href="/tools">tools</Link>, <Link href="/explainer">live system view</Link>, <Link href="/testing">how it is tested →</Link>
+              The {KEY_ORDER.length} key decisions, one per screen. Related: <Link href="/tools">tools</Link>, <Link href="/explainer">live system view</Link>, <Link href="/testing">how it is tested →</Link>
             </span>
           </div>
           <p role="note" className={styles.note}>
@@ -197,9 +198,10 @@ export default function DecisionsPage() {
                 <a href={`#group-${g.id}`}>{g.label}</a>
               </h2>
               <ol className={styles.indexList}>
-                {DECISIONS.filter((d) => d.group === g.id).map((d) => (
+                {keyFirst(DECISIONS.filter((d) => d.group === g.id)).map((d) => (
                   <li key={d.id}>
                     <span className={styles.indexItem}>
+                      {d.key && <span className={styles.keyTag}>Key</span>}
                       <a href={`#${d.id}`}>{d.title}</a>
                       {d.status === "superseded" && <span className={styles.indexTag}>superseded</span>}
                       <span className={styles.indexSummary}>{d.summary}</span>
@@ -235,7 +237,7 @@ export default function DecisionsPage() {
               <p className="muted">{g.blurb}</p>
             </div>
             <div className={styles.cards}>
-              {DECISIONS.filter((d) => d.group === g.id).map((d) => (
+              {keyFirst(DECISIONS.filter((d) => d.group === g.id)).map((d) => (
                 <Card key={d.id} d={d} />
               ))}
             </div>

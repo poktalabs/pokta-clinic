@@ -30,6 +30,8 @@
 .indexItem { display: block; }
 .indexList a { color: var(--foreground); text-decoration: none; font-weight: 600; }
 .indexList a:hover { color: var(--accent-text); text-decoration: underline; }
+.keyTag { display: inline-block; margin-right: 8px; padding: 1px 6px; background: var(--primary); color: var(--primary-foreground); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: 2px; }
+.cardMeta .keyTag { margin-right: 0; padding: 2px 8px; font-size: 0.75rem; vertical-align: baseline; }
 .indexSummary { display: block; margin-top: 2px; font-size: 0.875rem; color: var(--muted-foreground); }
 .indexTag { margin-left: 8px; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--attn); }
 
@@ -38,9 +40,9 @@
 .groupHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
 .cards { display: flex; flex-direction: column; gap: 14px; }
 
-.card { background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow); padding: 20px; scroll-margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow); padding: 18px 20px 6px; scroll-margin-top: 24px; display: flex; flex-direction: column; gap: 10px; }
 .card:target { border-color: var(--primary-ink); box-shadow: 0 0 0 2px var(--primary-soft), var(--shadow); }
-@media (min-width: 720px) { .card { padding: 22px 28px; } }
+@media (min-width: 720px) { .card { padding: 20px 28px 6px; } }
 
 .cardHead { display: flex; flex-direction: column; gap: 8px; }
 .cardMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
@@ -53,7 +55,7 @@
 .pillOld { background: color-mix(in srgb, var(--attn) 16%, transparent); color: var(--attn); }
 .pillNote { text-transform: none; letter-spacing: 0; font-weight: 600; }
 
-.decision { font-family: var(--font-serif); font-size: 1.0625rem; line-height: 1.55; padding: 12px 16px; background: var(--surface-brand); border-left: 3px solid var(--primary-ink); }
+.decision { font-family: var(--font-serif); font-size: 1.0625rem; line-height: 1.5; padding: 9px 14px; background: var(--surface-brand); border-left: 3px solid var(--primary-ink); }
 
 .why { color: var(--foreground-soft); line-height: 1.55; max-width: 120ch; }
 .whyLabel { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--muted-foreground); margin-right: 6px; }
@@ -65,7 +67,7 @@
 .more > summary::before { content: "▸"; display: inline-block; transition: transform 0.15s; }
 .more[open] > summary::before { transform: rotate(90deg); }
 .more > summary:hover { text-decoration: underline; }
-.moreBody { display: flex; flex-direction: column; gap: 16px; padding: 4px 0 4px; }
+.moreBody { display: flex; flex-direction: column; gap: 16px; padding: 4px 0 16px; }
 @media (prefers-reduced-motion: reduce) { .more > summary::before { transition: none; } }
 
 .fields { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }

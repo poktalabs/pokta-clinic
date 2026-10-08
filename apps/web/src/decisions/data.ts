@@ -19,6 +19,8 @@ export type Decision = {
   date: string;
   status: "current" | "superseded";
   statusNote?: string;
+  /** A must-say decision for the walkthrough: listed first in the index and shown by default in present mode. */
+  key?: true;
   /** The decision in one sentence (max ~20 words): the index, the collapsed card and present mode. */
   summary: string;
   /** One-sentence why and trade-off for the collapsed card and present mode; the full text stays in why and tradeoff. */
@@ -33,6 +35,23 @@ export type Decision = {
   related?: { label: string; href: string }[];
 };
 
+// The key decisions in the order the walkthrough video covers them: present mode follows this order.
+// Must list exactly the decisions with key: true (data.test.ts checks it).
+export const KEY_ORDER = [
+  "workflow-nodes",
+  "per-node-llm",
+  "tools-per-node",
+  "knowledge-base",
+  "webhook-tools",
+  "consent-gates-reads",
+  "calendar-booking",
+  "haiku-trial",
+  "identity-by-birth-date",
+];
+
+/** Key decisions first, then the rest, each in data order: the index and the cards within a group. */
+export const keyFirst = (list: Decision[]) => [...list.filter((d) => d.key), ...list.filter((d) => !d.key)];
+
 export const DECISIONS: Decision[] = [
   // ---- Agent design ----
   {
@@ -41,6 +60,7 @@ export const DECISIONS: Decision[] = [
     title: "A workflow of stage nodes, not one big prompt",
     date: "2026-10-05",
     status: "current",
+    key: true,
     summary: "An ElevenLabs workflow with one subagent node per stage (Consent, Identification, History, Scheduling, Escalation), each with its own prompt.",
     presentWhy: "Each node gets a short prompt and only its own tools, and the graph enforces the legal stage order.",
     presentTradeoff: "Transitions are judged by an LLM, so edge wording becomes a source of bugs.",
@@ -69,6 +89,7 @@ export const DECISIONS: Decision[] = [
     title: "Per-node LLMs: Gemini 3.5 Flash for speed, Claude Sonnet 5 on History and Scheduling",
     date: "2026-10-06",
     status: "current",
+    key: true,
     summary: "Gemini 3.5 Flash on the short scripted nodes; Claude Sonnet 5 on History and Scheduling, set per node.",
     presentWhy: "Fast turn-by-turn voice where the work is simple, a stronger tool-capable model only where the reasoning is.",
     presentTradeoff: "Two models to evaluate instead of one, and History latency to watch on the first real calls.",
@@ -96,6 +117,7 @@ export const DECISIONS: Decision[] = [
     title: "Claude Haiku 4.5 as the main model: tried and rolled back",
     date: "2026-10-08",
     status: "superseded",
+    key: true,
     statusNote: "Rolled back within the hour",
     summary: "Tried Claude Haiku 4.5 as the main model to fix two Gemini failures; rolled back within the hour.",
     presentWhy: "The scripted real-conversation runs caught it: in 3 of 4 runs Haiku never left Consent and invented a booking without calling a tool.",
@@ -148,6 +170,7 @@ export const DECISIONS: Decision[] = [
     title: "Knowledge base: RAG for the guide and FAQ, the aviso in the prompt",
     date: "2026-10-08",
     status: "current",
+    key: true,
     summary: "The guide and FAQ use RAG on every node; the aviso de privacidad sits whole in the Consent prompt.",
     presentWhy: "RAG scales to dozens of documents at roughly 250 ms per turn; legal text is quoted exactly, never paraphrased from a chunk.",
     presentTradeoff: "A retrieval miss is possible, guarded by the \"Eso no lo tengo\" rule and the kb_grounded evaluation.",
@@ -231,6 +254,7 @@ export const DECISIONS: Decision[] = [
     title: "Webhook tools with a secret header the LLM never sees",
     date: "2026-10-05",
     status: "current",
+    key: true,
     summary: "Each tool is a POST with a workspace-secret header the LLM never sees and a platform-filled conversation id.",
     presentWhy: "The secret never reaches the LLM or the repo, and the model neither sees nor supplies the conversation id.",
     presentTradeoff: "A shared secret is a bearer credential: rotation means Vercel, redeploy, then the ElevenLabs secret, in that order.",
@@ -287,6 +311,7 @@ export const DECISIONS: Decision[] = [
     title: "Real calendar slots, re-checked before booking; idempotent booking",
     date: "2026-10-06",
     status: "current",
+    key: true,
     summary: "Real Google Calendar slots; booking re-checks the start against live free/busy and is idempotent per conversation.",
     presentWhy: "The model must never invent a slot, and an agent retry or a double tap must not create two appointments.",
     presentTradeoff: "Without the calendar variables the tools fail closed; a fake calendar exists only for local development.",
@@ -359,6 +384,7 @@ export const DECISIONS: Decision[] = [
     title: "Tools attached per node, so data tools are invisible before consent",
     date: "2026-10-05",
     status: "current",
+    key: true,
     summary: "Tools are attached per node, so the model cannot see any data tool before consent.",
     presentWhy: "The model cannot call a tool it cannot see, and a prompt rule is not a control; the server checks again.",
     presentTradeoff: "Every new tool means touching the node that owns it.",
@@ -382,6 +408,7 @@ export const DECISIONS: Decision[] = [
     title: "Consent gates reads as well as writes",
     date: "2026-10-05",
     status: "current",
+    key: true,
     summary: "Every data tool refuses until the conversation has a granted consent, for reads as well as writes.",
     presentWhy: "Reading back a name to an unidentified caller is already a disclosure.",
     presentTradeoff: "A caller who declines consent cannot be identified or booked by the agent.",
@@ -399,6 +426,7 @@ export const DECISIONS: Decision[] = [
     title: "Consent per call; identity verified by date of birth before revealing anything",
     date: "2026-10-08",
     status: "current",
+    key: true,
     summary: "Consent is asked on every call; a found record stays closed until the caller's date of birth matches, server side.",
     presentWhy: "A phone is not proof of who is calling; the server compares the date of birth, so the model never sees it.",
     presentTradeoff: "A returning call is a few seconds longer, and a date of birth is weak proof; a real deployment would add an OTP.",
