@@ -6,6 +6,11 @@ export type RoadmapItem = {
   id: string;
   title: string;
   kind: "next build" | "account expansion";
+  /** One sentence for the collapsed card and present mode; the full text stays in what and why. */
+  summary: string;
+  presentWhy: string;
+  /** Shown as a final slide in /decisions/present. */
+  inPresent?: boolean;
   what: string;
   why: string;
   how: string;
@@ -19,6 +24,9 @@ export const ROADMAP: RoadmapItem[] = [
     id: "scribe-medical-post-call",
     title: "Clinical-grade transcript of every intake call (Scribe v2 Medical)",
     kind: "next build",
+    summary: "After each finished call, Scribe v2 Medical transcribes the recording and the transcript is attached to the patient's record.",
+    presentWhy: "The rheumatologist can check the summary against what the patient said, with about 35% lower word error rate on clinical audio.",
+    inPresent: true,
     what:
       "After each finished call, send the recording to Scribe v2 Medical with the clinic's keyterms and attach the transcript to the patient's record (a FHIR DocumentReference) next to the pre-consultation summary.",
     why:
@@ -37,6 +45,9 @@ export const ROADMAP: RoadmapItem[] = [
     id: "scribe-medical-consultation",
     title: "Consultation scribe for the rheumatologists (Scribe v2 Medical)",
     kind: "account expansion",
+    summary: "Scribe v2 Medical as a dictation or ambient scribe in the rheumatologists' consultations.",
+    presentWhy: "It expands the account from intake calls to every consultation minute, for the same buyer on the same EHR integration.",
+    inPresent: true,
     what:
       "The same clinic network's rheumatologists dictate or record their consultations. Scribe v2 Medical as a dictation or ambient scribe in the consultation room turns PoktaClinic from a front-desk agent into a front-desk plus clinician product.",
     why:
@@ -53,6 +64,8 @@ export const ROADMAP: RoadmapItem[] = [
     id: "outbound-reminders",
     title: "Outbound reminder calls to cut no-shows (batch calling)",
     kind: "account expansion",
+    summary: "The day before each visit, the same agent calls the patient to confirm, reschedule or cancel.",
+    presentWhy: "No-shows are one of the buyer's three metrics, and a freed slot goes back to a waiting list measured in months.",
     what:
       "The day before each visit, the same agent calls the patient to confirm, reschedule or cancel, using the booking and rescheduling tools it already has.",
     why:

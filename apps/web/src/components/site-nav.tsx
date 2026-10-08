@@ -6,10 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import { EHR_URL } from "@/ehr-console";
 import { ThemeToggle } from "./theme-toggle";
 
-// Routes that render without the shared header and footer: the full-screen scenario deck, the patient's
-// emailed link (patient-facing, keeps its own minimal header) and the admin login. To opt a new route out,
-// add its prefix here.
-export const CHROMELESS_PREFIXES = ["/deck", "/paciente", "/admin"];
+// Routes that render without the shared header and footer: the full-screen scenario deck, the decisions
+// present mode, the patient's emailed link (patient-facing, keeps its own minimal header) and the admin
+// login. To opt a new route out, add its prefix here.
+export const CHROMELESS_PREFIXES = ["/deck", "/decisions/present", "/paciente", "/admin"];
 
 export function isChromeless(pathname: string): boolean {
   return CHROMELESS_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));

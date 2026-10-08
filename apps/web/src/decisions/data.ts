@@ -19,6 +19,11 @@ export type Decision = {
   date: string;
   status: "current" | "superseded";
   statusNote?: string;
+  /** The decision in one sentence (max ~20 words): the index, the collapsed card and present mode. */
+  summary: string;
+  /** One-sentence why and trade-off for the collapsed card and present mode; the full text stays in why and tradeoff. */
+  presentWhy: string;
+  presentTradeoff: string;
   decision: string;
   context: string;
   alternatives: string[];
@@ -36,6 +41,9 @@ export const DECISIONS: Decision[] = [
     title: "A workflow of stage nodes, not one big prompt",
     date: "2026-10-05",
     status: "current",
+    summary: "An ElevenLabs workflow with one subagent node per stage (Consent, Identification, History, Scheduling, Escalation), each with its own prompt.",
+    presentWhy: "Each node gets a short prompt and only its own tools, and the graph enforces the legal stage order.",
+    presentTradeoff: "Transitions are judged by an LLM, so edge wording becomes a source of bugs.",
     decision:
       "The agent is an ElevenLabs workflow with one subagent node per stage: Consent, Identification, History, Scheduling, plus Escalation. Each node appends its own prompt to a shared base prompt (personality, guardrails, red flags, escalation script) and moves on through edges.",
     context:
@@ -61,6 +69,9 @@ export const DECISIONS: Decision[] = [
     title: "Per-node LLMs: Gemini 3.5 Flash for speed, Claude Sonnet 5 on History and Scheduling",
     date: "2026-10-06",
     status: "current",
+    summary: "Gemini 3.5 Flash on the short scripted nodes; Claude Sonnet 5 on History and Scheduling, set per node.",
+    presentWhy: "Fast turn-by-turn voice where the work is simple, a stronger tool-capable model only where the reasoning is.",
+    presentTradeoff: "Two models to evaluate instead of one, and History latency to watch on the first real calls.",
     decision:
       "gemini-3.5-flash (reasoning effort low, temperature 0.3) runs Consent, Identification and Escalation. History and Scheduling override the model through the node's conversation_config: claude-sonnet-5, reasoning effort low. Scheduling moved to Sonnet on 2026-10-08: on Gemini its end edge sometimes fired mid-scheduling for returning callers, before check_availability, which would end a live call; on Sonnet 4 of 4 returning runs and every platform test passed.",
     context:
@@ -86,6 +97,9 @@ export const DECISIONS: Decision[] = [
     date: "2026-10-08",
     status: "superseded",
     statusNote: "Rolled back within the hour",
+    summary: "Tried Claude Haiku 4.5 as the main model to fix two Gemini failures; rolled back within the hour.",
+    presentWhy: "The scripted real-conversation runs caught it: in 3 of 4 runs Haiku never left Consent and invented a booking without calling a tool.",
+    presentTradeoff: "A stricter end-edge condition fixed the returning-caller failure instead; the reasoning leak stays a known risk.",
     decision:
       "Swapped claude-haiku-4-5 in as the main LLM to fix two Gemini failures, then rolled back to gemini-3.5-flash the same hour.",
     context:
@@ -110,6 +124,9 @@ export const DECISIONS: Decision[] = [
     title: "LLM-judged edges, and \"goodbye already spoken\" before ending",
     date: "2026-10-07",
     status: "current",
+    summary: "Edges are LLM conditions; the end edge waits until the agent has spoken a goodbye, not just a tool result.",
+    presentWhy: "The condition names the observable event the edge must wait for; 2 of 2 reschedule runs passed after the change.",
+    presentTradeoff: "Behaviour still depends on how an LLM reads a sentence, so every edge needs a scripted scenario.",
     decision:
       "Edges are LLM conditions, escalation edges evaluated first on every node. scheduling_to_end only fires after the last tool result, once the agent has said a goodbye in its own spoken message; \"A tool call or tool result alone does not meet this condition.\"",
     context:
@@ -131,6 +148,9 @@ export const DECISIONS: Decision[] = [
     title: "Knowledge base: RAG for the guide and FAQ, the aviso in the prompt",
     date: "2026-10-08",
     status: "current",
+    summary: "The guide and FAQ use RAG on every node; the aviso de privacidad sits whole in the Consent prompt.",
+    presentWhy: "RAG scales to dozens of documents at roughly 250 ms per turn; legal text is quoted exactly, never paraphrased from a chunk.",
+    presentTradeoff: "A retrieval miss is possible, guarded by the \"Eso no lo tengo\" rule and the kb_grounded evaluation.",
     decision:
       "Three documents as code. The first-visit guide and the FAQ use RAG (usage_mode auto) at agent level on every node. The aviso de privacidad is the whole document in the prompt (usage_mode prompt), on the Consent node only.",
     context:
@@ -155,6 +175,9 @@ export const DECISIONS: Decision[] = [
     title: "A calm, even tone, and the \"in Spanish\" tool-suffix bug",
     date: "2026-10-08",
     status: "current",
+    summary: "Expressive mode off, TTS speed 0.95 and stability 0.6, and a language-neutral CALM suffix on good-news tool results.",
+    presentWhy: "Tool messages are read right before the model speaks, so that is where the tone instruction lands.",
+    presentTradeoff: "Every tool message is effectively a prompt, so tool copy is reviewed like prompt copy.",
     decision:
       "expressive_mode off, TTS speed 0.95 and stability 0.6, no exclamation marks or celebration in prompts and tool messages. Tool results that carry good news end with a CALM suffix asking for one calm, neutral sentence in the language of the conversation.",
     context:
@@ -179,6 +202,9 @@ export const DECISIONS: Decision[] = [
     title: "Spanish by default, an English preset, and a language-only client override",
     date: "2026-10-08",
     status: "current",
+    summary: "Spanish by default with language detection, an English preset, and clients may override only the language.",
+    presentWhy: "One permission gives an English session from the first word, and the platform rejects every other override.",
+    presentTradeoff: "English calls rely on translation inside the prompt rather than English source documents.",
     decision:
       "The agent starts in es with the language detection tool and an en preset (English first message, English voice, \"One moment.\"). Clients may override only agent.language; the /explainer toggle uses it, the home widget passes nothing.",
     context:
@@ -205,6 +231,9 @@ export const DECISIONS: Decision[] = [
     title: "Webhook tools with a secret header the LLM never sees",
     date: "2026-10-05",
     status: "current",
+    summary: "Each tool is a POST with a workspace-secret header the LLM never sees and a platform-filled conversation id.",
+    presentWhy: "The secret never reaches the LLM or the repo, and the model neither sees nor supplies the conversation id.",
+    presentTradeoff: "A shared secret is a bearer credential: rotation means Vercel, redeploy, then the ElevenLabs secret, in that order.",
     decision:
       "Each tool is a POST to /api/tools/<name>. The x-pokta-tool-secret header references an ElevenLabs workspace secret by ID; conversation_id is bound to system__conversation_id. The web app compares the secret in constant time and validates the body with zod.",
     context:
@@ -230,6 +259,9 @@ export const DECISIONS: Decision[] = [
     title: "Caller email through /api/lead, keyed by conversation id",
     date: "2026-10-07",
     status: "current",
+    summary: "The page posts the caller's email to /api/lead by conversation id; the agent has no dynamic variables.",
+    presentWhy: "A dynamic-variable binding once refused every session without it; page to server keeps the agent independent of any client.",
+    presentTradeoff: "Only calls started from a page that collected an email get a confirmation email.",
     decision:
       "The explainer page POSTs { conversation_id, email } to /api/lead when the call connects; tools resolve the email by conversation id. The agent has no dynamic variables: the build fails on \"{{\" anywhere and on a tool parameter bound to anything but a system__ variable.",
     context:
@@ -255,6 +287,9 @@ export const DECISIONS: Decision[] = [
     title: "Real calendar slots, re-checked before booking; idempotent booking",
     date: "2026-10-06",
     status: "current",
+    summary: "Real Google Calendar slots; booking re-checks the start against live free/busy and is idempotent per conversation.",
+    presentWhy: "The model must never invent a slot, and an agent retry or a double tap must not create two appointments.",
+    presentTradeoff: "Without the calendar variables the tools fail closed; a fake calendar exists only for local development.",
     decision:
       "check_availability returns up to 3 free slots from the branch's Google Calendar within branch hours (60 min, 24 h to 14 days ahead). book_appointment never trusts the start the LLM sends: it re-resolves it against the branch rules and the live free/busy, and is idempotent per Conversation (store first, EHR second).",
     context:
@@ -280,6 +315,9 @@ export const DECISIONS: Decision[] = [
     title: "WebSocket, not WebRTC, for browser calls",
     date: "2026-10-07",
     status: "current",
+    summary: "Browser calls use WebSocket, not WebRTC.",
+    presentWhy: "Over WebRTC the LiveKit signal stream dropped on connect; a demo call that connects every time is worth more.",
+    presentTradeoff: "The WebRTC drop was worked around, not diagnosed, and needs a look before a production deployment.",
     decision: "The /explainer call starts the session with connectionType \"websocket\".",
     context: "Over WebRTC the LiveKit signal stream dropped on connect in the browser; the socket path was reliable.",
     alternatives: ["WebRTC (the SDK's other connection type)."],
@@ -294,6 +332,9 @@ export const DECISIONS: Decision[] = [
     title: "Own store and an outbox when the EHR is down",
     date: "2026-10-06",
     status: "current",
+    summary: "An own Redis store and outbox queue EHR writes while the EHR is down and replay them idempotently.",
+    presentWhy: "A call should not fail because the record system is briefly offline; the caller hears a normal confirmation.",
+    presentTradeoff: "Queued answers sit in Redis until they expire, so the store needs the same LFPDPPP review as the EHR.",
     decision:
       "PoktaClinic keeps its own Upstash Redis store (timeline, consent cache, outbox; 7 day TTL). While the EHR is off, save_history, the Appointment write, escalate and record_consent are queued and replayed idempotently when it returns. find_patient and save_patient still need the EHR.",
     context:
@@ -318,6 +359,9 @@ export const DECISIONS: Decision[] = [
     title: "Tools attached per node, so data tools are invisible before consent",
     date: "2026-10-05",
     status: "current",
+    summary: "Tools are attached per node, so the model cannot see any data tool before consent.",
+    presentWhy: "The model cannot call a tool it cannot see, and a prompt rule is not a control; the server checks again.",
+    presentTradeoff: "Every new tool means touching the node that owns it.",
     decision:
       "Tools are attached per node (additional_tool_ids), not globally: Consent sees only record_consent; Identification, History and Scheduling see their own; Escalation sees escalate. The web app enforces the same rule server side.",
     context: "Consent (aviso de privacidad, LFPDPPP) must come before any patient data is read or written.",
@@ -338,6 +382,9 @@ export const DECISIONS: Decision[] = [
     title: "Consent gates reads as well as writes",
     date: "2026-10-05",
     status: "current",
+    summary: "Every data tool refuses until the conversation has a granted consent, for reads as well as writes.",
+    presentWhy: "Reading back a name to an unidentified caller is already a disclosure.",
+    presentTradeoff: "A caller who declines consent cannot be identified or booked by the agent.",
     decision:
       "Every tool except record_consent and escalate refuses with consent_required until the Conversation has a granted Consent (store first, EHR second). find_patient reveals nothing about a found record until the date of birth matches; save_patient links the Consent only to a record it created.",
     context: "The original scope said consent before any write.",
@@ -352,6 +399,9 @@ export const DECISIONS: Decision[] = [
     title: "Consent per call; identity verified by date of birth before revealing anything",
     date: "2026-10-08",
     status: "current",
+    summary: "Consent is asked on every call; a found record stays closed until the caller's date of birth matches, server side.",
+    presentWhy: "A phone is not proof of who is calling; the server compares the date of birth, so the model never sees it.",
+    presentTradeoff: "A returning call is a few seconds longer, and a date of birth is weak proof; a real deployment would add an OTP.",
     decision:
       "Every call asks for consent again, returning callers included. After the phone matches a record, find_patient says nothing about it, not even the name, until the caller's date of birth matches Patient.birthDate (checked server side, a second find_patient call with birth_date). Two tries per conversation; after the second miss the record stays closed, the caller is referred to a branch, and the agent does not register a duplicate. On a match it returns the upcoming appointment and the chief complaint of the latest questionnaire, so the agent can read both back, and links the Consent to that patient.",
     context:
@@ -379,6 +429,9 @@ export const DECISIONS: Decision[] = [
     title: "NOM-first data model, FHIR R4 at the edge (ADR 0001)",
     date: "2026-10-05",
     status: "current",
+    summary: "The EHR follows NOM-004 and NOM-024; FHIR R4 is only the exchange format, reached through an EhrAdapter.",
+    presentWhy: "Core R4 resources travel to any FHIR EHR, and a non-FHIR EHR is one new adapter.",
+    presentTradeoff: "A mapping layer to maintain, and a Practitioner step before the intake becomes clinical record.",
     decision:
       "The EHR's tables follow NOM-004 and NOM-024; FHIR R4 is only the exchange format. The agent's QuestionnaireResponse is a patient-reported document pending the Practitioner's Validation, authored by a Device, not the Historia clinica. Tools reach the EHR only through an EhrAdapter.",
     context:
@@ -404,6 +457,9 @@ export const DECISIONS: Decision[] = [
     title: "Agent configuration as code, validated against the live API spec",
     date: "2026-10-05",
     status: "current",
+    summary: "Prompts, tools, workflow and knowledge base are typed code, validated against the live API spec, pushed by the CLI.",
+    presentWhy: "A pull request shows exactly what will be pushed, and schema errors fail before a push.",
+    presentTradeoff: "A dashboard edit is overwritten by the next build.",
     decision:
       "Prompts, tools, workflow and knowledge base are typed sources under agent/. A generator writes the CLI project (committed), agent:validate checks it against ElevenLabs' live OpenAPI spec, then the ElevenLabs CLI pushes. Nothing is edited in the dashboard.",
     context: "The CLI's own --dry-run is local only and its embedded spec lags the API.",
@@ -422,6 +478,9 @@ export const DECISIONS: Decision[] = [
     title: "A read-only client console behind Basic auth",
     date: "2026-10-08",
     status: "current",
+    summary: "The clinic-facing EHR console is read-only and behind HTTP Basic auth.",
+    presentWhy: "The clinic administrator and reviewers see what the agent wrote without being able to change it.",
+    presentTradeoff: "One shared password, no per-user identity in the audit trail.",
     decision:
       "The EHR's clinic-facing console at / is GET-only (overview, patients with the pre-consultation summary, appointments, callbacks, alerts, branches, staff, questionnaire, audit trail), behind HTTP Basic auth. The developer view moved to /developer and shows counts only.",
     context: "The clinic administrator and reviewers need to see what the agent wrote without being able to change it.",
@@ -440,6 +499,9 @@ export const DECISIONS: Decision[] = [
     title: "A protected reset endpoint for demo data",
     date: "2026-10-08",
     status: "current",
+    summary: "A protected endpoint wipes patient-generated demo rows in one transaction and records the reset in the audit trail.",
+    presentWhy: "Repeatable and auditable, on a free Postgres that has no backups.",
+    presentTradeoff: "It erases the demo audit trail, acceptable only because all data is fictional.",
     decision:
       "POST /developer/reset wipes patient-generated rows in one transaction and keeps the network, staff and Questionnaire. It needs the console password and a typed confirmation, is linked from nowhere in the UI, and records the reset as the first event of the new audit trail.",
     context: "Demo runs write fictional patients to production; the free Postgres has no backups.",
@@ -455,6 +517,9 @@ export const DECISIONS: Decision[] = [
     title: "A review export instead of workspace access",
     date: "2026-10-08",
     status: "current",
+    summary: "An export script turns a stored conversation into static files that /review replays, instead of workspace access.",
+    presentWhy: "Reviewers cannot open a conversation from another workspace, and a whitelist export never leaks new API fields.",
+    presentTradeoff: "A snapshot, not live: each call to review has to be exported and deployed.",
     decision:
       "pnpm review:export <conversation_id> turns a stored ElevenLabs conversation into static files (trimmed conversation, audio, the agent config as pushed, a zip) that /review/<id> replays with the transcript, tool calls and workflow following the audio.",
     context: "Reviewers cannot open a Conversation ID from another ElevenLabs workspace.",

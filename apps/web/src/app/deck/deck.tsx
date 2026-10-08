@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { THEME_KEY } from "@/components/theme-toggle";
+import { flipTheme, toggleFullscreen as fullscreen } from "./controls";
 import { SLIDES } from "./slides";
 import s from "./deck.module.css";
 
@@ -27,21 +27,6 @@ export function Deck() {
     window.dispatchEvent(new HashChangeEvent("hashchange"));
   }, []);
 
-  const flipTheme = useCallback(() => {
-    const root = document.documentElement;
-    const current = root.dataset.theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    const next = current === "dark" ? "light" : "dark";
-    root.dataset.theme = next;
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch {}
-  }, []);
-
-  const fullscreen = useCallback(() => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void document.documentElement.requestFullscreen?.();
-  }, []);
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -64,7 +49,7 @@ export function Deck() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [index, show, fullscreen, flipTheme]);
+  }, [index, show]);
 
   const slide = SLIDES[index];
   const progress = ((index + 1) / SLIDES.length) * 100;
