@@ -1,0 +1,42 @@
+/* Platform test panel (test-results.tsx): semantic tokens from globals.css only, so light and dark both follow the theme. */
+
+.panel { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 24px; }
+.panel:target { border-color: var(--primary-ink); box-shadow: 0 0 0 2px var(--primary-soft), var(--shadow); }
+.head { display: flex; flex-direction: column; gap: 8px; max-width: 72ch; }
+.lede { font-family: var(--font-serif); font-size: 1.0625rem; line-height: 1.55; color: var(--foreground-soft); }
+
+.stat { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.stat p { max-width: 60ch; }
+
+.story { padding: 10px 14px; background: var(--surface-brand); border-left: 3px solid var(--ok); line-height: 1.5; }
+
+.tableWrap { overflow-x: auto; border: 1px solid var(--rule); }
+.table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+.table th { text-align: left; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--muted-foreground); padding: 10px 12px; background: var(--surface-2); }
+.table td { padding: 10px 12px; border-top: 1px solid var(--rule); vertical-align: top; line-height: 1.45; }
+.table td strong { display: block; font-weight: 600; }
+.num { text-align: right; white-space: nowrap; }
+.key { display: block; margin-top: 2px; font-size: 0.75rem; color: var(--muted-foreground); }
+.type { white-space: nowrap; }
+.type span { display: block; }
+.checksOne, .checks summary { color: var(--foreground-soft); }
+.checks summary { cursor: pointer; }
+.checks ul { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; padding-left: 16px; list-style: disc; font-size: 0.875rem; color: var(--foreground-soft); }
+
+.note { font-size: 0.875rem; color: var(--muted-foreground); border-left: 3px solid var(--attn); padding: 4px 0 4px 12px; }
+
+.history summary { cursor: pointer; font-weight: 600; font-size: 0.9375rem; }
+.history ol { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; font-size: 0.875rem; }
+.history li { display: grid; grid-template-columns: 11em minmax(0, 1fr) auto; gap: 12px; align-items: baseline; color: var(--foreground-soft); }
+
+.layers { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--rule); padding-top: 16px; }
+@media (min-width: 1000px) { .layers { grid-template-columns: 1fr 1fr; } }
+.layers > div { display: flex; flex-direction: column; gap: 8px; }
+.list { display: flex; flex-direction: column; gap: 6px; }
+.list li { line-height: 1.45; }
+.list code { font-size: 0.8125rem; }
+.fields { display: flex; flex-wrap: wrap; gap: 6px; }
+.fields code { font-size: 0.75rem; padding: 2px 6px; background: var(--surface-2); }
+
+.rerun { border-top: 1px solid var(--rule); padding-top: 12px; }
+.line { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }

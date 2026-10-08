@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { EhrPanel } from "@/components/ehr-panel";
+import results from "@/test-results/results.json";
+import { TestedLine } from "@/components/test-results";
 import { EHR_URL } from "@/ehr-console";
 import s from "./home.module.css";
 
@@ -25,7 +27,7 @@ const BUILT_ON = [
   { name: "Agent workflow", text: "Five stage nodes with LLM-routed edges; the History node runs a stronger LLM than the scripted stages." },
   { name: "10 webhook tools", text: "Consent, find and save patient, questionnaire, save history, availability, book, reschedule, callback, escalate." },
   { name: "Knowledge base with RAG", text: "Privacy notice, first-visit guide and FAQ; off-script answers stay grounded." },
-  { name: "Evaluation and data collection", text: "Six evaluation criteria (consent first, no diagnosis, red flag not booked) and ten data collection fields." },
+  { name: "Evaluation and data collection", text: `${results.evaluation_criteria.length} evaluation criteria (consent first, identity verified first, no diagnosis, red flag not booked) and ${results.data_collection.length} data collection fields.` },
   { name: "Language presets", text: "es-MX by default; an en preset with its own first message and voice." },
   { name: "Post-call webhook", text: "HMAC-verified; transcripts, evaluations and collected data feed the call review." },
   { name: "React SDK", text: "@elevenlabs/react drives the live explainer: transcript, tool calls and workflow state." },
@@ -131,6 +133,7 @@ export default function Home() {
           Built on <em>ElevenLabs</em> Agents
         </h2>
         <p className="sub">The agent is configuration as code (agent/ in the repo), pushed with the ElevenLabs CLI.</p>
+        <TestedLine />
         <ul className={s.builtList}>
           {BUILT_ON.map((b) => (
             <li key={b.name}>

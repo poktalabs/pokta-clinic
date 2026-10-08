@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TestResults } from "@/components/test-results";
 import { DECISIONS, GROUPS, REPO_BLOB, type Decision } from "@/decisions/data";
 import styles from "./decisions.module.css";
 
@@ -102,6 +103,8 @@ export default function DecisionsPage() {
             The GitHub repository (poktalabs/pokta-clinic) is private: code links work for people with access.
           </p>
         </section>
+
+        <TestResults id="testing" kicker="Evidence" title="How it is tested" />
 
         <nav aria-label="Decision index" className={styles.index}>
           {GROUPS.map((g) => (

@@ -26,6 +26,7 @@
     "agent:tests:push": "dotenv -e .env.local -- tsx agent/scripts/push-tests.ts",
     "agent:tests:push:apply": "dotenv -e .env.local -- tsx agent/scripts/push-tests.ts --apply",
     "agent:tests:run": "dotenv -e .env.local -- tsx agent/scripts/run-tests.ts",
+    "tests:export": "dotenv -e .env.local -- tsx scripts/export-test-results.ts",
     "review:export": "dotenv -e .env.local -- tsx scripts/export-conversation.ts",
     "tools:catalog": "tsx scripts/build-tools-catalog.ts"
   },
