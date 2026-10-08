@@ -1,22 +1,33 @@
 import type { Child } from "hono/jsx";
+import { ThemeScript, ThemeToggle, themeCss } from "../theme.js";
 import type { Tone } from "./format.js";
 
 // The client console: what a clinic administrator at Grupo Médico Articular uses. Read-only, server-rendered,
-// no client JS. JSX escapes every interpolated value. Visual system: RheumAI design tokens ("Frontier Lab
-// Notebook": cool off-white ground, one cobalt hue, serif reads / sans scans, zero radius, one soft shadow).
+// no client JS beyond the theme toggle (../theme.tsx). JSX escapes every interpolated value. Visual system: RheumAI
+// design tokens ("Frontier Lab Notebook": cool off-white ground, one cobalt hue, serif reads / sans scans, zero
+// radius, one soft shadow).
 const css = `
 @font-face{font-family:"Source Serif 4";src:url(/assets/fonts/source-serif-4.woff2) format("woff2");font-weight:200 900;font-display:swap}
 @font-face{font-family:"Manrope";src:url(/assets/fonts/manrope.woff2) format("woff2");font-weight:200 800;font-display:swap}
 @font-face{font-family:"Funnel Display";src:url(/assets/fonts/funnel-display.woff2) format("woff2");font-weight:300 800;font-display:swap}
 @font-face{font-family:"IBM Plex Mono";src:url(/assets/fonts/ibm-plex-mono-400.woff2) format("woff2");font-weight:400;font-display:swap}
-:root{
-  color-scheme:light;
-  --background:#EBEEF4;--surface:#FFFFFF;--surface-2:#E2E6F0;
+/* Light --attn is darkened from RheumAI's #9C6A15 (4.0:1 on its pill tint) to clear AA for the 12px pills. */
+${themeCss(
+  `--background:#EBEEF4;--surface:#FFFFFF;--surface-2:#E2E6F0;
   --foreground:#14161C;--foreground-soft:#545B6B;--muted:#646B7D;--rule:#CDD4E0;
   --primary:#3333DE;--primary-fg:#FFFFFF;--primary-ink:#3333DE;
   --surface-brand:color-mix(in srgb,var(--primary) 9%,var(--surface));
-  --ok:#1F7A54;--attn:#9C6A15;--spot:#C1362B;
-  --shadow:0 1px 2px rgba(20,22,28,.06),0 18px 40px -16px rgba(20,22,28,.20);
+  --ok:#1F7A54;--attn:#8A5D12;--spot:#C1362B;
+  --shadow:0 1px 2px rgba(20,22,28,.06),0 18px 40px -16px rgba(20,22,28,.20);`,
+  // RheumAI's dark set, with --muted and --primary-ink lifted from the spec (#808799, #5A5AFF) to clear AA on --surface.
+  `--background:#141621;--surface:#1D2231;--surface-2:#262C3C;
+  --foreground:#E9EBF2;--foreground-soft:#A2A9BA;--muted:#8C93A5;--rule:#363D4F;
+  --primary:#3333DE;--primary-ink:#8A8AFF;
+  --surface-brand:color-mix(in srgb,var(--primary-ink) 12%,var(--surface));
+  --ok:#57C89A;--attn:#E0A24A;--spot:#F0796B;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 42px -16px rgba(0,0,0,.66);`,
+)}
+:root{
   --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
   --sans:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
   --wordmark:"Funnel Display","Manrope",system-ui,sans-serif;
@@ -24,15 +35,6 @@ const css = `
   --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;
   --radius:0;--sidebar:248px;
 }
-@media (prefers-color-scheme:dark){:root{
-  color-scheme:dark;
-  --background:#141621;--surface:#1D2231;--surface-2:#262C3C;
-  --foreground:#E9EBF2;--foreground-soft:#A2A9BA;--muted:#8C93A5;--rule:#363D4F;
-  --primary:#3333DE;--primary-ink:#8A8AFF;
-  --surface-brand:color-mix(in srgb,var(--primary-ink) 12%,var(--surface));
-  --ok:#57C89A;--attn:#E0A24A;--spot:#F0796B;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 42px -16px rgba(0,0,0,.66);
-}}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--background);color:var(--foreground);font:400 15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
@@ -71,7 +73,16 @@ code,.mono{font-family:var(--mono);font-size:.85em}
 .main{min-width:0;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--s4);padding:var(--s3) var(--s6);border-bottom:1px solid var(--rule);background:var(--background);font-size:.8125rem;color:var(--foreground-soft)}
 .topbar .user{display:flex;align-items:center;gap:var(--s3)}
+.topbar .end{display:flex;align-items:center;gap:var(--s5)}
+.theme-toggle{display:inline-flex;border:1px solid var(--rule);background:var(--surface)}
+.theme-toggle button{font:600 .75rem/1.5 var(--sans);padding:3px 10px;border:0;background:none;color:var(--foreground-soft);cursor:pointer}
+.theme-toggle button+button{border-left:1px solid var(--rule)}
+.theme-toggle button:hover{color:var(--foreground);background:var(--surface-2)}
+.theme-toggle button[aria-pressed="true"]{background:var(--primary);color:var(--primary-fg)}
 .avatar{width:28px;height:28px;display:grid;place-items:center;background:var(--foreground);color:var(--background);font-weight:700;font-size:.75rem}
+.gate{max-width:34rem;margin:0 auto;padding:var(--s7) var(--s4);display:flex;flex-direction:column;gap:var(--s5)}
+.gate .brand{padding:0}
+.gate .theme-toggle{align-self:flex-start}
 .content{padding:var(--s6);max-width:1240px;width:100%}
 .footer{padding:var(--s5) var(--s6) var(--s6);color:var(--muted);font-size:.75rem;max-width:1240px}
 
@@ -170,6 +181,8 @@ blockquote.words{margin:0;padding:var(--s3) var(--s4);background:var(--surface-2
   .nav .count{display:none}
   .sidebar-foot{display:none}
   .topbar{padding:var(--s3) var(--s4)}
+  .topbar .end{gap:var(--s3)}
+  .topbar .user>span:first-child{display:none}
   .content{padding:var(--s5) var(--s4)}
   .footer{padding:var(--s4)}
   .grid-2,.grid-3{grid-template-columns:1fr}
@@ -203,28 +216,37 @@ const NAV: { group: string; items: { key: NavKey; href: string; label: string }[
   { group: "Cumplimiento", items: [{ key: "auditoria", href: "/auditoria", label: "Bitácora de auditoría" }] },
 ];
 
+const Head = (props: { title: string }) => (
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>{`${props.title} · PoktaClinic`}</title>
+    <link rel="preload" href="/assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin="" />
+    <link rel="preload" href="/assets/fonts/source-serif-4.woff2" as="font" type="font/woff2" crossorigin="" />
+    <ThemeScript />
+    <style dangerouslySetInnerHTML={{ __html: css }} />
+  </head>
+);
+
+const Brand = () => (
+  <a class="brand" href="/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="wordmark">
+      Pokta<span>Clinic</span>
+    </span>
+  </a>
+);
+
 export const ClientLayout = (props: { title: string; active?: NavKey; children?: Child }) => (
   <html lang="es-MX">
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <meta name="robots" content="noindex, nofollow" />
-      <meta name="referrer" content="no-referrer" />
-      <title>{`${props.title} · PoktaClinic`}</title>
-      <link rel="preload" href="/assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin="" />
-      <link rel="preload" href="/assets/fonts/source-serif-4.woff2" as="font" type="font/woff2" crossorigin="" />
-      <style dangerouslySetInnerHTML={{ __html: css }} />
-    </head>
+    <Head title={props.title} />
     <body>
       <a class="skip" href="#contenido">Saltar al contenido</a>
       <div class="shell">
         <aside class="sidebar" aria-label="Navegación principal">
-          <a class="brand" href="/">
-            <span class="brand-mark" aria-hidden="true"></span>
-            <span class="wordmark">
-              Pokta<span>Clinic</span>
-            </span>
-          </a>
+          <Brand />
           <div class="tenant">
             <b>Grupo Médico Articular</b>
             <small>Reumatología · 3 sucursales</small>
@@ -254,10 +276,13 @@ export const ClientLayout = (props: { title: string; active?: NavKey; children?:
             <span>
               <Pill tone="brand">Solo lectura</Pill>
             </span>
-            <span class="user">
-              <span>Administración de la clínica</span>
-              <span class="avatar" aria-hidden="true">
-                AD
+            <span class="end">
+              <ThemeToggle lang="es" />
+              <span class="user">
+                <span>Administración de la clínica</span>
+                <span class="avatar" aria-hidden="true">
+                  AD
+                </span>
               </span>
             </span>
           </header>
@@ -417,4 +442,22 @@ export const NotFoundPage = (props: { what: string; back: { label: string; href:
     <PageHeader title={`${props.what} no encontrado`} lede="El registro no existe o el enlace está incompleto." />
     <a href={props.back.href}>{props.back.label}</a>
   </ClientLayout>
+);
+
+/** The 401 body (shown when the Basic auth prompt is dismissed): no shell, no data, just how to get back in. */
+export const UnauthorizedPage = () => (
+  <html lang="es-MX">
+    <Head title="Acceso restringido" />
+    <body>
+      <main class="gate">
+        <Brand />
+        <div class="card stack">
+          <span class="kicker">Error 401</span>
+          <h1>Acceso restringido</h1>
+          <p class="soft">Esta consola muestra datos de pacientes y requiere la contraseña de la clínica. Recarga la página para volver a intentarlo.</p>
+        </div>
+        <ThemeToggle lang="es" />
+      </main>
+    </body>
+  </html>
 );

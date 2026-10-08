@@ -1,0 +1,64 @@
+/* Home page. Uses the semantic tokens from globals.css only. */
+
+.page { display: flex; flex-direction: column; gap: 40px; padding-top: 48px; padding-bottom: 64px; }
+
+/* ---- hero ---- */
+.hero { display: flex; flex-direction: column; }
+.ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 28px; }
+.ctas > span { max-width: 44ch; }
+.primary { display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; font-size: 1.0625rem; text-decoration: none; }
+.secondary { display: grid; gap: 1px; margin-top: 28px; background: var(--rule); border: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 560px) { .secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .secondary { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.secLink { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; background: var(--surface); color: var(--foreground); text-decoration: none; transition: background 0.15s ease; }
+.secLink strong { color: var(--accent-text); font-size: 0.9375rem; }
+.secLink span { font-size: 0.8125rem; color: var(--muted-foreground); }
+.secLink:hover { background: var(--primary-soft); }
+.secLink:focus-visible { outline-offset: -2px; }
+
+/* ---- why it matters ---- */
+.why { display: flex; flex-direction: column; gap: 16px; }
+.why > p { max-width: 72ch; }
+.stats { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--surface-brand); padding: 20px 24px; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 6px; }
+.stat dt { font-size: 0.9375rem; color: var(--foreground-soft); max-width: 40ch; }
+.stat dd { margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.big { font-family: var(--font-serif); font-size: clamp(2.5rem, 6vw, 3.5rem); line-height: 1; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.sources { font-size: 0.75rem; color: var(--muted-foreground); }
+
+/* ---- how it works ---- */
+.flow { display: grid; gap: 12px; margin-top: 20px; grid-template-columns: minmax(0, 1fr); counter-reset: none; }
+@media (min-width: 900px) { .flow { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; } }
+.node { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; background: var(--surface-2); border: 1px solid var(--rule); }
+.node strong { font-size: 0.9375rem; }
+.node span { font-size: 0.8125rem; color: var(--foreground-soft); }
+.node:nth-child(2) { background: var(--primary-soft); border-color: var(--primary-ink); }
+/* Arrows between nodes: down on narrow screens, right on wide ones. */
+.node + .node::before { content: "↓"; position: absolute; left: 50%; top: -12px; transform: translate(-50%, -50%); color: var(--muted-foreground); font-size: 0.875rem; line-height: 1; }
+@media (min-width: 900px) {
+  .node + .node::before { content: "→"; left: -14px; top: 50%; }
+}
+.stages { display: grid; gap: 1px; margin-top: 16px; background: var(--rule); border: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .stages { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.stage { background: var(--surface); padding: 16px 18px; }
+.stage h3 { font-size: 1.0625rem; margin: 2px 0 4px; }
+.stage p { font-size: 0.875rem; color: var(--foreground-soft); }
+.n { font-weight: 700; font-size: 0.8125rem; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.spot { background: color-mix(in srgb, var(--spot) 8%, var(--surface)); }
+.spot .n { color: var(--spot); }
+
+/* ---- built on ElevenLabs ---- */
+.built { display: flex; flex-direction: column; }
+.builtList { display: grid; gap: 1px; margin-top: 20px; background: var(--rule); border: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .builtList { grid-template-columns: repeat(2, minmax(0, 1fr)); } .builtList li:last-child { grid-column: span 2; } }
+@media (min-width: 1100px) { .builtList { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.builtList li { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.builtList strong { font-size: 0.9375rem; }
+.builtList span { font-size: 0.875rem; color: var(--foreground-soft); }
+
+/* ---- operator ---- */
+.ops { display: grid; gap: 24px; padding-top: 32px; border-top: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .ops { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); } }
+.opsLinks { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 0.875rem; }

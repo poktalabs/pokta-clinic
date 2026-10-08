@@ -23,7 +23,11 @@
     "scripts:typecheck": "tsc -p scripts/tsconfig.json",
     "agent:converse": "dotenv -e .env.local -- tsx scripts/agent-converse.ts",
     "agent:test": "dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents test'",
-    "review:export": "dotenv -e .env.local -- tsx scripts/export-conversation.ts"
+    "agent:tests:push": "dotenv -e .env.local -- tsx agent/scripts/push-tests.ts",
+    "agent:tests:push:apply": "dotenv -e .env.local -- tsx agent/scripts/push-tests.ts --apply",
+    "agent:tests:run": "dotenv -e .env.local -- tsx agent/scripts/run-tests.ts",
+    "review:export": "dotenv -e .env.local -- tsx scripts/export-conversation.ts",
+    "tools:catalog": "tsx scripts/build-tools-catalog.ts"
   },
   "devDependencies": {
     "@elevenlabs/cli": "^1.4.0",

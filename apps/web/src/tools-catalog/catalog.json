@@ -1,0 +1,694 @@
+{
+  "_generated": "by scripts/build-tools-catalog.ts from agent/src; do not edit by hand",
+  "webhook": {
+    "method": "POST",
+    "path": "/api/tools/<name>",
+    "secretHeader": "x-pokta-tool-secret",
+    "timeoutSecs": 10
+  },
+  "agentLlm": "gemini-3.5-flash",
+  "globalToolIds": [],
+  "dynamicVariables": [
+    "system__conversation_id"
+  ],
+  "nodes": [
+    {
+      "id": "consent",
+      "label": "Consent",
+      "llm": "gemini-3.5-flash",
+      "tools": [
+        "record_consent"
+      ],
+      "leadsTo": [
+        "Escalation",
+        "Identification",
+        "End"
+      ]
+    },
+    {
+      "id": "identification",
+      "label": "Identification",
+      "llm": "gemini-3.5-flash",
+      "tools": [
+        "find_patient",
+        "save_patient"
+      ],
+      "leadsTo": [
+        "Escalation",
+        "Scheduling",
+        "History",
+        "End"
+      ]
+    },
+    {
+      "id": "history",
+      "label": "History",
+      "llm": "claude-sonnet-5",
+      "tools": [
+        "get_questionnaire",
+        "save_history"
+      ],
+      "leadsTo": [
+        "Escalation",
+        "Scheduling",
+        "End"
+      ]
+    },
+    {
+      "id": "scheduling",
+      "label": "Scheduling",
+      "llm": "gemini-3.5-flash",
+      "tools": [
+        "check_availability",
+        "book_appointment",
+        "reschedule_appointment",
+        "request_callback"
+      ],
+      "leadsTo": [
+        "Escalation",
+        "End"
+      ]
+    },
+    {
+      "id": "escalation",
+      "label": "Escalation",
+      "llm": "gemini-3.5-flash",
+      "tools": [
+        "escalate"
+      ],
+      "leadsTo": [
+        "End"
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "name": "record_consent",
+      "description": "Records the caller's answer to the aviso de privacidad. Call it exactly once, right after the caller gives a clear yes or a clear no to the consent question, and never before. Pass granted=true for a clear yes and granted=false for a clear no. Do not call it for an unclear or missing answer: ask again instead. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "Consent"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        },
+        {
+          "name": "granted",
+          "type": "boolean",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "true if the caller expressly agreed to the aviso de privacidad, false if the caller refused."
+        }
+      ],
+      "delivery": {
+        "toolCallSound": null,
+        "toolCallSoundBehavior": null,
+        "interruptionMode": "allow"
+      },
+      "specPath": "agent/src/tools/record-consent.ts",
+      "routePath": "apps/web/src/app/api/tools/record_consent/route.ts"
+    },
+    {
+      "name": "find_patient",
+      "description": "Looks up whether the GMA network already has a record for a phone number. Call it once the caller has given a 10-digit phone number and consent was granted, and before asking for any other personal data. It returns only the given name, which you must confirm with the caller before using the record. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "Identification"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The caller's phone number as 10 digits, with no spaces, dashes, country code or +52. Example: 5512345678."
+        }
+      ],
+      "delivery": {
+        "toolCallSound": null,
+        "toolCallSoundBehavior": null,
+        "interruptionMode": "allow"
+      },
+      "specPath": "agent/src/tools/find-patient.ts",
+      "routePath": "apps/web/src/app/api/tools/find_patient/route.ts"
+    },
+    {
+      "name": "save_patient",
+      "description": "Registers a new patient. Call it only when find_patient found no record, or the caller said they are not the person on the record, and you have at least the nombre, primer apellido and phone. Pass optional fields only if the caller gave them; never invent or guess a value. Call it once per person. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "Identification"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        },
+        {
+          "name": "nombre",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "Given name(s) of the patient, as the caller said them. Example: María Fernanda."
+        },
+        {
+          "name": "primer_apellido",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "First surname (apellido paterno). Example: Hernández."
+        },
+        {
+          "name": "segundo_apellido",
+          "type": "string",
+          "required": false,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "Second surname (apellido materno). Omit it if the caller has none or does not want to say."
+        },
+        {
+          "name": "telefono",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The same 10-digit phone number used with find_patient, digits only."
+        },
+        {
+          "name": "fecha_nacimiento",
+          "type": "string",
+          "required": false,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "Date of birth in YYYY-MM-DD format. Convert what the caller says and confirm it aloud first. Omit it if not given. Example: 1984-03-27."
+        },
+        {
+          "name": "sexo",
+          "type": "string",
+          "required": false,
+          "enum": [
+            "H",
+            "M"
+          ],
+          "dynamicVariable": null,
+          "children": [],
+          "description": "Sex as recorded on the caller's official ID: H for hombre, M for mujer. Omit it if the caller prefers not to say."
+        }
+      ],
+      "delivery": {
+        "toolCallSound": null,
+        "toolCallSoundBehavior": null,
+        "interruptionMode": "allow"
+      },
+      "specPath": "agent/src/tools/save-patient.ts",
+      "routePath": "apps/web/src/app/api/tools/save_patient/route.ts"
+    },
+    {
+      "name": "get_questionnaire",
+      "description": "Returns the required items of the first-visit questionnaire, each with a link_id and the question text in Spanish. Call it once, at the start of the History stage, before asking the first question. Use the items as a checklist: you decide the order and the follow-ups, but every item must end up covered. Keep the link_id values, they are what save_history needs. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "History"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        }
+      ],
+      "delivery": {
+        "toolCallSound": null,
+        "toolCallSoundBehavior": null,
+        "interruptionMode": "allow"
+      },
+      "specPath": "agent/src/tools/get-questionnaire.ts",
+      "routePath": "apps/web/src/app/api/tools/get_questionnaire/route.ts"
+    },
+    {
+      "name": "save_history",
+      "description": "Saves the patient's answers to the first-visit questionnaire. Call it with status completed once every required item from get_questionnaire is covered. If the response lists missing link_ids, ask about those items and call it again. If the caller must stop early, call it with status in-progress so nothing is lost. Send the answers gathered so far each time. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "History"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        },
+        {
+          "name": "patient_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The patient's ID exactly as returned by find_patient or save_patient earlier in this conversation. Never invent it."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "in-progress",
+            "completed"
+          ],
+          "dynamicVariable": null,
+          "children": [],
+          "description": "completed when every required item is covered, in-progress when the caller must stop before that."
+        },
+        {
+          "name": "answers",
+          "type": "array of object",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [
+            {
+              "name": "link_id",
+              "type": "string",
+              "required": true,
+              "enum": null,
+              "dynamicVariable": null,
+              "children": [],
+              "description": "The link_id of the item, exactly as returned by get_questionnaire."
+            },
+            {
+              "name": "answer",
+              "type": "string",
+              "required": true,
+              "enum": null,
+              "dynamicVariable": null,
+              "children": [],
+              "description": "What the patient said for this item, in their own words, short. Do not interpret or rephrase it clinically."
+            }
+          ],
+          "description": "One entry per questionnaire item answered so far, in the patient's own words, kept short. Skip items not yet asked."
+        },
+        {
+          "name": "chief_complaint",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The main reason for the visit in the patient's own words, one short sentence. Example: me duelen las manos desde hace tres meses."
+        }
+      ],
+      "delivery": {
+        "toolCallSound": null,
+        "toolCallSoundBehavior": null,
+        "interruptionMode": "allow"
+      },
+      "specPath": "agent/src/tools/save-history.ts",
+      "routePath": "apps/web/src/app/api/tools/save_history/route.ts"
+    },
+    {
+      "name": "check_availability",
+      "description": "Returns up to 3 free first-consultation slots across the GMA branches, each with branch (code), branch_name, practitioner_name, an ISO start and a Spanish label to say aloud. Call it once you know which branch the caller prefers (or that they have no preference) and the History stage is saved as completed, and again if the caller asks for another day, another time or another branch. When the caller gives a time range, pass it as time_from and time_to so every slot returned fits it. Only offer slots this tool returned; never invent or adjust a time or a branch. If it returns no slots, say so and ask for a different day, part of the day or branch. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "Scheduling"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "required": false,
+          "enum": [
+            "del-valle",
+            "polanco",
+            "satelite",
+            "any"
+          ],
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The branch code that matches what the caller said. Map neighborhoods, streets and references to a code: Del Valle, Insurgentes, 'la de Insurgentes' or 'la del Sur' is del-valle; Polanco or Masaryk is polanco; Satélite, Naucalpan, 'la del Estado de México' or 'la más cercana a Naucalpan' is satelite. Use any if the caller has no preference. Defaults to any if omitted."
+        },
+        {
+          "name": "preferred_date",
+          "type": "string",
+          "required": false,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The day the caller prefers, as YYYY-MM-DD. Convert what the caller says using today's date. Omit it if the caller has no preference. Example: 2026-10-12."
+        },
+        {
+          "name": "part_of_day",
+          "type": "string",
+          "required": false,
+          "enum": [
+            "morning",
+            "afternoon"
+          ],
+          "dynamicVariable": null,
+          "children": [],
+          "description": "morning or afternoon if the caller expressed only a general preference. Omit it when you send time_from or time_to."
+        },
+        {
+          "name": "time_from",
+          "type": "string",
+          "required": false,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "Earliest start the caller can do, as HH:MM in 24-hour Mexico City time, when they give a time or a range. Example: for 'de 11 a 2' send 11:00."
+        },
+        {
+          "name": "time_to",
+          "type": "string",
+          "required": false,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "Latest time the 60-minute consultation must end by, as HH:MM in 24-hour Mexico City time. Example: for 'de 11 a 2' send 14:00."
+        }
+      ],
+      "delivery": {
+        "toolCallSound": "typing",
+        "toolCallSoundBehavior": "always",
+        "interruptionMode": "allow"
+      },
+      "specPath": "agent/src/tools/check-availability.ts",
+      "routePath": "apps/web/src/app/api/tools/check_availability/route.ts"
+    },
+    {
+      "name": "book_appointment",
+      "description": "Books the first consultation in a slot the caller chose. Call it once, only after the caller picked one of the slots returned by check_availability, passing that slot's branch and start exactly as returned. It returns the confirmed branch name, branch address, practitioner name and the date and time as a Spanish label: read the day, date, time, branch name and practitioner name back to the caller, and say the address once. If the slot was taken meanwhile, the response says so: offer the caller other slots with check_availability. Never call it after a red flag. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "Scheduling"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        },
+        {
+          "name": "patient_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The patient's ID exactly as returned by find_patient or save_patient earlier in this conversation. Never invent it."
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "del-valle",
+            "polanco",
+            "satelite"
+          ],
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The branch code of the chosen slot, copied exactly as check_availability returned it in that slot's branch field. Never infer it from what the caller said."
+        },
+        {
+          "name": "start",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The ISO start of the chosen slot, copied exactly as check_availability returned it. Never build or edit it yourself."
+        }
+      ],
+      "delivery": {
+        "toolCallSound": null,
+        "toolCallSoundBehavior": null,
+        "interruptionMode": "disable_during_tool"
+      },
+      "specPath": "agent/src/tools/book-appointment.ts",
+      "routePath": "apps/web/src/app/api/tools/book_appointment/route.ts"
+    },
+    {
+      "name": "reschedule_appointment",
+      "description": "Moves a returning caller's upcoming first consultation to a new slot: it books the new one and then cancels the old one. Use it instead of book_appointment when find_patient returned an upcoming_appointment and the caller wants to change it. Call it once, after the caller picked one of the slots returned by check_availability, passing that slot's branch and start exactly as returned. Read back the cancelled and the new appointment. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "Scheduling"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        },
+        {
+          "name": "patient_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The patient's ID exactly as returned by find_patient earlier in this conversation."
+        },
+        {
+          "name": "appointment_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The appointment_id of the upcoming_appointment returned by find_patient. Never invent it."
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "del-valle",
+            "polanco",
+            "satelite"
+          ],
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The branch code of the chosen slot, copied exactly as check_availability returned it."
+        },
+        {
+          "name": "start",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The ISO start of the chosen slot, copied exactly as check_availability returned it."
+        }
+      ],
+      "delivery": {
+        "toolCallSound": null,
+        "toolCallSoundBehavior": null,
+        "interruptionMode": "disable_during_tool"
+      },
+      "specPath": "agent/src/tools/reschedule-appointment.ts",
+      "routePath": "apps/web/src/app/api/tools/reschedule_appointment/route.ts"
+    },
+    {
+      "name": "request_callback",
+      "description": "Records that the clinic must call the caller back to schedule, when no offered slot works for them, when they prefer a call, or when the scheduling tools failed. It creates a task in the clinic record, a reminder in the branch calendar and emails the front desk (and the caller, when they gave an email on the page). Call it once, only after the caller agreed to be called back and told you when they can take the call. Never call it after a red flag. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "Scheduling"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        },
+        {
+          "name": "patient_id",
+          "type": "string",
+          "required": false,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The patient's ID exactly as returned by find_patient or save_patient earlier in this conversation. Omit it only if the caller was never identified."
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "required": false,
+          "enum": [
+            "del-valle",
+            "polanco",
+            "satelite"
+          ],
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The branch the caller prefers, if they said one. Omit it otherwise."
+        },
+        {
+          "name": "availability",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "When the caller can take the call, in their words, short and in Spanish. Example: 'entre semana de 11 a 2'."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "no_suitable_slot",
+            "caller_prefers",
+            "tools_failed"
+          ],
+          "dynamicVariable": null,
+          "children": [],
+          "description": "no_suitable_slot if none of the offered slots worked, caller_prefers if they asked to be called, tools_failed if the scheduling tools did not respond."
+        }
+      ],
+      "delivery": {
+        "toolCallSound": null,
+        "toolCallSoundBehavior": null,
+        "interruptionMode": "allow"
+      },
+      "specPath": "agent/src/tools/request-callback.ts",
+      "routePath": "apps/web/src/app/api/tools/request_callback/route.ts"
+    },
+    {
+      "name": "escalate",
+      "description": "Logs a red flag Escalation and notifies the practitioner. Call it exactly once, in the Escalation stage, while you give the escalation script (do not wait for the end of the script to call it, and do not skip the script because of it). It works at any point, with or without consent. Pass patient_id only if the caller was already identified in this conversation. The response has a message field that says what to do next; follow it.",
+      "nodes": [
+        "Escalation"
+      ],
+      "params": [
+        {
+          "name": "conversation_id",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": "system__conversation_id",
+          "children": [],
+          "description": null
+        },
+        {
+          "name": "severity",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "emergencia",
+            "urgencia"
+          ],
+          "dynamicVariable": null,
+          "children": [],
+          "description": "emergencia if the caller must call 911 now, urgencia if the caller must go to an emergency room today. If in doubt, emergencia."
+        },
+        {
+          "name": "patient_words",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The caller's exact words describing the symptom, as transcribed. Do not paraphrase or interpret."
+        },
+        {
+          "name": "instruction_given",
+          "type": "string",
+          "required": true,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "What you told the caller to do: call 911, call Línea de la Vida 800 911 2000, or go to the emergency room today."
+        },
+        {
+          "name": "patient_id",
+          "type": "string",
+          "required": false,
+          "enum": null,
+          "dynamicVariable": null,
+          "children": [],
+          "description": "The patient's ID as returned by find_patient or save_patient. Omit it if the caller was not identified yet."
+        }
+      ],
+      "delivery": {
+        "toolCallSound": null,
+        "toolCallSoundBehavior": null,
+        "interruptionMode": "allow"
+      },
+      "specPath": "agent/src/tools/escalate.ts",
+      "routePath": "apps/web/src/app/api/tools/escalate/route.ts"
+    }
+  ],
+  "systemTools": {
+    "used": [
+      "language_detection"
+    ],
+    "notUsed": [
+      "end_call",
+      "transfer_to_agent",
+      "transfer_to_number",
+      "skip_turn",
+      "play_keypad_touch_tone",
+      "voicemail_detection"
+    ],
+    "workflowNodeTypes": [
+      "start",
+      "override_agent",
+      "end"
+    ]
+  }
+}

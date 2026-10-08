@@ -101,7 +101,7 @@ a { color: var(--accent-text); text-underline-offset: 3px; }
 /* ---- layout ---- */
 .wrap { min-width: 0; width: 100%; max-width: 1240px; margin: 0 auto; padding: 0 24px; }
 .wrap-narrow { max-width: 1080px; }
-.site-header { border-bottom: 1px solid var(--rule); background: var(--background); }
+.site-header { position: relative; z-index: 20; border-bottom: 1px solid var(--rule); background: var(--background); }
 .site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 68px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--foreground); text-decoration: none; }
 .brand img { width: 20px; height: 20px; display: block; }
@@ -191,7 +191,6 @@ a { color: var(--accent-text); text-underline-offset: 3px; }
 .escalation { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--rule); background: var(--surface-2); }
 
 /* ---- footer / admin ---- */
-.site-footer { border-top: 1px solid var(--rule); padding: 20px 0 40px; font-size: 0.875rem; display: flex; flex-wrap: wrap; gap: 4px 24px; }
 .login { max-width: 420px; margin: 0 auto; padding: 80px 24px; }
 .login .card { margin-top: 24px; }
 .field { display: block; }
@@ -352,5 +351,35 @@ a { color: var(--accent-text); text-underline-offset: 3px; }
 .r-index .card { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .r-inspector .link-btn { align-self: flex-start; }
 .r-files + .x-subhead { margin-top: 14px; }
-.r-nav { white-space: nowrap; }
-@media (max-width: 600px) { .r-nav { display: none; } }
+
+/* ---- site chrome: shared header nav and footer (components/site-nav.tsx) ---- */
+.site-nav { margin-left: auto; }
+.nav-list { display: flex; align-items: center; gap: 2px; }
+.nav-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 0.875rem; font-weight: 600; white-space: nowrap; color: var(--foreground-soft); text-decoration: none; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
+.nav-link:hover { color: var(--foreground); }
+.nav-link.is-active { color: var(--accent-text); border-bottom-color: var(--primary-ink); }
+.nav-ext { color: var(--muted-foreground); }
+.nav-lock { flex: none; opacity: 0.8; }
+.nav-toggle { display: none; font: inherit; font-size: 0.875rem; font-weight: 600; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; background: var(--surface); color: var(--foreground); border: 1px solid var(--rule); }
+.nav-toggle-bars, .nav-toggle-bars::before, .nav-toggle-bars::after { display: block; width: 14px; height: 2px; background: currentColor; }
+.nav-toggle-bars { position: relative; }
+.nav-toggle-bars::before, .nav-toggle-bars::after { content: ""; position: absolute; left: 0; }
+.nav-toggle-bars::before { top: -5px; }
+.nav-toggle-bars::after { top: 5px; }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars { background: transparent; }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars::before { top: 0; transform: rotate(45deg); }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars::after { top: 0; transform: rotate(-45deg); }
+.site-header .theme-toggle { white-space: nowrap; font-size: 0.8125rem; }
+@media (max-width: 1000px) and (min-width: 841px) { .nav-link { padding: 6px 7px; font-size: 0.8125rem; } }
+@media (max-width: 840px) {
+  .nav-toggle { display: inline-flex; }
+  .nav-list { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0; padding: 8px 24px 16px; background: var(--background); border-bottom: 1px solid var(--rule); box-shadow: var(--shadow); }
+  .nav-list.is-open { display: flex; }
+  .nav-link { width: 100%; padding: 12px 0 12px 12px; font-size: 1rem; border-bottom: 1px solid var(--rule); border-left: 3px solid transparent; }
+  .nav-list li:last-child .nav-link { border-bottom: 0; }
+  .nav-link.is-active { border-bottom-color: var(--rule); border-left-color: var(--primary-ink); background: var(--primary-soft); }
+}
+.site-footer { border-top: 1px solid var(--rule); margin-top: 24px; padding: 20px 0 40px; font-size: 0.875rem; }
+.site-footer .wrap { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+.site-footer p { max-width: 80ch; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 4px 20px; }

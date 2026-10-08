@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ReviewHeader } from "@/components/review-header";
 import { formatClock } from "@/review/replay";
 import { reviewIndex } from "@/review/files";
 
@@ -13,7 +12,6 @@ export default function ReviewIndexPage() {
   const conversations = reviewIndex();
   return (
     <>
-      <ReviewHeader />
       <main className="wrap x-wide x-page">
         <section aria-labelledby="ri-h">
           <p className="kicker">Call reviews</p>

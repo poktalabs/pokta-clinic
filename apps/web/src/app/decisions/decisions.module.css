@@ -1,0 +1,70 @@
+/* /decisions: semantic tokens from globals.css only, so light and dark both follow the theme. */
+
+.page { gap: 48px; }
+
+.intro { display: flex; flex-direction: column; gap: 12px; max-width: 72ch; }
+.lede { font-family: var(--font-serif); font-size: 1.125rem; line-height: 1.55; color: var(--foreground-soft); }
+.note { font-size: 0.875rem; color: var(--muted-foreground); border-left: 3px solid var(--attn); padding: 4px 0 4px 12px; }
+
+/* ---- index ---- */
+.index {
+  display: grid;
+  gap: 24px 32px;
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+@media (min-width: 720px) { .index { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .index { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.indexHead { font-family: var(--font-sans); font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; }
+.indexHead a { color: var(--accent-text); text-decoration: none; }
+.indexHead a:hover { text-decoration: underline; }
+.indexList { counter-reset: d; margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.indexList li { counter-increment: d; display: grid; grid-template-columns: 1.75em minmax(0, 1fr); font-size: 0.9375rem; line-height: 1.4; }
+.indexList li::before { content: counter(d, decimal-leading-zero); color: var(--muted-foreground); font-variant-numeric: tabular-nums; font-size: 0.8125rem; padding-top: 1px; }
+.indexList a { color: var(--foreground); text-decoration: none; }
+.indexList a:hover { color: var(--accent-text); text-decoration: underline; }
+.indexTag { grid-column: 2; justify-self: start; margin-top: 3px; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--attn); }
+
+/* ---- groups and cards ---- */
+.group { display: flex; flex-direction: column; gap: 20px; scroll-margin-top: 24px; }
+.groupHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
+.cards { display: flex; flex-direction: column; gap: 20px; }
+
+.card { background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow); padding: 24px; scroll-margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+.card:target { border-color: var(--primary-ink); box-shadow: 0 0 0 2px var(--primary-soft), var(--shadow); }
+@media (min-width: 720px) { .card { padding: 28px 32px; } }
+
+.cardHead { display: flex; flex-direction: column; gap: 8px; }
+.cardMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.cardTitle { font-size: 1.375rem; line-height: 1.25; letter-spacing: -0.01em; }
+.anchor { color: var(--muted-foreground); text-decoration: none; font-family: var(--font-sans); font-weight: 400; margin-right: 8px; }
+.anchor:hover { color: var(--accent-text); }
+
+.pill { display: inline-block; padding: 2px 8px; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.pillOk { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.pillOld { background: color-mix(in srgb, var(--attn) 16%, transparent); color: var(--attn); }
+.pillNote { text-transform: none; letter-spacing: 0; font-weight: 600; }
+
+.decision { font-family: var(--font-serif); font-size: 1.0625rem; line-height: 1.55; padding: 12px 16px; background: var(--surface-brand); border-left: 3px solid var(--primary-ink); }
+
+.fields { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.fields > div { display: grid; gap: 4px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .fields > div { grid-template-columns: 180px minmax(0, 1fr); gap: 24px; } }
+.fields dt { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--muted-foreground); padding-top: 3px; }
+.fields dd { color: var(--foreground-soft); line-height: 1.6; }
+.alts { display: flex; flex-direction: column; gap: 4px; }
+.alts li { position: relative; padding-left: 16px; }
+.alts li::before { content: ""; position: absolute; left: 2px; top: 0.7em; width: 6px; height: 1px; background: var(--muted-foreground); }
+
+.links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.linksLabel { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--muted-foreground); margin-right: 4px; }
+.codeLink { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8125rem; padding: 3px 8px; background: var(--surface-2); color: var(--foreground); text-decoration: none; overflow-wrap: anywhere; }
+.codeLink:hover { color: var(--accent-text); text-decoration: underline; }
+.pageLink { font-size: 0.875rem; font-weight: 600; padding: 3px 8px; background: var(--primary-soft); color: var(--accent-text); text-decoration: none; }
+.pageLink:hover { text-decoration: underline; }
+
+.back { text-align: right; }

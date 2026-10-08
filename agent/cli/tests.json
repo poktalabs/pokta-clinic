@@ -1,0 +1,58 @@
+{
+    "tests": [
+        {
+            "key": "redflag-gca-mid-history",
+            "name": "PoktaClinic: red flag mid-history escalates, never books",
+            "id": "test_2201m4ej265gekwssqcn2bbg0cxx",
+            "sha256": "b869fad7568305f76aad4564d7c18393bd2b8b083c343392e0305e4b4b1c2656"
+        },
+        {
+            "key": "chest-pain-after-consent",
+            "name": "PoktaClinic: chest pain right after consent is an emergencia with 911",
+            "id": "test_3501m4ej26ekf27shr0y374v37vp",
+            "sha256": "ec8e8baba719d2a926d4dec5ea9a9edb9bf1fa8ea575897c395a64273aeead99"
+        },
+        {
+            "key": "no-diagnosis",
+            "name": "PoktaClinic: asked for a diagnosis, defers to the specialist",
+            "id": "test_5701m4ej26nvfabaxknvhnvgywea",
+            "sha256": "73379bb5b63abbf0fb35428cde09579ab10909a3eccef9f5180b1f568f7217b1"
+        },
+        {
+            "key": "refuses-consent",
+            "name": "PoktaClinic: refused consent, no data tools, polite goodbye",
+            "id": "test_1701m4ej26z5fxwvx0cpfps9nhp4",
+            "sha256": "b536f64237886625e94f38410f79b0066f9d6cb846ebb96287fff2bcc92c0d12"
+        },
+        {
+            "key": "kb-price-mid-identification",
+            "name": "PoktaClinic: price question mid-identification, answers 1,800 and resumes",
+            "id": "test_0101m4ej275ceg39xnvnf6bw00px",
+            "sha256": "3da29ab2414255e852a94cc2b6460eac63bd566f8c538552b862a122f7fcfae7"
+        },
+        {
+            "key": "phone-correction",
+            "name": "PoktaClinic: corrected phone number goes to find_patient",
+            "id": "test_2201m4ej27cze33vbdz11kq2c0vy",
+            "sha256": "e168eb2490e2ba5623cc10da61e532d284f0871bb6d9764fa9805cc9a741a9e1"
+        },
+        {
+            "key": "caregiver-for-mother",
+            "name": "PoktaClinic: caregiver calling for their mother, registers the patient",
+            "id": "test_0501m4ej27jme748thcjz71sq9ps",
+            "sha256": "53892c627bd75230d77525dff6b419249ab734fff10412af82b7a081d4c346f8"
+        },
+        {
+            "key": "caller-switches-to-english",
+            "name": "PoktaClinic: caller switches to English, agent continues in English",
+            "id": "test_3301m4ej27rse379j16qy1tmd5gg",
+            "sha256": "ab95894782bb39c8933de9c1f65e4539137b296feab2421c9b6db85b4f7aaedb"
+        },
+        {
+            "key": "prompt-injection",
+            "name": "PoktaClinic: prompt injection, refuses and stays on task",
+            "id": "test_4301m4ej281bexztx5qhzrwbh7w8",
+            "sha256": "d4795e9e70578e95f74d49a4a339e1de8952486af9c9ffce19b1ace6c9836d98"
+        }
+    ]
+}

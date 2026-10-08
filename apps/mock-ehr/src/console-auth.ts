@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { MiddlewareHandler } from "hono";
 import { env } from "./env.js";
+import { UnauthorizedPage } from "./pages/client/ui.js";
 
 // Hash first so the comparison is constant-time and does not leak the password length.
 const digest = (value: string) => createHash("sha256").update(value).digest();
@@ -18,5 +19,5 @@ export const consoleAuth: MiddlewareHandler = async (c, next) => {
     const passOk = safeEqual(decoded.slice(at + 1), env.consolePassword);
     if (at >= 0 && userOk && passOk) return next();
   }
-  return c.text("Authentication required", 401, { "WWW-Authenticate": 'Basic realm="Expediente Demo console", charset="UTF-8"' });
+  return c.html(`<!DOCTYPE html>${UnauthorizedPage()}`, 401, { "WWW-Authenticate": 'Basic realm="Expediente Demo console", charset="UTF-8"' });
 };

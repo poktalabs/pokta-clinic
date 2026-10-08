@@ -1,9 +1,13 @@
 import type { Child } from "hono/jsx";
+import { ThemeScript, ThemeToggle, themeCss } from "./theme.js";
 
-// Plain server-rendered pages: inline CSS, no client JS. JSX escapes every interpolated value.
+// Plain server-rendered pages: inline CSS, no client JS beyond the theme toggle (./theme.tsx). JSX escapes every
+// interpolated value.
 const css = `
-:root{color-scheme:light dark;--bg:#f7f6f2;--fg:#1d2420;--muted:#5d675f;--line:#dcd9cf;--accent:#1f6b52;--card:#fff}
-@media (prefers-color-scheme:dark){:root{--bg:#141815;--fg:#e6e9e4;--muted:#98a299;--line:#2c332d;--accent:#5cc7a0;--card:#1b201c}}
+${themeCss(
+  "--bg:#f7f6f2;--fg:#1d2420;--muted:#5d675f;--line:#dcd9cf;--accent:#1f6b52;--card:#fff;",
+  "--bg:#141815;--fg:#e6e9e4;--muted:#98a299;--line:#2c332d;--accent:#5cc7a0;--card:#1b201c;",
+)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
 main{max-width:56rem;margin:0 auto;padding:3rem 1.25rem 4rem}
@@ -22,6 +26,11 @@ th,td{text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--line);ve
 th{color:var(--muted);font-weight:600}
 .wide{max-width:80rem}
 .note{color:var(--muted);font-size:.85rem}
+.theme-toggle{float:right;display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
+.theme-toggle button{font:600 .75rem/1.5 ui-sans-serif,system-ui,sans-serif;padding:3px 10px;border:0;background:none;color:var(--muted);cursor:pointer}
+.theme-toggle button+button{border-left:1px solid var(--line)}
+.theme-toggle button:hover{color:var(--fg)}
+.theme-toggle button[aria-pressed="true"]{background:var(--accent);color:var(--bg)}
 `;
 
 export const Layout = (props: { title: string; wide?: boolean; children?: Child }) => (
@@ -31,10 +40,14 @@ export const Layout = (props: { title: string; wide?: boolean; children?: Child 
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name="robots" content="noindex" />
       <title>{props.title}</title>
+      <ThemeScript />
       <style dangerouslySetInnerHTML={{ __html: css }} />
     </head>
     <body>
-      <main class={props.wide ? "wide" : undefined}>{props.children}</main>
+      <main class={props.wide ? "wide" : undefined}>
+        <ThemeToggle lang="en" />
+        {props.children}
+      </main>
     </body>
   </html>
 );

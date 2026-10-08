@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
 import { Fragment } from "react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { AVISO } from "@/content/aviso-privacidad";
 
 export const metadata: Metadata = {
@@ -15,20 +12,6 @@ export const metadata: Metadata = {
 export default function Privacidad() {
   return (
     <>
-      <header className="site-header">
-        <div className="wrap">
-          <Link className="brand" href="/">
-            <Image src="/poktacare-logo.svg" alt="" width={20} height={20} priority />
-            <span className="wordmark">
-              Pokta<b>Clinic</b>
-            </span>
-          </Link>
-          <span className="header-end">
-            <span className="kicker muted">Pokta Labs demo</span>
-            <ThemeToggle />
-          </span>
-        </div>
-      </header>
 
       <main className="wrap wrap-narrow page" lang="es-MX">
         <section aria-labelledby="aviso-h">

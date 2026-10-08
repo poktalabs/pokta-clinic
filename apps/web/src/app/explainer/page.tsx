@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Explainer } from "@/components/explainer";
 
 export const metadata: Metadata = {
@@ -14,20 +12,6 @@ export default function ExplainerPage() {
   const agentId = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || null;
   return (
     <>
-      <header className="site-header">
-        <div className="wrap x-wide">
-          <Link className="brand" href="/">
-            <Image src="/poktacare-logo.svg" alt="" width={20} height={20} priority />
-            <span className="wordmark">
-              Pokta<b>Clinic</b>
-            </span>
-          </Link>
-          <span className="header-end">
-            <span className="kicker muted">Pokta Labs demo</span>
-            <ThemeToggle />
-          </span>
-        </div>
-      </header>
       <main className="wrap x-wide x-page">
         <section aria-labelledby="x-h">
           <p className="kicker">Voice pre-consultation intake, live</p>

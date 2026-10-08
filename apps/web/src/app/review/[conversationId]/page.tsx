@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Review } from "@/components/review";
-import { ReviewHeader } from "@/components/review-header";
 import { loadReview, reviewIndex } from "@/review/files";
 
 // One recorded call, replayed: prerendered from the static export for each conversation in the index.
@@ -22,7 +21,6 @@ export default async function ReviewPage({ params }: PageProps<"/review/[convers
   if (!data) notFound();
   return (
     <>
-      <ReviewHeader />
       <main className="wrap x-wide x-page">
         <Review conversation={data.conversation} manifest={data.manifest} config={data.config} />
       </main>

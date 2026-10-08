@@ -3,6 +3,7 @@ import "@fontsource-variable/source-serif-4";
 import "@fontsource-variable/source-serif-4/wght-italic.css";
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/funnel-display";
+import { SiteFooter, SiteHeader } from "@/components/site-nav";
 import "./globals.css";
 
 // Applies a stored light/dark choice before first paint (see components/theme-toggle.tsx).
@@ -19,7 +20,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <SiteHeader />
+        {children}
+        <SiteFooter />
+      </body>
     </html>
   );
 }
