@@ -1,8 +1,8 @@
 // Holds a scripted, text-only conversation with the deployed agent over the Agents WebSocket API,
 // then fetches the stored conversation to show workflow nodes, tool calls and analysis.
-// Usage: pnpm agent:converse <golden|callback|returning|refuse|redflag> [--audio]   (reads ELEVENLABS_API_KEY from .env.local)
+// Usage: pnpm agent:converse <golden|callback|kb|returning|refuse|redflag|golden_en|redflag_en> [--audio]   (reads ELEVENLABS_API_KEY from .env.local)
 import { ConverseClient, type AgentEvent } from "./converse-client.ts";
-import { buildScenario, isGoodbye, normalize } from "./converse-scenarios.ts";
+import { buildScenario, isGoodbye, lastQuestion, normalize } from "./converse-scenarios.ts";
 
 const AGENT_ID = process.env.ELEVENLABS_AGENT_ID ?? "agent_1701m47rjpwcfqasqaw19hph7qb4";
 const API = "https://api.elevenlabs.io/v1/convai";
@@ -35,9 +35,9 @@ function logEvent(e: AgentEvent): void {
 
 async function converse(name: string): Promise<string> {
   const scenario = buildScenario(name);
-  console.log(`Scenario ${scenario.name}: ${scenario.description}`);
+  console.log(`Scenario ${scenario.name}${scenario.language ? ` (language ${scenario.language})` : ""}: ${scenario.description}`);
   const run = async (textOnly: boolean) => {
-    const client = new ConverseClient({ agentId: AGENT_ID, apiKey, textOnly, onEvent: logEvent });
+    const client = new ConverseClient({ agentId: AGENT_ID, apiKey, textOnly, language: scenario.language, onEvent: logEvent });
     await client.connect();
     return client;
   };
@@ -59,9 +59,7 @@ async function converse(name: string): Promise<string> {
   for (let turn = 1; turn <= MAX_TURNS && Date.now() - started < MAX_MS && !client.closed; turn++) {
     const texts = client.agentTextsSince(from);
     // Match the agent's last question when there is one, so a preamble ("gracias por su consentimiento") does not pick the rule.
-    const all = normalize(texts.join(" "));
-    const q = all.lastIndexOf("¿");
-    const last = q >= 0 ? all.slice(q) : all;
+    const last = lastQuestion(normalize(texts.join(" ")));
     let say: string | undefined;
     if (isGoodbye(texts.join(" "))) {
       if (farewellSent) break;
@@ -123,7 +121,7 @@ async function report(id: string): Promise<void> {
 async function main(): Promise<void> {
   const name = process.argv[2];
   if (!name) {
-    console.error("usage: pnpm agent:converse <golden|callback|returning|refuse|redflag> [--audio]");
+    console.error("usage: pnpm agent:converse <golden|callback|kb|returning|refuse|redflag|golden_en|redflag_en> [--audio]");
     process.exit(1);
   }
   const id = await converse(name);

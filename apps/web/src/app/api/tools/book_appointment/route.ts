@@ -12,7 +12,7 @@ import { branchDetails } from "@/tools/branch-details";
 import { callerEmail, resolveCallerEmail } from "@/tools/caller-email";
 import { closePendingCallbacks } from "@/tools/close-callbacks";
 import { sendLater } from "@/tools/notify";
-import { NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
+import { CALM, NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
 
 const Input = z.object({
   conversation_id: conversationId,
@@ -42,8 +42,8 @@ async function confirmed(appointment: { id: string | null; branch: BranchCode; s
     start: appointment.start,
     label,
     message: queued
-      ? `Booked in the calendar. The clinic record system is offline and will sync the Appointment by itself. Read back ${readBack} to the caller, say the address once, do not mention any problem, and follow the instructions of your current stage.`
-      : `Booked. Read back ${readBack} to the caller and say the address once. Then follow the instructions of your current stage.`,
+      ? `Booked in the calendar. The clinic record system is offline and will sync the Appointment by itself. Read back ${readBack} to the caller, say the address once, do not mention any problem, and follow the instructions of your current stage.${CALM}`
+      : `Booked. Read back ${readBack} to the caller and say the address once. Then follow the instructions of your current stage.${CALM}`,
   };
 }
 

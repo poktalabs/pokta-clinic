@@ -37,6 +37,7 @@ export function toWebhookTool(spec: ToolSpec, env: ToolEnv): WebhookTool {
     name: spec.name,
     description: spec.description,
     response_timeout_secs: env.timeoutSecs,
+    ...spec.delivery,
     api_schema: {
       url: `${env.baseUrl}/api/tools/${spec.name}`,
       method: "POST",

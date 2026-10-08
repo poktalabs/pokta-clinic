@@ -1,0 +1,27 @@
+{
+  "type": "webhook",
+  "name": "get_questionnaire",
+  "description": "Returns the required items of the first-visit questionnaire, each with a link_id and the question text in Spanish. Call it once, at the start of the History stage, before asking the first question. Use the items as a checklist: you decide the order and the follow-ups, but every item must end up covered. Keep the link_id values, they are what save_history needs. The response has a message field that says what to do next; follow it.",
+  "response_timeout_secs": 10,
+  "api_schema": {
+    "url": "https://pokta-clinic-web.vercel.app/api/tools/get_questionnaire",
+    "method": "POST",
+    "request_headers": {
+      "x-pokta-tool-secret": {
+        "secret_id": "XbNhQLdxIOYvZIX3Ykr5"
+      }
+    },
+    "request_body_schema": {
+      "type": "object",
+      "required": [
+        "conversation_id"
+      ],
+      "properties": {
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        }
+      }
+    }
+  }
+}

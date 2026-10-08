@@ -4,6 +4,8 @@ import { conversationId } from "./conversation-id.ts";
 // Mirrors apps/web/src/app/api/tools/book_appointment/route.ts: { conversation_id, patient_id, branch, start }.
 export const bookAppointment: ToolSpec = {
   name: "book_appointment",
+  // Caller speech while the booking runs does not interrupt it halfway.
+  delivery: { interruption_mode: "disable_during_tool" },
   description:
     "Books the first consultation in a slot the caller chose. Call it once, only after the caller picked one of the slots returned by check_availability, passing that slot's branch and start exactly as returned. It returns the confirmed branch name, branch address, practitioner name and the date and time as a Spanish label: read the day, date, time, branch name and practitioner name back to the caller, and say the address once. If the slot was taken meanwhile, the response says so: offer the caller other slots with check_availability. Never call it after a red flag. The response has a message field that says what to do next; follow it.",
   required: ["conversation_id", "patient_id", "branch", "start"],

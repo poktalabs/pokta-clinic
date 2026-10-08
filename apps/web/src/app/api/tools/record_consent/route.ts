@@ -2,7 +2,7 @@ import { z } from "zod";
 import { EhrUnavailableError, ehr } from "@/ehr";
 import { queueForEhr } from "@/outbox/queue";
 import { callerEmail, rememberLead } from "@/tools/caller-email";
-import { cacheConsent, conversationId, tool } from "@/tools/handler";
+import { CALM, cacheConsent, conversationId, tool } from "@/tools/handler";
 
 const Input = z.object({
   conversation_id: conversationId,
@@ -32,7 +32,7 @@ export const POST = tool("record_consent", Input, async ({ conversation_id, gran
     ...(consentId ? { consent_id: consentId } : {}),
     granted,
     message: granted
-      ? "Consent recorded. Continue with identification."
+      ? `Consent recorded. Thank them in one short sentence and continue with identification.${CALM}`
       : "Refusal recorded. Do not collect any personal or health data. Explain kindly that without consent the voice pre-consultation cannot continue, say they can contact the branch of their choice directly, and say goodbye.",
   };
 });

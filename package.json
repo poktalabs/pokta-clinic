@@ -13,6 +13,8 @@
     "agent:build": "dotenv -e .env.local -- tsx agent/src/build.ts",
     "agent:validate": "tsx agent/src/validate.ts",
     "agent:secret": "dotenv -e .env.local -e .env.production.local -- tsx agent/scripts/create-tool-secret.ts",
+    "agent:kb:push": "pnpm agent:build && pnpm agent:validate && dotenv -e .env.local -- tsx agent/scripts/push-kb.ts",
+    "agent:kb:push:apply": "pnpm agent:build --strict && pnpm agent:validate && dotenv -e .env.local -- tsx agent/scripts/push-kb.ts --apply",
     "agent:tools:push": "pnpm agent:build && pnpm agent:validate && dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs tools push --dry-run'",
     "agent:tools:push:apply": "pnpm agent:build --strict && pnpm agent:validate && dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs tools push'",
     "agent:push": "pnpm agent:build && pnpm agent:validate && dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents push --dry-run'",
@@ -20,7 +22,8 @@
     "agent:pull": "dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents pull'",
     "scripts:typecheck": "tsc -p scripts/tsconfig.json",
     "agent:converse": "dotenv -e .env.local -- tsx scripts/agent-converse.ts",
-    "agent:test": "dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents test'"
+    "agent:test": "dotenv -e .env.local -- sh -c 'cd agent/cli && elevenlabs agents test'",
+    "review:export": "dotenv -e .env.local -- tsx scripts/export-conversation.ts"
   },
   "devDependencies": {
     "@elevenlabs/cli": "^1.4.0",

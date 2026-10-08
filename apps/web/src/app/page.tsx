@@ -4,8 +4,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { EhrPanel } from "@/components/ehr-panel";
 import { Timeline } from "@/components/timeline";
 import { VoiceWidget } from "@/components/voice-widget";
-
-const EHR_URL = "https://pokta-clinic-ehr.onrender.com";
+import { EHR_URL } from "@/ehr-console";
 
 const STAGES = [
   { name: "Consent", text: "Asks for the aviso de privacidad. Nothing is read or written without a yes." },

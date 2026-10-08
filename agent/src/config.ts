@@ -12,13 +12,20 @@ export interface AgentConfig {
   practice_name: string;
   language: string;
   llm: string;
-  llm_reasoning_effort: "none" | "minimal" | "low" | "medium" | "high";
+  /** null for models without a reasoning setting (available_reasoning_efforts null in GET /v1/convai/llm/list); the build sends reasoning_effort null. */
+  llm_reasoning_effort: "none" | "minimal" | "low" | "medium" | "high" | null;
   llm_temperature: number;
   /** Stronger tool-capable LLM for the History node only (per-node override). */
   history_llm: string;
   history_llm_reasoning_effort: "none" | "minimal" | "low" | "medium" | "high";
   tts_model_id: string;
   voice_id: string;
+  /** English voice for the `en` language preset (a premade English voice, no workspace add needed). */
+  tts_voice_id_en: string;
+  /** 0.7 to 1.2. Slightly under 1 for a calm receptionist pace. */
+  tts_speed: number;
+  /** 0 to 1. Higher is steadier and less emotive. */
+  tts_stability: number;
   allowlist: string[];
   tool_secret_name: string;
   tool_secret_id: string;

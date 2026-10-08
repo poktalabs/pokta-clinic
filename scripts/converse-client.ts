@@ -7,6 +7,8 @@ export interface ConnectOptions {
   /** Used only to ask for a signed URL when the agent requires auth. Never logged. */
   apiKey?: string;
   textOnly: boolean;
+  /** Conversation language override (the agent allows only this one), e.g. "en" for the English preset. */
+  language?: string;
   onEvent?: (event: AgentEvent) => void;
 }
 
@@ -37,7 +39,11 @@ export class ConverseClient {
       this.closeInfo = `${c.code} ${c.reason}`.trim();
       this.wake();
     });
-    const override = this.opts.textOnly ? { conversation_config_override: { conversation: { text_only: true } } } : {};
+    const config = {
+      ...(this.opts.textOnly ? { conversation: { text_only: true } } : {}),
+      ...(this.opts.language ? { agent: { language: this.opts.language } } : {}),
+    };
+    const override = Object.keys(config).length ? { conversation_config_override: config } : {};
     this.send({ type: "conversation_initiation_client_data", ...override });
     // Wait for the metadata event (carries the conversation id) or an early close.
     const deadline = Date.now() + 15_000;

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { after } from "next/server";
 import { ehr } from "@/ehr";
 import { callerEmail, resolveCallerEmail } from "@/tools/caller-email";
-import { NO_CONSENT, cacheConsent, conversationId, grantedConsent, tool } from "@/tools/handler";
+import { CALM, NO_CONSENT, cacheConsent, conversationId, grantedConsent, tool } from "@/tools/handler";
 import { INVALID_PHONE, normalizePhone } from "@/tools/phone";
 
 // NOM-024 Table 1 fields the call can collect. CURP is not asked: the patient brings it to the visit.
@@ -51,7 +51,7 @@ export const POST = tool("save_patient", Input, async (input, ctx) => {
     given_name: patient.givenName,
     already_registered: !created,
     message: created
-      ? "Patient registered. Tell the caller their record is ready, then follow the instructions of your current stage."
+      ? `Patient registered. Say in one plain sentence that their record is ready, then follow the instructions of your current stage.${CALM}`
       : `This phone already belongs to ${patient.givenName}. Confirm the name with the caller before you continue.`,
   };
 });

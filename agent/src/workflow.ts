@@ -1,4 +1,4 @@
-import type { Workflow } from "./types.ts";
+import type { KnowledgeBaseLocator, Workflow } from "./types.ts";
 import type { AgentConfig } from "./config.ts";
 import { prompt } from "./prompts.ts";
 
@@ -36,7 +36,12 @@ const RETURNING_TO_SCHEDULING =
 // History alone runs on a stronger LLM (a per-node override); every other node uses the agent's LLM.
 // Tools are attached per node, so the model cannot even see find_patient or save_patient until
 // Consent has been granted (the web app also enforces this server side).
-export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "history_llm" | "history_llm_reasoning_effort">): Workflow {
+// Every node retrieves from the agent's guide and FAQ; Consent also gets the full aviso in its prompt.
+export function buildWorkflow(
+  ids: WorkflowToolIds,
+  config: Pick<AgentConfig, "history_llm" | "history_llm_reasoning_effort">,
+  kb: { consent: KnowledgeBaseLocator[] },
+): Workflow {
   return assertOneEdgePerPair({
     nodes: {
       start_node: { type: "start", edge_order: ["start_to_consent"] },
@@ -45,6 +50,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         label: "Consent",
         additional_prompt: prompt("consent"),
         additional_tool_ids: [ids.record_consent],
+        additional_knowledge_base: kb.consent,
         edge_order: ["consent_to_escalation", "consent_to_identification", "consent_to_end"],
       },
       identification: {
@@ -146,7 +152,7 @@ export function buildWorkflow(ids: WorkflowToolIds, config: Pick<AgentConfig, "h
         target: "end_node",
         forward_condition: {
           type: "llm",
-          condition: "After the last tool result, the agent has already said, in its own spoken message, a goodbye to the caller, and either: book_appointment or reschedule_appointment confirmed the appointment and its day, date and time were read back; or request_callback was called and the caller was told when the clinic will call; or the caller declined both an appointment and a callback. A tool call or tool result alone does not meet this condition.",
+          condition: "Both of these happened within the Scheduling step itself, after it started: first, either book_appointment or reschedule_appointment returned a confirmed result and its day, date and time were read back, or request_callback was called and the caller was told when the clinic will call, or the caller declined both an appointment and a callback; and then, after that, the agent said a goodbye to the caller in its own spoken message. An appointment mentioned or read back during Identification (the upcoming appointment find_patient returned) does not count, and neither does a caller saying they want to change it. A tool call or tool result alone does not meet this condition.",
         },
       },
 

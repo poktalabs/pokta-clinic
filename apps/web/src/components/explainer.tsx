@@ -16,6 +16,7 @@ import {
   type Stage,
 } from "@/explainer/model";
 import { SAMPLE } from "@/explainer/sample";
+import { ehrLinks } from "@/ehr-console";
 import { usePoll } from "./use-poll";
 
 type Turn = { id: number; role: "user" | "agent"; text: string };
@@ -23,6 +24,13 @@ type ServerEvent = { id: string; conversationId: string; tool: string; ok: boole
 
 const POLL_MS = 1200;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// The call language, sent as the session's language override. Spanish is the agent's own default;
+// English applies the agent's `en` preset (English first message and voice).
+type Language = "es" | "en";
+const LANGUAGES: { id: Language; label: string; lang: string }[] = [
+  { id: "es", label: "Español", lang: "es" },
+  { id: "en", label: "English", lang: "en" },
+];
 
 // The /explainer page: our own call panel on the ElevenLabs React SDK (same public agent as the widget),
 // a live system diagram and the Expediente the call is writing. Tool calls and their results arrive in
@@ -40,6 +48,7 @@ export function Explainer({ agentId }: { agentId: string | null }) {
     setCalls([]);
     setStage("consent");
     setExpediente(EMPTY_EXPEDIENTE);
+    setConversationId(null);
     setError(null);
   };
 
@@ -77,7 +86,6 @@ export function Explainer({ agentId }: { agentId: string | null }) {
   const replay = () => {
     stopReplay();
     reset();
-    setConversationId(null);
     setReplaying(true);
     SAMPLE.forEach((step, i) => {
       const id = `sample-${i}`;
@@ -116,7 +124,7 @@ export function Explainer({ agentId }: { agentId: string | null }) {
       onAgentToolResponse={onToolResponse}
     >
       <div className="explainer">
-        <CallPanel agentId={agentId} turns={turns} error={error} onStart={(email) => { stopReplay(); reset(); pendingEmail.current = email; }} replaying={replaying} onReplay={replay} onStopReplay={stopReplay} />
+        <CallPanel agentId={agentId} conversationId={conversationId} turns={turns} error={error} onStart={(email) => { stopReplay(); reset(); pendingEmail.current = email; }} replaying={replaying} onReplay={replay} onStopReplay={stopReplay} />
         <SystemPanel stage={stage} calls={calls} conversationId={conversationId} setCalls={setCalls} />
         <ExpedientePanel stage={stage} expediente={expediente} />
       </div>
@@ -126,6 +134,7 @@ export function Explainer({ agentId }: { agentId: string | null }) {
 
 function CallPanel({
   agentId,
+  conversationId,
   turns,
   error,
   onStart,
@@ -134,6 +143,7 @@ function CallPanel({
   onStopReplay,
 }: {
   agentId: string;
+  conversationId: string | null;
   turns: Turn[];
   error: string | null;
   onStart: (email: string) => void;
@@ -143,7 +153,9 @@ function CallPanel({
 }) {
   const { startSession, endSession, status, isSpeaking } = useConversation();
   const [email, setEmail] = useState("");
+  const [language, setLanguage] = useState<Language>("es");
   const [micError, setMicError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const transcript = useRef<HTMLDivElement>(null);
   const connected = status === "connected";
   const busy = status === "connecting";
@@ -163,7 +175,8 @@ function CallPanel({
     onStart(email.trim());
     // WebSocket, not WebRTC: the LiveKit signal stream dropped on connect in the browser, while the
     // socket path is reliable. The email goes to our server on connect (see onConnect), not to the agent.
-    startSession({ agentId, connectionType: "websocket" });
+    // The agent allows exactly one client override, the language (platform_settings.overrides).
+    startSession({ agentId, connectionType: "websocket", overrides: { agent: { language } } });
   };
 
   return (
@@ -186,6 +199,17 @@ function CallPanel({
         disabled={connected || busy}
       />
       <p className="small muted">Where the clinic would send your appointment details. Use any address; the data here is fictional.</p>
+      <fieldset className="x-lang" disabled={connected || busy}>
+        <legend className="x-label small">Idioma / Language</legend>
+        <div className="x-seg">
+          {LANGUAGES.map((l) => (
+            <label key={l.id} className="x-seg-opt" lang={l.lang}>
+              <input type="radio" name="x-language" value={l.id} checked={language === l.id} onChange={() => setLanguage(l.id)} />
+              <span>{l.label}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
       {connected ? (
         <button type="button" className="btn x-start" onClick={() => endSession()}>
           End call
@@ -204,10 +228,23 @@ function CallPanel({
         <span className={`x-dot ${connected ? (isSpeaking ? "is-speaking" : "is-listening") : ""}`} aria-hidden />
         {connected ? (isSpeaking ? "Agent speaking" : "Listening to you") : status === "connecting" ? "Connecting" : replaying ? "Replaying a recorded sample" : "Not connected"}
       </p>
+      {conversationId && (
+        <p className="small x-conv">
+          Conversation ID <code>{conversationId}</code>{" "}
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => navigator.clipboard.writeText(conversationId).then(() => setCopied(true), () => undefined)}
+            onBlur={() => setCopied(false)}
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </p>
+      )}
       {(micError || error) && <p className="small x-error">{micError ?? error}</p>}
       <div className="x-transcript" ref={transcript} aria-live="polite">
         {turns.length === 0 ? (
-          <p className="small muted">The live transcript appears here. Speak Spanish; say &quot;I prefer English&quot; to switch.</p>
+          <p className="small muted">The live transcript appears here. The call starts in the language you pick; in a Spanish call, say &quot;I prefer English&quot; to switch.</p>
         ) : (
           turns.map((t) => (
             <p key={`${t.id}-${t.role}`} className={`x-turn x-${t.role}`}>
@@ -223,9 +260,9 @@ function CallPanel({
 
 // Box layout of the system diagram, in viewBox units.
 const BOX = {
-  caller: { x: 20, y: 16, w: 520, h: 44, title: "Caller", sub: "Browser, WebRTC audio" },
+  caller: { x: 20, y: 16, w: 520, h: 44, title: "Caller", sub: "Browser, WebSocket audio" },
   agent: { x: 20, y: 96, w: 520, h: 132, title: "ElevenLabs agent", sub: "ASR · workflow · LLM per step · TTS" },
-  api: { x: 20, y: 270, w: 520, h: 52, title: "PoktaClinic API", sub: "Next.js on Vercel · 8 webhook tools" },
+  api: { x: 20, y: 270, w: 520, h: 52, title: "PoktaClinic API", sub: "Next.js on Vercel · 10 webhook tools" },
   ehr: { x: 20, y: 380, w: 124, h: 64, title: "EHR", sub: "FHIR R4 · OAuth2" },
   calendar: { x: 152, y: 380, w: 124, h: 64, title: "Calendars", sub: "Google · 3 branches" },
   store: { x: 284, y: 380, w: 124, h: 64, title: "Store", sub: "Upstash · outbox" },
@@ -241,16 +278,24 @@ const EDGES: { id: EdgeId; x: number; y1: number; y2: number; label: string }[] 
   { id: "api-email", x: 478, y1: 322, y2: 380, label: "" },
 ];
 
-function SystemPanel({
+// Shared with /review, which replays a recorded call: it passes no conversation (no live polling), the
+// furthest Stage reached so far (seeking can jump), and its own idle text.
+export function SystemPanel({
   stage,
   calls,
   conversationId,
   setCalls,
+  reachedIndex,
+  idleText = "Start a call: each tool the agent calls lights up its path through the system.",
+  title = "The system, live",
 }: {
   stage: Stage | null;
   calls: Call[];
   conversationId: string | null;
   setCalls: React.Dispatch<React.SetStateAction<Call[]>>;
+  reachedIndex?: number;
+  idleText?: string;
+  title?: string;
 }) {
   const since = useRef(0);
   const live = useRef<string | null>(null);
@@ -289,6 +334,7 @@ function SystemPanel({
   const idx = STAGES.findIndex((t) => t.id === flowStage);
   if (flowStage === null || (flowStage === "consent" && calls.length === 0)) reached.current = idx;
   else if (idx > reached.current) reached.current = idx;
+  const furthest = reachedIndex ?? reached.current;
   const ended = flowStage === "end";
   const nowRails = new Set<GuardrailId>(!ended && info ? info.guardrails : []);
 
@@ -296,7 +342,7 @@ function SystemPanel({
     <section className="card x-system" aria-labelledby="system-h">
       <p className="kicker">2 · What is happening</p>
       <h2 id="system-h" className="title">
-        The system, live
+        {title}
       </h2>
       <svg className="x-diagram" viewBox="0 0 560 456" role="img" aria-label="System diagram: caller, ElevenLabs agent, PoktaClinic API, EHR, calendars, store and email">
         {EDGES.map((e) => {
@@ -334,7 +380,7 @@ function SystemPanel({
           {STAGES.map((s, i) => {
             const x = 32 + i * 128;
             const on = flowStage === s.id;
-            const done = ended ? reached.current >= i : idx > i;
+            const done = ended ? furthest >= i : idx > i;
             return (
               <g key={s.id} className={`x-step ${on ? "is-on" : ""} ${done ? "is-done" : ""}`}>
                 <rect x={x} y={150} width={116} height={40} />
@@ -363,9 +409,10 @@ function SystemPanel({
               <span className={`pill ${current.isError ? "pill-spot" : current.done ? "pill-ok" : "pill-brand"}`}>
                 {current.isError ? "error" : current.done ? "done" : "calling"}
               </span>
-              {current.status !== undefined && (
+              {current.ms !== undefined && (
                 <span className="small muted num">
-                  HTTP {current.status} · {current.ms} ms
+                  {current.status !== undefined && `HTTP ${current.status} · `}
+                  {current.ms} ms
                 </span>
               )}
             </p>
@@ -379,7 +426,7 @@ function SystemPanel({
             </ul>
           </>
         ) : (
-          <p className="small muted">Start a call: each tool the agent calls lights up its path through the system.</p>
+          <p className="small muted">{idleText}</p>
         )}
       </div>
       <h3 className="x-subhead">Guardrails</h3>
@@ -397,20 +444,30 @@ function SystemPanel({
 
 const ITEMS = 11;
 
-function ExpedientePanel({ stage, expediente: e }: { stage: Stage | null; expediente: Expediente }) {
+// Shared with /review. Each filled field links to the record it created in the clinic's EHR console.
+export function ExpedientePanel({
+  stage,
+  expediente: e,
+  note = "What the call has written to the clinic's EHR so far. Only this browser sees it.",
+}: {
+  stage: Stage | null;
+  expediente: Expediente;
+  note?: string;
+}) {
   const historyDone = e.history ? ITEMS - e.history.missing.length : 0;
+  const patientId = e.patient?.id ?? null;
   return (
     <section className="card x-record" aria-labelledby="record-h">
       <p className="kicker">3 · The result</p>
       <h2 id="record-h" className="title">
         Expediente
       </h2>
-      <p className="small muted">What the call has written to the clinic&apos;s EHR so far. Only this browser sees it.</p>
+      <p className="small muted">{note}</p>
       <dl className="x-fields">
         <Field label="Consent" state={e.consent ? (e.consent.granted ? "ok" : "attn") : null}>
           {e.consent ? (e.consent.granted ? `Granted at ${new Date(e.consent.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Refused: no data collected") : "Waiting"}
         </Field>
-        <Field label="Patient" state={e.patient ? "ok" : null}>
+        <Field label="Patient" state={e.patient ? "ok" : null} link={patientId ? { href: ehrLinks.patient(patientId), label: "Open patient record in the EHR" } : null}>
           {e.patient ? (
             <>
               {e.patient.name ?? "Identified"}
@@ -421,7 +478,11 @@ function ExpedientePanel({ stage, expediente: e }: { stage: Stage | null; expedi
             "Waiting"
           )}
         </Field>
-        <Field label="History" state={e.history ? (e.history.status === "completed" ? "ok" : "attn") : null}>
+        <Field
+          label="History"
+          state={e.history ? (e.history.status === "completed" ? "ok" : "attn") : null}
+          link={e.history && patientId ? { href: ehrLinks.history(patientId), label: "Open pre-consultation summary in the EHR" } : null}
+        >
           {e.history ? (
             <>
               {historyDone}/{ITEMS} items · pending clinician review
@@ -435,7 +496,17 @@ function ExpedientePanel({ stage, expediente: e }: { stage: Stage | null; expedi
             "Waiting"
           )}
         </Field>
-        <Field label="Appointment" state={e.appointment ? "ok" : e.callback ? "attn" : null}>
+        <Field
+          label="Appointment"
+          state={e.appointment ? "ok" : e.callback ? "attn" : null}
+          link={
+            e.appointment
+              ? { href: ehrLinks.appointments(patientId), label: "Open appointments in the EHR" }
+              : e.callback
+                ? { href: ehrLinks.callbacks(patientId), label: "Open callback requests in the EHR" }
+                : null
+          }
+        >
           {e.appointment ? (
             <>
               {e.appointment.previous && <span className="muted">Moved from {e.appointment.previous} · </span>}
@@ -459,7 +530,7 @@ function ExpedientePanel({ stage, expediente: e }: { stage: Stage | null; expedi
           )}
         </Field>
         {e.redFlag && (
-          <Field label="Red flag" state="spot">
+          <Field label="Red flag" state="spot" link={{ href: ehrLinks.alerts(), label: "Open clinical alerts in the EHR" }}>
             {e.redFlag.severity === "emergencia" ? "Emergency: told to call 911" : "Urgent: told to go to the ER today"} · logged for the clinical team
           </Field>
         )}
@@ -475,15 +546,29 @@ function ExpedientePanel({ stage, expediente: e }: { stage: Stage | null; expedi
           )}
         </Field>
       </dl>
+      {patientId && (
+        <a className="btn x-ehr-open" href={ehrLinks.consultation(patientId)} target="_blank" rel="noreferrer">
+          Open consultation view<span className="sr-only"> (opens the EHR console in a new tab)</span>
+        </a>
+      )}
+      <p className="small muted">EHR links open the clinic&apos;s console in a new tab. The console is password protected; reviewers get the credentials in the submission notes.</p>
     </section>
   );
 }
 
-function Field({ label, state, children }: { label: string; state: "ok" | "attn" | "spot" | null; children: React.ReactNode }) {
+function Field({ label, state, link, children }: { label: string; state: "ok" | "attn" | "spot" | null; link?: { href: string; label: string } | null; children: React.ReactNode }) {
   return (
     <div className={`x-field ${state ? `is-${state}` : ""}`}>
       <dt>{label}</dt>
       <dd>{children}</dd>
+      {link && (
+        <dd className="x-ehr-link small">
+          <a href={link.href} target="_blank" rel="noreferrer">
+            {link.label}
+            <span className="sr-only"> (new tab)</span>
+          </a>
+        </dd>
+      )}
     </div>
   );
 }

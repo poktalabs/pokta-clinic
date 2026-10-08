@@ -1,0 +1,32 @@
+{
+  "type": "webhook",
+  "name": "record_consent",
+  "description": "Records the caller's answer to the aviso de privacidad. Call it exactly once, right after the caller gives a clear yes or a clear no to the consent question, and never before. Pass granted=true for a clear yes and granted=false for a clear no. Do not call it for an unclear or missing answer: ask again instead. The response has a message field that says what to do next; follow it.",
+  "response_timeout_secs": 10,
+  "api_schema": {
+    "url": "https://pokta-clinic-web.vercel.app/api/tools/record_consent",
+    "method": "POST",
+    "request_headers": {
+      "x-pokta-tool-secret": {
+        "secret_id": "XbNhQLdxIOYvZIX3Ykr5"
+      }
+    },
+    "request_body_schema": {
+      "type": "object",
+      "required": [
+        "conversation_id",
+        "granted"
+      ],
+      "properties": {
+        "conversation_id": {
+          "type": "string",
+          "dynamic_variable": "system__conversation_id"
+        },
+        "granted": {
+          "type": "boolean",
+          "description": "true if the caller expressly agreed to the aviso de privacidad, false if the caller refused."
+        }
+      }
+    }
+  }
+}

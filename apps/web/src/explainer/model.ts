@@ -121,7 +121,7 @@ export type Call = {
 
 export type Expediente = {
   consent: { granted: boolean; at: number } | null;
-  patient: { name: string | null; folio: string | null; returning: boolean } | null;
+  patient: { id: string | null; name: string | null; folio: string | null; returning: boolean } | null;
   history: { status: string; missing: string[] } | null;
   slotsOffered: number | null;
   appointment: { label: string; branch: string; practitioner: string; address: string; queued: boolean; previous: string | null } | null;
@@ -142,9 +142,9 @@ export function applyResult(exp: Expediente, call: Call): Expediente {
     case "record_consent":
       return { ...exp, consent: { granted: r.granted === true, at: call.startedAt } };
     case "find_patient":
-      return r.found ? { ...exp, patient: { name: str(r.given_name), folio: null, returning: true } } : exp;
+      return r.found ? { ...exp, patient: { id: str(r.patient_id), name: str(r.given_name), folio: null, returning: true } } : exp;
     case "save_patient":
-      return { ...exp, patient: { name: str(r.given_name), folio: str(r.folio), returning: r.already_registered === true } };
+      return { ...exp, patient: { id: str(r.patient_id), name: str(r.given_name), folio: str(r.folio), returning: r.already_registered === true } };
     case "save_history":
       return { ...exp, history: { status: str(r.status) ?? "in-progress", missing: Array.isArray(r.missing) ? r.missing.map(String) : [] } };
     case "check_availability":
@@ -189,6 +189,10 @@ const NODE_TO_STAGE: Record<string, Stage> = {
   escalation: "escalation",
   end_node: "end",
 };
+
+export function stageFromNode(node: string): Stage | null {
+  return NODE_TO_STAGE[node] ?? null;
+}
 
 export function stageFromTransfer(fullResult: string): Stage | null {
   const matches = [...fullResult.matchAll(/"target_node_id"\s*:\s*"([a-z_]+)"/g)];

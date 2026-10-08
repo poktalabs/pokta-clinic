@@ -1,6 +1,7 @@
 import type { AgentConfig, BuildEnv } from "./config.ts";
+import { RAG_EMBEDDING_MODEL } from "./kb/index.ts";
 import { prompt } from "./prompts.ts";
-import type { JsonObject, Workflow } from "./types.ts";
+import type { JsonObject, KnowledgeBaseLocator, Workflow } from "./types.ts";
 
 // Rheumatology terms and the insurers a Mexico City clinic network sees, plus the GMA branch and street names. Boosts speech recognition.
 export const ASR_KEYWORDS = [
@@ -19,9 +20,21 @@ export interface AgentParts {
   workflow: Workflow;
   /** Tool IDs available to every node (none today; tools are attached per node). */
   globalToolIds: string[];
+  /** The agent-level documents (guide and FAQ), retrieved with RAG on every node. */
+  knowledgeBase: KnowledgeBaseLocator[];
 }
 
-export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts): JsonObject {
+// The guide and the FAQ are a few thousand characters, so a handful of chunks covers any one question.
+// RAG adds roughly 250 ms to a turn; in exchange the documents can grow to a real network's dozens.
+const RAG = {
+  enabled: true,
+  embedding_model: RAG_EMBEDDING_MODEL,
+  max_vector_distance: 0.6,
+  max_documents_length: 10000,
+  max_retrieved_rag_chunks_count: 6,
+};
+
+export function buildAgent({ config, env, workflow, globalToolIds, knowledgeBase }: AgentParts): JsonObject {
   const allowlist = [...new Set([...config.allowlist, env.baseHost])];
   return {
     name: config.agent_name,
@@ -34,10 +47,14 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
         prompt: {
           prompt: prompt("base"),
           llm: config.llm,
+          // null for models that take no reasoning setting (claude-haiku-4-5): sent explicitly so a push
+          // clears the previous model's value instead of leaving it on the remote agent.
           reasoning_effort: config.llm_reasoning_effort,
           temperature: config.llm_temperature,
           timezone: "America/Mexico_City",
           tool_ids: globalToolIds,
+          knowledge_base: knowledgeBase as unknown as JsonObject[],
+          rag: RAG,
           built_in_tools: {
             language_detection: {
               type: "system",
@@ -48,13 +65,43 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
           },
         },
       },
-      // English is the only other language. The preset gives the language detection tool a target.
+      // English is the only other language. The preset gives the language detection tool a target, and
+      // applies when a client starts the session with the language override "en" (the /explainer toggle):
+      // an English first message, an English voice and an English filler.
       language_presets: {
-        en: { overrides: { agent: { language: "en", first_message: prompt("first-message.en") } } },
+        en: {
+          overrides: {
+            agent: { language: "en", first_message: prompt("first-message.en") },
+            tts: { voice_id: config.tts_voice_id_en },
+            turn: { soft_timeout_config: { message: "One moment." } },
+          },
+        },
       },
       asr: { provider: "scribe_realtime", quality: "high", user_input_audio_format: "pcm_16000", keywords: ASR_KEYWORDS },
-      turn: { turn_eagerness: "patient" },
-      tts: { model_id: config.tts_model_id, voice_id: config.voice_id, agent_output_audio_format: "pcm_16000" },
+      // A silent caller is re-engaged after 10 s. If the LLM is slow, one plain static filler, never an
+      // LLM-generated one, and none before the caller has spoken.
+      turn: {
+        turn_eagerness: "patient",
+        turn_timeout: 10,
+        soft_timeout_config: {
+          timeout_seconds: 3,
+          message: "Un momento.",
+          additional_soft_timeout_messages: [],
+          use_llm_generated_message: false,
+          randomize_fillers: false,
+          max_soft_timeouts_per_generation: 1,
+          disable_until_first_user_message: true,
+        },
+      },
+      // Calm and even: no expressive audio tags, a slightly slower pace, a steadier voice.
+      tts: {
+        model_id: config.tts_model_id,
+        voice_id: config.voice_id,
+        agent_output_audio_format: "pcm_16000",
+        expressive_mode: false,
+        speed: config.tts_speed,
+        stability: config.tts_stability,
+      },
       conversation: {
         max_duration_seconds: config.max_duration_seconds,
         client_events: ["audio", "interruption", "user_transcript", "agent_response", "agent_response_correction", "agent_tool_request", "agent_tool_response", "agent_tool_response_full_payload"],
@@ -64,6 +111,9 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
     platform_settings: {
       // Public agent: no signed token, only the origin allowlist.
       auth: { enable_auth: false, allowlist: allowlist.map((hostname) => ({ hostname })) },
+      // A client may choose only the conversation language (the /explainer toggle). Nothing else is
+      // overridable; a session that sends any other override is rejected by the platform.
+      overrides: { conversation_config_override: { agent: { language: true } } },
       data_collection: {
         chief_complaint: {
           type: "string",
@@ -95,6 +145,11 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
           type: "string",
           enum: ["consent", "identification", "history", "scheduling", "escalation", "completed"],
           description: "The last stage of the workflow the conversation reached: consent, identification, history, scheduling, escalation (a red flag ended the call), or completed (an appointment was booked and the call closed).",
+        },
+        off_script_topic: {
+          type: "string",
+          enum: ["none", "cost", "insurance", "payment", "invoice", "cancellation", "what_to_bring", "arrival", "address_hours", "parking", "privacy", "other"],
+          description: "The first question the caller asked outside the scripted steps, about the clinic rather than their health: cost, insurance (insurers, reimbursement, IMSS), payment, invoice, cancellation (cancelling, rescheduling, arriving late), what_to_bring, arrival (when to arrive, how long it lasts), address_hours, parking, privacy (the aviso de privacidad), or other. none if the caller asked no such question.",
         },
         language_switch: {
           type: "boolean",
@@ -134,6 +189,14 @@ export function buildAgent({ config, env, workflow, globalToolIds }: AgentParts)
             use_knowledge_base: false,
             conversation_goal_prompt:
               "Pass only if book_appointment returned a confirmed appointment and the agent then said the day, date, time, branch name and practitioner name aloud, matching what the tool returned. Fail if an appointment was booked and any of day, date, time, branch name or practitioner name was not read back, or the agent said a time or branch different from the tool result. Also pass if no appointment was booked, because the call ended before Scheduling or the caller declined.",
+          },
+          {
+            id: "kb_grounded",
+            name: "Answers grounded in the knowledge base",
+            type: "prompt",
+            use_knowledge_base: true,
+            conversation_goal_prompt:
+              "Check every answer the agent gave about cost, insurers or reimbursement, payment, invoices, cancelling or rescheduling, arriving late, what to bring, when to arrive, address, hours, parking or the aviso de privacidad. Pass only if each answer matches the knowledge base, or says the agent does not have that information and the branch staff will confirm it, and after answering the agent went back to the step it had pending (repeating the pending question). Fail if the agent stated any price, insurer, policy, address, hour or parking detail that is not in the knowledge base, or never resumed the pending step. If the caller asked no such question, pass.",
           },
           {
             id: "red_flag_escalated_not_booked",

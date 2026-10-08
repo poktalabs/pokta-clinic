@@ -1,0 +1,25 @@
+{
+    "docs": [
+        {
+            "key": "primera-visita",
+            "name": "GMA, guía para su primera consulta",
+            "file": "kb_docs/primera-visita.md",
+            "id": "il3gu6yNw5fObJUxmf9R",
+            "sha256": "fb429bf49052816f7a4112516c342e684edb65cd8540b8cf3893277eab1f3467"
+        },
+        {
+            "key": "faq",
+            "name": "GMA, preguntas frecuentes",
+            "file": "kb_docs/faq.md",
+            "id": "BQy9PQn4ZNndOMT3XBZ3",
+            "sha256": "5545cf79502beb443ae978811030fd4dd8c1724d5412b11c21bde6d5bb0338a6"
+        },
+        {
+            "key": "aviso",
+            "name": "GMA, aviso de privacidad",
+            "file": "kb_docs/aviso.md",
+            "id": "GwP0G2hHlQvbz0chEE1X",
+            "sha256": "e55e253382e180aaf98e7c21fbaf49aa5cf9d3ff383a5511a2cbe229a37d17e7"
+        }
+    ]
+}

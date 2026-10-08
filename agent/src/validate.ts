@@ -4,10 +4,11 @@
 // spec embedded in CLI 1.4.0 lags the API (it lacks the eleven_v4_turbo TTS model). If the fetch fails
 // it falls back to the embedded spec, which can report false failures for models newer than the CLI.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { CLI_DIR } from "./config.ts";
+import { KB_REGISTRY, type KbRegistryEntry } from "./kb/index.ts";
 
 interface Spec {
   components: { schemas: Record<string, unknown> };
@@ -46,6 +47,7 @@ const ajv = new Ajv2020({ strict: false, allErrors: true });
 ajv.addSchema({ $id: "spec", components: spec.components });
 const agentCheck = ajv.compile({ $ref: `spec${bodyRef("/v1/convai/agents/create")}` });
 const toolCheck = ajv.compile({ $ref: `spec${bodyRef("/v1/convai/tools")}` });
+const kbCheck = ajv.compile({ $ref: `spec${bodyRef("/v1/convai/knowledge-base/text")}` });
 
 const read = (file: string) => JSON.parse(readFileSync(join(CLI_DIR, file), "utf8")) as unknown;
 const registry = (file: string, key: string) => (read(file) as Record<string, { config: string }[]>)[key] ?? [];
@@ -60,6 +62,17 @@ function check(label: string, ok: boolean, errors: unknown) {
 
 for (const { config } of registry("tools.json", "tools")) {
   check(config, toolCheck({ tool_config: read(config) }), toolCheck.errors);
+}
+// Knowledge base documents: each registered file exists, is not empty, and makes a valid create body.
+for (const doc of (read(KB_REGISTRY) as { docs: KbRegistryEntry[] }).docs) {
+  const path = join(CLI_DIR, doc.file);
+  const text = existsSync(path) ? readFileSync(path, "utf8") : "";
+  if (!doc.name?.trim() || !text.trim()) {
+    failed++;
+    console.error(`FAIL ${doc.file}\n     / ${doc.name?.trim() ? "file missing or empty" : "no document name"}`);
+    continue;
+  }
+  check(doc.file, kbCheck({ text, name: doc.name }), kbCheck.errors);
 }
 for (const { config } of registry("agents.json", "agents")) {
   check(config, agentCheck(read(config)), agentCheck.errors);

@@ -33,7 +33,7 @@ export const SAMPLE: SampleStep[] = [
   { at: s(35), say: "user", text: "Mi mamá tiene artritis reumatoide." },
   { at: s(37), tool: "save_history", ms: 318, status: 200, result: { ok: true, saved: true, status: "completed", missing: [] } },
   { at: s(38.5), stage: "scheduling" },
-  { at: s(39), say: "agent", text: "Listo. Tenemos sucursales en Del Valle, Polanco y Satélite. ¿Cuál le queda mejor?" },
+  { at: s(39), say: "agent", text: "Gracias. Tenemos sucursales en Del Valle, Polanco y Satélite. ¿Cuál le queda mejor?" },
   { at: s(41.5), say: "user", text: "Del Valle, por favor, de once a dos." },
   {
     at: s(43.5),
@@ -59,6 +59,6 @@ export const SAMPLE: SampleStep[] = [
       emailed: true,
     },
   },
-  { at: s(51.5), say: "agent", text: "Su cita quedó el jueves 8 de octubre a las 11 de la mañana en GMA Del Valle, con la Dra. Elena Ruiz Castellanos. Que tenga un excelente día." },
+  { at: s(51.5), say: "agent", text: "Su cita quedó el jueves 8 de octubre a las 11 de la mañana en GMA Del Valle, con la Dra. Elena Ruiz Castellanos. Que tenga buen día." },
   { at: s(56), stage: "end" },
 ];

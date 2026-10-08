@@ -9,7 +9,7 @@ import type { BranchCode } from "@/scheduling/branches";
 import { nextCallbackSlot } from "@/scheduling/callback";
 import { branchDetails } from "@/tools/branch-details";
 import { callerEmail, resolveCallerEmail } from "@/tools/caller-email";
-import { NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
+import { CALM, NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
 import { sendLater } from "@/tools/notify";
 
 const REASONS = {
@@ -101,6 +101,6 @@ export const POST = tool("request_callback", Input, async (input, ctx) => {
     availability: input.availability,
     emailed_caller: Boolean(to),
     emails_sent: emailed,
-    message: `Callback requested. Tell the caller the ${branchName} team will call them ${input.availability}${to ? ", and that they will receive an email with the details and a link to complete their data" : "; no email was sent to them, so do not mention any email"}. Then thank them and say goodbye.`,
+    message: `Callback requested. Tell the caller the ${branchName} team will call them ${input.availability}${to ? ", and that they will receive an email with the details and a link to complete their data" : "; no email was sent to them, so do not mention any email"}. Then thank them and say goodbye.${CALM}`,
   };
 });

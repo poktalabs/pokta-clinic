@@ -16,12 +16,24 @@ export interface Scenario {
   fallback: string;
   /** Sent once after the agent says goodbye, then the run ends. */
   farewell: string;
+  /** Session language override; unset starts in the agent's default (Spanish). */
+  language?: "en";
 }
 
-const GOODBYE = /(adios|hasta luego|hasta pronto|que tenga (un )?(muy )?(buen|excelente)|se pondra en contacto|nos pondremos en contacto)/;
+const GOODBYE = /(adios|hasta luego|hasta pronto|que tenga (un )?(muy )?(buen|excelente)|se pondra en contacto|nos pondremos en contacto|goodbye|good bye|take care|have a (good|great|nice|lovely)|will (be in touch|contact you|get in touch))/;
 export const isGoodbye = (agentText: string): boolean => GOODBYE.test(normalize(agentText)) && !agentText.includes("?");
 
 export const normalize = (s: string): string => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+/** The agent's last question: from the last "¿" in Spanish, or the sentence that ends in the last "?" in English. */
+export function lastQuestion(text: string): string {
+  const open = text.lastIndexOf("¿");
+  if (open >= 0) return text.slice(open);
+  const end = text.lastIndexOf("?");
+  if (end < 0) return text;
+  const start = Math.max(text.lastIndexOf(". ", end), text.lastIndexOf("! ", end));
+  return text.slice(start >= 0 ? start + 2 : 0);
+}
 
 // Fictional 10-digit Mexico City number (55 + 8 random digits).
 const randomPhone = (): string => "55" + Array.from({ length: 8 }, () => Math.floor(Math.random() * 10)).join("");
@@ -83,6 +95,24 @@ export function buildScenario(name: string): Scenario {
         ],
       };
     }
+    case "kb": {
+      // Golden path with off-script clinic questions, each asked once at a fixed point. The agent should
+      // answer from the knowledge base in a sentence or two (or defer to branch staff for what is not in
+      // it, like IMSS) and then repeat the question it had pending, which the golden rules answer.
+      const golden = buildScenario("golden");
+      return {
+        ...golden,
+        name,
+        description: `${golden.description} Interrupts once each: the price at the date of birth, what to bring at allergies, parking in Del Valle at the branch question, and IMSS (not in the knowledge base) at the day preference.`,
+        rules: [
+          { once: true, match: /nacimiento|nacio|naciste/, say: "Antes de seguir, ¿cuánto cuesta la consulta?" },
+          { once: true, match: /alergi/, say: "Perdón, ¿qué tengo que llevar a la consulta?" },
+          { once: true, match: /(cual|que) sucursal|sucursal.*(queda|conviene|prefiere)|queda mejor/, say: "¿Tienen estacionamiento en Del Valle?" },
+          { once: true, match: /dia o (un )?horario|preferencia|manana o (en )?la tarde/, say: "¿Tienen convenio con el IMSS?" },
+          ...golden.rules,
+        ],
+      };
+    }
     case "returning": {
       // A caller who already booked (SCENARIO_PHONE: the phone of an earlier golden run) changes the appointment.
       const known = process.env.SCENARIO_PHONE;
@@ -106,6 +136,58 @@ export function buildScenario(name: string): Scenario {
         ],
       };
     }
+    case "golden_en":
+      // The golden persona and answers, in English, in a session started with the English language override.
+      return {
+        name,
+        language: "en",
+        description: `English call (language override en). New patient Lucia Mendoza Rios, accepts the privacy notice, phone ${phone}, dob 1988-03-14, sex female; then History (38-year-old, 3 months of symmetric hand pain, 1 hour of morning stiffness) picks the Del Valle branch and accepts the first offered slot. Every agent turn should be in English, with GMA and branch names untranslated.`,
+        fallback: "Yes, go ahead.",
+        farewell: "Thank you, goodbye.",
+        rules: [
+          { match: /few minutes|to talk/, say: "Yes, sure.", once: true },
+          { match: /consent|authori[sz]e|do you agree|accept/, say: "Yes, I agree." },
+          { match: /(is|are) (that|this|these) (correct|right)|did i get|confirm|am i speaking|speaking with/, say: "Yes, that's correct." },
+          { match: /(phone|number)(?!.*name)/, say: `My phone number is ${spell(phone)}.` },
+          { match: /second (last name|surname)|maternal/, say: "Rios." },
+          { match: /(last name|surname).*first name|first name.*(last name|surname)|full name/, say: "Lucia, first last name Mendoza, second last name Rios." },
+          { match: /last name|surname/, say: "Mendoza." },
+          { match: /birth|born/, say: "I was born on March 14, 1988." },
+          { match: /\bsex\b|male or female|man or (a )?woman/, say: "Female." },
+          { match: /name/, say: "Lucia." },
+          // History: the golden-path Patient, most specific rules first; the order of questions is free.
+          { once: true, match: /main reason|reason for|what brings you|bothering you|see a specialist/, say: "Both of my hands have been hurting, on both sides, for about three months." },
+          { match: /when did (it|this|the pain|they) start|how long|start|suddenly|gradually|all at once/, say: "For three months, little by little." },
+          { match: /swell|swollen|inflam/, say: "Yes, my knuckles are swollen." },
+          { match: /stiff|morning.*(how long|last|minutes)|minutes/, say: "About an hour of stiffness in the morning." },
+          { match: /joint|where (does it|do you) hurt|which part|hands|wrists|both sides|knuckles/, say: "My hands and knuckles, the same on both sides." },
+          { match: /fever|tired|fatigue|weight|general symptoms/, say: "A bit tired, no fever." },
+          { match: /skin|eyes|mouth|dry|rash|raynaud|colou?r|cold/, say: "No, nothing on my skin, eyes or mouth, and my fingers don't change color." },
+          { match: /allerg/, say: "I have no allergies." },
+          { match: /medic|taking any|ibuprofen|treatment/, say: "I take ibuprofen when it hurts." },
+          { match: /diagnos|tests|lab|x-ray|imaging|studies/, say: "I haven't been diagnosed with anything and I haven't had any tests." },
+          { match: /family|mother|father|autoimmune|rheumatic (disease|condition)/, say: "My mother has rheumatoid arthritis." },
+          // Scheduling: accept the first offered slot.
+          { match: /which branch|branch.*(suits|convenient|prefer|best)|works best for you/, say: "Del Valle, please." },
+          { match: /(day|time) (preference|in mind)|prefer.*(day|time)|preferred (day|time)|morning or (in the )?afternoon/, say: "I have no preference." },
+          { match: /(option|slot|have|available).*(\d|monday|tuesday|wednesday|thursday|friday)|which (one )?(works|suits)|which do you prefer/, say: "The first option, please." },
+          { match: /(all|everything) (correct|right|good)|does that work|any (other )?questions|anything else/, say: "Yes, all good, thank you." },
+        ],
+      };
+    case "redflag_en":
+      return {
+        name,
+        language: "en",
+        description: "English call (language override en). Accepts the privacy notice, then reports chest pain and difficulty breathing. Expect the escalation script in English with 911.",
+        fallback: "Yes, thank you.",
+        farewell: "Thank you, goodbye.",
+        rules: [
+          { match: /few minutes|to talk/, say: "Yes, sure.", once: true },
+          { match: /consent|authori[sz]e|do you agree|accept/, say: "Yes, I agree.", once: true },
+          { match: /./, say: "I have chest pain and it's been hard to breathe for about an hour.", once: true },
+          { match: /confirm|will you (do|call)|going to/, say: "Yes, I'm calling right now." },
+        ],
+      };
     case "refuse":
       return {
         name,
@@ -131,6 +213,6 @@ export function buildScenario(name: string): Scenario {
         ],
       };
     default:
-      throw new Error(`unknown scenario "${name}" (golden | callback | returning | refuse | redflag)`);
+      throw new Error(`unknown scenario "${name}" (golden | callback | kb | returning | refuse | redflag | golden_en | redflag_en)`);
   }
 }

@@ -9,6 +9,9 @@
   "history_llm_reasoning_effort": "low",
   "tts_model_id": "eleven_v4_turbo",
   "voice_id": "m7yTemJqdIqrcNleANfX",
+  "tts_voice_id_en": "hpp4J3VqNfWAUOO0d1Us",
+  "tts_speed": 0.95,
+  "tts_stability": 0.6,
   "allowlist": [
     "localhost",
     "localhost:3000"

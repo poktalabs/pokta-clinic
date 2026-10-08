@@ -9,7 +9,7 @@ import { busyRange, describeStart, resolveSlot } from "@/scheduling/slots";
 import { store } from "@/store";
 import { branchDetails } from "@/tools/branch-details";
 import { callerEmail, resolveCallerEmail } from "@/tools/caller-email";
-import { NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
+import { CALM, NO_CONSENT, conversationId, grantedConsent, patientMismatch, tool } from "@/tools/handler";
 import { sendLater } from "@/tools/notify";
 
 const Input = z.object({
@@ -39,7 +39,7 @@ export const POST = tool("reschedule_appointment", Input, async (input, ctx) => 
   if (remembered && remembered.patientId === input.patient_id) {
     const { name, address, practitionerName } = await branchDetails(remembered.branch);
     ctx.outcome("already rescheduled");
-    return { rescheduled: true, branch_name: name, address, practitioner_name: practitionerName, label: describeStart(remembered.start).label, message: "Already rescheduled. Read back the new day, time and branch." };
+    return { rescheduled: true, branch_name: name, address, practitioner_name: practitionerName, label: describeStart(remembered.start).label, message: `Already rescheduled. Read back the new day, time and branch.${CALM}` };
   }
 
   const now = new Date();
@@ -122,6 +122,6 @@ export const POST = tool("reschedule_appointment", Input, async (input, ctx) => 
     start: slot.start,
     label: slot.label,
     emailed: Boolean(to),
-    message: `Rescheduled. Tell the caller their appointment of ${oldLabel} is cancelled and read back the new one: ${slot.label} at ${name} with ${practitionerName}. Say the address once${to ? " and that they will get an email with the details" : "; no email was sent, so do not mention any email"}. Then follow the instructions of your current stage.`,
+    message: `Rescheduled. Tell the caller their appointment of ${oldLabel} is cancelled and read back the new one: ${slot.label} at ${name} with ${practitionerName}. Say the address once${to ? " and that they will get an email with the details" : "; no email was sent, so do not mention any email"}. Then follow the instructions of your current stage.${CALM}`,
   };
 });

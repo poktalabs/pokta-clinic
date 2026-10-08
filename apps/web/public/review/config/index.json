@@ -1,0 +1,81 @@
+{
+  "agent_version_id": "agtvrsn_0401m4ed0sq1fkaaseabf9d33z6h",
+  "copied_from": "agent/cli",
+  "files": [
+    {
+      "path": "workflow.json",
+      "kind": "workflow",
+      "name": "workflow"
+    },
+    {
+      "path": "agent_configs/pokta-clinic.json",
+      "kind": "agent",
+      "name": "pokta-clinic"
+    },
+    {
+      "path": "tool_configs/book_appointment.json",
+      "kind": "tool",
+      "name": "book_appointment"
+    },
+    {
+      "path": "tool_configs/check_availability.json",
+      "kind": "tool",
+      "name": "check_availability"
+    },
+    {
+      "path": "tool_configs/escalate.json",
+      "kind": "tool",
+      "name": "escalate"
+    },
+    {
+      "path": "tool_configs/find_patient.json",
+      "kind": "tool",
+      "name": "find_patient"
+    },
+    {
+      "path": "tool_configs/get_questionnaire.json",
+      "kind": "tool",
+      "name": "get_questionnaire"
+    },
+    {
+      "path": "tool_configs/record_consent.json",
+      "kind": "tool",
+      "name": "record_consent"
+    },
+    {
+      "path": "tool_configs/request_callback.json",
+      "kind": "tool",
+      "name": "request_callback"
+    },
+    {
+      "path": "tool_configs/reschedule_appointment.json",
+      "kind": "tool",
+      "name": "reschedule_appointment"
+    },
+    {
+      "path": "tool_configs/save_history.json",
+      "kind": "tool",
+      "name": "save_history"
+    },
+    {
+      "path": "tool_configs/save_patient.json",
+      "kind": "tool",
+      "name": "save_patient"
+    },
+    {
+      "path": "kb_docs/aviso.md",
+      "kind": "kb",
+      "name": "aviso"
+    },
+    {
+      "path": "kb_docs/faq.md",
+      "kind": "kb",
+      "name": "faq"
+    },
+    {
+      "path": "kb_docs/primera-visita.md",
+      "kind": "kb",
+      "name": "primera-visita"
+    }
+  ]
+}

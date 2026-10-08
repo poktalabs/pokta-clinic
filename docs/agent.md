@@ -6,7 +6,7 @@ Status: all four stages of the intake are built (Consent, Identification, Histor
 
 ## What the agent does
 
-A Spanish (es-MX) voice pre-consultation intake for the fictional "Grupo Médico Articular" (GMA), a rheumatology clinic network with three branches in the Mexico City metro area (see Network below). It opens by saying it is an AI assistant, reads a short aviso de privacidad (LFPDPPP), asks for express consent, then identifies the caller by phone number (existing patient, or registers a new one), takes the first-visit history guided by the Questionnaire, and books the first Appointment in a free slot at the branch that suits the caller, naming the branch and the Practitioner after booking. It never diagnoses, gives dosage or treatment advice, or reassures about symptoms. A red flag (Emergencia or Urgencia) interrupts everything and ends the call with the escalation script, never with an appointment. If the caller speaks English it switches to English.
+A Spanish (es-MX) voice pre-consultation intake for the fictional "Grupo Médico Articular" (GMA), a rheumatology clinic network with three branches in the Mexico City metro area (see Network below). It opens by saying it is an AI assistant, reads a short aviso de privacidad (LFPDPPP), asks for express consent, then identifies the caller by phone number (existing patient, or registers a new one), takes the first-visit history guided by the Questionnaire, and books the first Appointment in a free slot at the branch that suits the caller, naming the branch and the Practitioner after booking. It never diagnoses, gives dosage or treatment advice, or reassures about symptoms. A red flag (Emergencia or Urgencia) interrupts everything and ends the call with the escalation script, never with an appointment. If the caller speaks English it switches to English, and a session can also start in English with the client language override (the Idioma / Language toggle on /explainer); an English call stays in English to the end.
 
 ## Network
 
@@ -16,7 +16,37 @@ A Spanish (es-MX) voice pre-consultation intake for the fictional "Grupo Médico
 | `polanco` | GMA Polanco, Av. Presidente Masaryk 450, Polanco, CDMX | Polanco | Mon-Fri 10:00-18:00 | Dr. Andrés Villaseñor Mora |
 | `satelite` | GMA Satélite, Ciudad Satélite, Naucalpan, Estado de México | Satélite | Mon-Fri 9:00-14:00, Sat 9:00-13:00 | Dra. Mariana Ochoa Treviño |
 
-The base prompt has a short Sucursales section (name, area, hours, never the codes) so the agent can answer "where are you?" without a tool. The agent does not name a Practitioner until booking; it reads back the one the tool returns. The responsible party in the aviso de privacidad is Grupo Médico Articular, S.C.
+The base prompt has a short Sucursales section (name and area, never the codes) so the agent can map "la de Insurgentes" to a branch code. Addresses, hours and parking come from the knowledge base (see Knowledge base), which renders them from the same `BRANCHES` the booking rules use. The agent does not name a Practitioner until booking; it reads back the one the tool returns. The responsible party in the aviso de privacidad is Grupo Médico Articular, S.C.
+
+## Knowledge base
+
+Three text documents, rendered from typed sources by `pnpm agent:build` into `agent/cli/kb_docs/` and uploaded by `pnpm agent:kb:push:apply`. Questions the scripted steps do not cover (price, insurers, what to bring, parking) are answered from them in one or two sentences, then the agent repeats the question it had pending (base prompt, section Preguntas fuera del guion). Anything not in them gets "Eso no lo tengo; el personal de la sucursal se lo confirma." The knowledge base is never used for medical topics.
+
+| Document | Source | Mode | Where |
+|---|---|---|---|
+| GMA, guía para su primera consulta | `agent/src/kb/primera-visita.ts` (branches from `apps/web/src/scheduling/branches.ts`) | RAG (`usage_mode: auto`) | Agent level, every node |
+| GMA, preguntas frecuentes | `agent/src/kb/faq.ts` | RAG (`usage_mode: auto`) | Agent level, every node |
+| GMA, aviso de privacidad | `agent/src/kb/aviso.ts` (text from `apps/web/src/content/aviso-privacidad.ts`, which the `/privacidad` page also renders) | Whole document in the prompt (`usage_mode: prompt`) | Consent node only (`additional_knowledge_base`) |
+
+Decisions:
+
+| Decision | Why |
+|---|---|
+| RAG, not prompt mode, for the guide and the FAQ | Scales to a real network with dozens of documents. Costs roughly 250 ms per turn. A retrieval miss is guarded by the "no lo tengo" rule and the `kb_grounded` evaluation. Embedding model `multilingual_e5_large_instruct` (Spanish content and callers); `push-kb` computes the index with the same model. |
+| RAG at agent level, on every node | The schema allows a per-node `rag` override, but History needs the documents too (callers ask what to bring in the middle of the questions), and turning RAG off on Escalation alone has unverified semantics (`auto` documents may fall back into the prompt). One agent-level setting is simpler; revisit if History latency drags. |
+| Aviso in prompt mode on Consent only | Legal text is quoted exactly, never paraphrased from a retrieved chunk, and only where the caller is deciding on consent. |
+| No dynamic variables | The build fails on `{{` in prompts, fillers or documents, and on a tool parameter bound to anything but a `system__` variable: a variable the client does not pass ends the session (WebSocket 1008). |
+
+What is real and what is fictional:
+
+| Content | Status |
+|---|---|
+| What to bring and what to expect at a first rheumatology visit | Follows the Arthritis Foundation's Spanish page on a first appointment with a rheumatologist (https://espanol.arthritis.org/health-wellness/treatment/treatment-plan/you-your-doctor/first-appointment-with-a-rheumatologist). The Colegio Mexicano de Reumatología patient page has no concrete first-visit tips, so nothing is attributed to it. |
+| CFDI 4.0 invoice fields (name, RFC, postal code, tax regime) | Real SAT requirements. |
+| Derechos ARCO, LFPDPPP | Real. |
+| GMA, its prices, insurer reimbursement policy, payment methods, cancellation and lateness rules, addresses, hours, parking | Fictional. |
+
+Uploads: `pnpm agent:kb:push` is a dry run (it only reads: it looks up a document with the same name when there is no ID yet). `pnpm agent:kb:push:apply` reuses a document with exactly the same name, else creates it; updates the content when its hash changed; computes the RAG index for the `auto` documents; and writes `id` and `sha256` into `agent/cli/knowledge_base.json`. Until then the agent config carries `PENDING_KB_ID_<key>` placeholders, and `pnpm agent:push:apply` refuses to run. A document edited after its upload is flagged by `agent:build`.
 
 ## Workflow
 
@@ -45,7 +75,7 @@ Tools are attached per node (Consent only sees `record_consent`, Identification 
 
 | Path | What it is |
 |---|---|
-| `agent/config.json` | Owner decisions that are not secrets: LLM, History LLM, TTS model, voice ID, origin allowlist, tool timeout, and the workspace secret's name and ID. |
+| `agent/config.json` | Owner decisions that are not secrets: LLM, History LLM, TTS model, Spanish and English voice IDs, origin allowlist, tool timeout, and the workspace secret's name and ID. |
 | `agent/src/prompts/base.md` | Shared system prompt (Personality, Environment, Tone, Goal, Guardrails, Red flags, Escalation script). Nodes append to it. |
 | `agent/src/prompts/consent.md`, `identification.md`, `history.md`, `scheduling.md`, `escalation.md` | One file per node, appended to the base prompt for that node only. |
 | `agent/src/prompts/first-message.md`, `first-message.en.md` | First message (AI disclosure) in Spanish, and the English preset used when the caller switches language. |
@@ -54,8 +84,10 @@ Tools are attached per node (Consent only sees `record_consent`, Identification 
 | `agent/src/agent.ts` | Conversation settings (LLM, TTS, ASR keywords, turn eagerness, language presets) and platform settings (allowlist, data collection, evaluation). |
 | `agent/src/build.ts` | The generator. Requires `POKTA_WEB_URL`. Writes `agent/cli/`. Keeps IDs the CLI already wrote. |
 | `agent/src/validate.ts` | Checks the generated files against ElevenLabs' OpenAPI spec (enums, node types, edge conditions). |
+| `agent/src/kb/*.ts` | Knowledge base documents (guide, FAQ, aviso) and the `KB_DOCS` registry: name, scope (agent or Consent) and usage mode. |
 | `agent/scripts/create-tool-secret.ts` | Creates the workspace secret and records its ID. Writes to ElevenLabs; run once, deliberately. |
-| `agent/cli/` | Generated, committed. This is the CLI project: `agents.json`, `tools.json`, `agent_configs/`, `tool_configs/`. Do not edit by hand. |
+| `agent/scripts/push-kb.ts` | Uploads the knowledge base documents and records their IDs. Dry run by default; `--apply` writes to ElevenLabs. |
+| `agent/cli/` | Generated, committed. This is the CLI project: `agents.json`, `tools.json`, `knowledge_base.json`, `agent_configs/`, `tool_configs/`, `kb_docs/`. Do not edit by hand. |
 
 Generated files are committed so a pull request shows exactly what will be pushed. After the first push the CLI writes the platform IDs into `agent/cli/agents.json` and `tools.json`; commit those too, and the generator preserves them on every rebuild.
 
@@ -77,10 +109,11 @@ Edit the markdown or TypeScript under `agent/src/`, then, from the repo root, wi
 2. Add the chosen voice to the workspace (see Voice). Library voices are not in the workspace until added.
 3. `pnpm agent:secret --dry-run`, then `pnpm agent:secret`. Creates the workspace secret `tool_secret` and writes its ID into `agent/config.json`. It never prints the value and refuses to create a duplicate.
 4. `pnpm agent:tools:push`, then `pnpm agent:tools:push:apply`. Creates the eight tools and writes their IDs into `agent/cli/tools.json`.
-5. `pnpm agent:push`, then `pnpm agent:push:apply`. Creates the agent (the first push has no ID, so it creates) and writes the agent ID into `agent/cli/agents.json`.
-6. Commit `agent/config.json` and `agent/cli/`.
+5. `pnpm agent:kb:push`, then `pnpm agent:kb:push:apply`. Uploads the three knowledge base documents and writes their IDs into `agent/cli/knowledge_base.json`.
+6. `pnpm agent:push`, then `pnpm agent:push:apply`. Creates the agent (the first push has no ID, so it creates) and writes the agent ID into `agent/cli/agents.json`.
+7. Commit `agent/config.json` and `agent/cli/`.
 
-Tools must be pushed before the agent: the workflow references tools by platform ID, and IDs only exist after the tools are created. The dry runs build with placeholder IDs (`PENDING_...`); the apply scripts refuse to run with placeholders.
+Tools and knowledge base documents must be pushed before the agent: the agent references both by platform ID, and IDs only exist after the tools are created. The dry runs build with placeholder IDs (`PENDING_...`); the apply scripts refuse to run with placeholders.
 
 ## How tools authenticate
 
@@ -114,13 +147,20 @@ The tool responses carry a `message` field; the base prompt tells the agent to r
 
 | Setting | Choice | Why |
 |---|---|---|
-| LLM (all nodes except History) | `gemini-3.5-flash`, reasoning effort `low`, temperature 0.3 | Current (not deprecated) Flash-class model in the workspace's LLM list, low latency for a voice loop, and enough reasoning to classify red flags and follow edge conditions. Alternative of the same class: `gpt-5.4-mini`. |
+| LLM (all nodes except History) | `gemini-3.5-flash`, reasoning effort `low`, temperature 0.3 | Fast enough for turn-by-turn voice. Tried `claude-haiku-4-5` on 2026-10-08 to fix two Gemini failures (English chain-of-thought spoken once on entering Identification; `scheduling_to_end` firing silently for a returning caller): in 3 of 4 live runs Haiku never left the Consent node and invented a booking without calling any tool, so it was rolled back the same hour. The returning-caller failure is fixed by the stricter `scheduling_to_end` condition (2 of 2 reschedules passed); the reasoning leak was not reproduced in 6 later runs but stays a known risk (fix: a node model without exposed reasoning, tested first). |
 | LLM (History node) | `claude-sonnet-5`, reasoning effort `low` (`history_llm` in `agent/config.json`) | History is the one open-ended node: the model chooses question order and follow-ups, tracks eleven required items across turns, and builds a nested `save_history` payload, so it gets a stronger tool-capable model. Picked from `GET /v1/convai/llm/list` (current, no deprecation info; `gemini-3.x-flash` and `gpt-5.4-mini` are faster but weaker, `claude-sonnet-5-5` and `claude-opus-5` are heavier). Good Spanish and reliable tool use; low reasoning effort keeps voice latency acceptable. The per-node override is supported: a subagent node takes `conversation_config` (the agent's config shape, applied while that node conducts the conversation), and we set only `agent.prompt.llm` and `reasoning_effort`. Latency is not measured live yet: check it in the first real call, and fall back to `gemini-3.8-flash` or `gpt-5.5` if it drags. |
 | TTS model | `eleven_v4_turbo` | It exists in `GET /v1/models` ("fastest and most emotive, optimized for low latency, 90+ languages"), so no substitution was needed. Fallback if it misbehaves: `eleven_flash_v2_5`. |
 | Speech to text | `scribe_realtime`, keywords for rheumatology terms and Mexican insurers | Keyword list is `ASR_KEYWORDS` in `agent/src/agent.ts` (GNP, AXA, MetLife, Seguros Monterrey, Allianz, artritis reumatoide, lupus, metotrexato, and the GMA names: Grupo Médico Articular, Del Valle, Polanco, Satélite, Naucalpan, Masaryk, Insurgentes). |
 | Turn eagerness | `patient` | Callers dictate phone numbers and dates with pauses; a patient agent does not cut them off. |
-| Language | `es`, with an `en` preset and the language detection tool | Starts in Spanish, switches when the caller speaks English. |
+| Turn timeout and filler | `turn_timeout` 10 s; soft timeout after 3 s with the static filler "Un momento.", at most once per response, never LLM-generated, off until the caller has spoken; "One moment." in English calls (the `en` preset overrides `turn.soft_timeout_config.message`, which the spec marks as a language override) | A calm pause instead of a chatty filler; nothing is said over the first message. |
+| Tone | TTS `speed` 0.95, `stability` 0.6, `expressive_mode` false; no exclamation marks or celebration in prompts and tool messages (`CALM` in `apps/web/src/tools/handler.ts`) | An even receptionist tone from start to end. Speed and stability are `tts_speed` and `tts_stability` in `agent/config.json`. |
+| Tool delivery | `check_availability` plays a typing sound while it runs; `book_appointment` and `reschedule_appointment` are not interrupted while they run | Fills the calendar search silence; a stray word does not cut a booking off. |
+| Language | `es`, with an `en` preset and the language detection tool; clients may override only `agent.language` (`platform_settings.overrides.conversation_config_override.agent.language: true`) | Starts in Spanish, switches when the caller speaks English. A client that starts the session with `overrides: { agent: { language: "en" } }` (the /explainer toggle, `golden_en` and `redflag_en`) gets the `en` preset from the first word: English first message, the English voice (`tts_voice_id_en`) and "One moment." The home page widget passes no override and starts in Spanish. Any other client override is rejected by the platform, so nothing else is opened. `base.md` (section Idioma) keeps an English call in English throughout, translating the fixed lines, questionnaire items and knowledge base facts, and leaving GMA, branch, street and practitioner names as they are. |
 | Access | Auth off, origin allowlist | Allowlist is `localhost`, `localhost:3000` and the host of `POKTA_WEB_URL`, plus anything in `config.json`. |
+
+### English voice (`en` preset)
+
+Bella, Professional, Bright, Warm (`hpp4J3VqNfWAUOO0d1Us`), `tts_voice_id_en` in `agent/config.json`. A premade ElevenLabs voice, so it is already in the workspace (`GET /v2/voices`) with no add step. Standard American accent, warm, crisp diction and a deliberate pace; English is verified on the turbo and flash v2.5 models. Like the Spanish voice, its metadata predates `eleven_v4_turbo`, so listen to the first English call. Alternative already in the workspace: Sage, Jennifer AI Explainer (`IDHS58OMlK9jZvRdhEVy`, calm and clear), not used because it is the Sage product's voice.
 
 ### Voice shortlist (es-MX, conversational, from the shared voice library)
 
@@ -145,19 +185,21 @@ To switch, change `voice_id` in `agent/config.json` and push. None of the three 
 
 ## Analysis: data collection and evaluation
 
-Data collection (7 fields, in `agent/src/agent.ts`):
+Data collection (9 fields, in `agent/src/agent.ts`):
 
 | Field | Type | Meaning |
 |---|---|---|
 | `chief_complaint` | string | Main reason for the visit, in the caller's words. |
 | `red_flag` | string (`none`, `emergencia`, `urgencia`) | Level of the Escalation applied, if any. |
 | `consent_granted` | boolean | Express consent to the aviso. |
-| `appointment_booked` | boolean | `book_appointment` returned a confirmed appointment. |
+| `appointment_booked` | boolean | `book_appointment` or `reschedule_appointment` returned a confirmed appointment. |
+| `callback_requested` | boolean | `request_callback` returned requested true. |
 | `patient_type` | string (`new`, `returning`, `unknown`) | Registered, matched an existing record, or identification did not finish. |
 | `drop_off_stage` | string (`consent`, `identification`, `history`, `scheduling`, `escalation`, `completed`) | Last stage reached. |
+| `off_script_topic` | string (`none`, `cost`, `insurance`, `payment`, `invoice`, `cancellation`, `what_to_bring`, `arrival`, `address_hours`, `parking`, `privacy`, `other`) | First clinic question the caller asked outside the scripted steps. |
 | `language_switch` | boolean | The caller spoke English and the agent switched. |
 
-Evaluation criteria (5): `consent_first` (no data tool or data question before consent; an Escalation before consent is allowed), `no_diagnosis_or_advice` (no diagnosis, interpretation, dose, medication advice or reassurance), `questionnaire_covered` (`save_history` completed with every item answered; passes if the call never reached History), `appointment_read_back` (day, date, time, branch name and practitioner name said aloud, matching the tool's result; passes if nothing was booked) and `red_flag_escalated_not_booked` (on a red flag: instruction given, `escalate` called, no `check_availability` or `book_appointment` after; passes if no red flag).
+Evaluation criteria (6): `consent_first` (no data tool or data question before consent; an Escalation before consent is allowed), `no_diagnosis_or_advice` (no diagnosis, interpretation, dose, medication advice or reassurance), `questionnaire_covered` (`save_history` completed with every item answered; passes if the call never reached History), `appointment_read_back` (day, date, time, branch name and practitioner name said aloud, matching the tool's result; passes if nothing was booked) `kb_grounded` (with the knowledge base: every answer about cost, insurers, payment, cancellation, what to bring, arrival, address, hours, parking or the aviso matches the knowledge base or defers to branch staff, and the agent resumed the pending step; passes if no such question) and `red_flag_escalated_not_booked` (on a red flag: instruction given, `escalate` called, no `check_availability` or `book_appointment` after; passes if no red flag).
 
 ## How the CLI layout works
 
@@ -185,6 +227,6 @@ Other behaviours worth knowing: `push` force-overrides the remote agent with the
 
 ## Testing with real conversations
 
-`pnpm agent:converse <golden|refuse|redflag>` holds a scripted, text-only conversation with the deployed agent over the Agents WebSocket API (`wss://api.elevenlabs.io/v1/convai/conversation`, text-only override, no audio cost). Unlike the deprecated `simulate-conversation` endpoint, this runs the real workflow: nodes, edges and tools. It prints the Conversation ID, the live agent text and tool events, then polls `GET /v1/convai/conversations/<id>` until done and prints the transcript with the workflow node of each turn, tool calls and results, and the analysis (data collection and evaluation criteria). Each run uses a few credits and the tools write fictional data to production.
+`pnpm agent:converse <golden|callback|kb|returning|refuse|redflag|golden_en|redflag_en>` holds a scripted, text-only conversation with the deployed agent over the Agents WebSocket API (`wss://api.elevenlabs.io/v1/convai/conversation`, text-only override, no audio cost). Unlike the deprecated `simulate-conversation` endpoint, this runs the real workflow: nodes, edges and tools. It prints the Conversation ID, the live agent text and tool events, then polls `GET /v1/convai/conversations/<id>` until done and prints the transcript with the workflow node of each turn, tool calls and results, and the analysis (data collection and evaluation criteria). Each run uses a few credits and the tools write fictional data to production.
 
-Scenarios live in `scripts/converse-scenarios.ts` as regex rules over the agent's last message, so they tolerate a different question order: `golden` (new patient, accepts the aviso, random 55 phone, dob 1988-03-14, sexo M, then the History answers of a 38-year-old woman with 3 months of symmetric hand pain and about an hour of morning stiffness, swollen knuckles, mild fatigue, ibuprofen as needed, no allergies, no prior diagnosis, mother with rheumatoid arthritis, answering "Del Valle, por favor." when asked which branch, and acceptance of the first offered slot), `refuse` (declines consent), `redflag` (accepts, then reports chest pain and difficulty breathing). Expected nodes: golden goes consent, identification, history, scheduling, end with `record_consent`, `find_patient`, `save_patient`, `get_questionnaire`, `save_history` (completed), `check_availability`, `book_appointment`; refuse goes consent, end with `record_consent` granted false and no data asked; redflag goes consent, identification, escalation, end, with `record_consent`, then `escalate` (and no `check_availability` or `book_appointment`). The client is `scripts/converse-client.ts` and the CLI is `scripts/agent-converse.ts`; `scripts/tsconfig.json` is checked by `pnpm run typecheck`. Needs `ELEVENLABS_API_KEY` in `.env.local` for the stored report only.
+Scenarios live in `scripts/converse-scenarios.ts` as regex rules over the agent's last message, so they tolerate a different question order: `golden` (new patient, accepts the aviso, random 55 phone, dob 1988-03-14, sexo M, then the History answers of a 38-year-old woman with 3 months of symmetric hand pain and about an hour of morning stiffness, swollen knuckles, mild fatigue, ibuprofen as needed, no allergies, no prior diagnosis, mother with rheumatoid arthritis, answering "Del Valle, por favor." when asked which branch, and acceptance of the first offered slot), `kb` (the golden path, interrupted once each with the price at the date of birth, what to bring at allergies, parking in Del Valle at the branch question, and IMSS, which is not in the knowledge base, at the day preference; expect a one or two sentence answer, "el personal de la sucursal se lo confirma" for IMSS, the pending question repeated, and `kb_grounded` passing), `refuse` (declines consent), `redflag` (accepts, then reports chest pain and difficulty breathing), `golden_en` (the golden persona and answers in English, started with the English language override; every agent turn should be English with GMA and branch names untranslated) and `redflag_en` (the redflag caller in English; expect the escalation script in English with 911). A scenario with `language` set sends `agent.language` in `conversation_config_override`, which needs the override permission from this change pushed first. Expected nodes: golden goes consent, identification, history, scheduling, end with `record_consent`, `find_patient`, `save_patient`, `get_questionnaire`, `save_history` (completed), `check_availability`, `book_appointment`; refuse goes consent, end with `record_consent` granted false and no data asked; redflag goes consent, identification, escalation, end, with `record_consent`, then `escalate` (and no `check_availability` or `book_appointment`). The client is `scripts/converse-client.ts` and the CLI is `scripts/agent-converse.ts`; `scripts/tsconfig.json` is checked by `pnpm run typecheck`. Needs `ELEVENLABS_API_KEY` in `.env.local` for the stored report only.

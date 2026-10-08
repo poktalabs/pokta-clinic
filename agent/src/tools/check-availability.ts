@@ -6,6 +6,8 @@ import { conversationId } from "./conversation-id.ts";
 // America/Mexico_City, 60 min, bookable 24 h to 14 days ahead) are enforced server side.
 export const checkAvailability: ToolSpec = {
   name: "check_availability",
+  // The calendar search can take a second or two; a soft typing sound fills the silence.
+  delivery: { tool_call_sound: "typing", tool_call_sound_behavior: "always" },
   description:
     "Returns up to 3 free first-consultation slots across the GMA branches, each with branch (code), branch_name, practitioner_name, an ISO start and a Spanish label to say aloud. Call it once you know which branch the caller prefers (or that they have no preference) and the History stage is saved as completed, and again if the caller asks for another day, another time or another branch. When the caller gives a time range, pass it as time_from and time_to so every slot returned fits it. Only offer slots this tool returned; never invent or adjust a time or a branch. If it returns no slots, say so and ask for a different day, part of the day or branch. The response has a message field that says what to do next; follow it.",
   required: ["conversation_id"],

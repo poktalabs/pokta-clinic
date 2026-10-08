@@ -20,6 +20,9 @@ export interface WebhookTool {
   name: string;
   description: string;
   response_timeout_secs: number;
+  tool_call_sound?: "typing";
+  tool_call_sound_behavior?: "auto" | "always";
+  interruption_mode?: "allow" | "disable_during_tool";
   api_schema: {
     url: string;
     method: "POST";
@@ -38,6 +41,21 @@ export interface ToolSpec {
   description: string;
   required: string[];
   properties: Record<string, ToolProperty>;
+  /** How the call sounds to the caller: a sound while it runs, or no interruptions during it. */
+  delivery?: {
+    tool_call_sound?: "typing";
+    tool_call_sound_behavior?: "auto" | "always";
+    interruption_mode?: "allow" | "disable_during_tool";
+  };
+}
+
+/** A knowledge base document, referenced by its platform ID (agent/cli/knowledge_base.json). */
+export interface KnowledgeBaseLocator {
+  type: "text";
+  name: string;
+  id: string;
+  /** auto: retrieved with RAG. prompt: the whole document is added to the prompt. */
+  usage_mode: "auto" | "prompt";
 }
 
 export type EdgeCondition = { type: "unconditional" } | { type: "llm"; condition: string };
@@ -47,6 +65,8 @@ export interface WorkflowNode {
   label?: string;
   additional_prompt?: string;
   additional_tool_ids?: string[];
+  /** Documents this node sees on top of the agent's knowledge base. */
+  additional_knowledge_base?: KnowledgeBaseLocator[];
   /** Per-node override of the agent's conversation config; we only use it to swap the LLM. */
   conversation_config?: JsonObject;
   edge_order?: string[];
