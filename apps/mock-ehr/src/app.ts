@@ -16,6 +16,7 @@ import { practitionerRoleRoutes } from "./routes/practitioner-role.js";
 import { practitionerRoutes } from "./routes/practitioner.js";
 import { questionnaireResponseRoutes } from "./routes/questionnaire-response.js";
 import { questionnaireRoutes } from "./routes/questionnaire.js";
+import { resetRoutes } from "./routes/reset.js";
 import { taskRoutes } from "./routes/task.js";
 
 // "Expediente Demo": a mock third-party EHR. pokta-clinic reaches it only over FHIR R4.
@@ -29,6 +30,8 @@ app.get("/developer", async (c) => c.html(`<!DOCTYPE html>${await RootPage()}`))
 app.get("/assets/fonts/:file", fontAsset);
 app.get("/fhir/metadata", (c) => c.json(capabilityStatement()));
 app.route("/console", consoleRoutes);
+// POST-only demo-data wipe behind the console password; nothing in the UI links to it.
+app.route("/developer/reset", resetRoutes);
 // The client console (PoktaClinic for the clinic administrator) at "/" and its sections; behind the console password.
 app.route("/", clientRoutes);
 
