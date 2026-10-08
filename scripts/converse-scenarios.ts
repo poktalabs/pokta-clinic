@@ -174,6 +174,35 @@ export function buildScenario(name: string): Scenario {
           { match: /(all|everything) (correct|right|good)|does that work|any (other )?questions|anything else/, say: "Yes, all good, thank you." },
         ],
       };
+    case "fast_en": {
+      // The recording script: golden_en with packed answers, so a live voice call fits the ~90 s demo slot.
+      // Identity in one turn after the phone, the whole history in one turn; golden_en rules cover follow-ups.
+      const golden = buildScenario("golden_en");
+      const history =
+        "Both of my hands have hurt for about three months; it started little by little. It's my hands and knuckles, the same on both sides, with about an hour of stiffness in the morning, and my knuckles are swollen. I'm a bit tired, no fever or weight loss. Nothing on my skin, eyes or mouth, and my fingers don't change color. I take ibuprofen when it hurts, I have no allergies, I've never been diagnosed or had tests, and my mother has rheumatoid arthritis.";
+      return {
+        ...golden,
+        name,
+        description: `English call (language override en), packed answers. New patient Roy Williams (no second last name), phone ${phone}, dob 1958-01-17, male, in one turn; the 11 history items in one turn; Del Valle, first slot.`,
+        rules: [
+          { match: /few minutes|to talk/, say: "Yes, sure.", once: true },
+          { match: /consent|authori[sz]e|do you agree|accept/, say: "Yes, I agree." },
+          { match: /(is|are) (that|this|these) (correct|right)|did i get|confirm|am i speaking|speaking with/, say: "Yes, that's correct." },
+          { match: /(phone|number)(?!.*name)/, say: `My phone number is ${spell(phone)}.` },
+          { once: true, match: /name|surname|birth|born|\bsex\b/, say: "Roy Williams, no second last name. I was born on January 17, 1958, and I'm male." },
+          { match: /second (last name|surname)|maternal/, say: "I don't have one." },
+          { match: /birth|born/, say: "January 17, 1958." },
+          { match: /\bsex\b|male or female|man or (a )?woman/, say: "Male." },
+          { match: /last name|surname/, say: "Williams." },
+          { match: /name/, say: "Roy." },
+          { once: true, match: /main reason|reason for|what brings you|bothering you|see a specialist/, say: history },
+          { match: /which (of these )?(branch|location)|(branch|location).*(suits|convenient|prefer)/, say: "Del Valle, any day or time; the first available slot is fine." },
+          { match: /(option|slot|have|available).*(\d|monday|tuesday|wednesday|thursday|friday|saturday)|which (one|of these)? ?(options? )?(works|suits)|would that work|which do you prefer/, say: "Yes, the first one, please." },
+          { match: /(all|everything) (look )?(correct|right|good)|does that work|any (other )?questions|anything else/, say: "Yes, all correct, thank you." },
+          ...golden.rules.filter((r) => !/Rios|Mendoza|Lucia|March 14|Female|Yes, sure|I agree|that's correct|phone number|Del Valle|first option|all good/.test(r.say)),
+        ],
+      };
+    }
     case "redflag_en":
       return {
         name,
@@ -213,6 +242,6 @@ export function buildScenario(name: string): Scenario {
         ],
       };
     default:
-      throw new Error(`unknown scenario "${name}" (golden | callback | kb | returning | refuse | redflag | golden_en | redflag_en)`);
+      throw new Error(`unknown scenario "${name}" (golden | callback | kb | returning | refuse | redflag | golden_en | fast_en | redflag_en)`);
   }
 }

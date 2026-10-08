@@ -8,7 +8,7 @@ export interface Slide {
   /** Short label for the notes panel and the slide's aria-label. */
   label: string;
   body: ReactNode;
-  /** What to say over the slide (shown with N). Sized for ~45 seconds across the deck. */
+  /** What to say over the slide (shown with N). About 110 spoken words across the deck, ~45 seconds. */
   notes: string;
 }
 
@@ -125,7 +125,7 @@ export const SLIDES: Slide[] = [
         </p>
       </>
     ),
-    notes: "I'm Mel. This is PoktaClinic: a voice agent that runs the pre-consultation for a rheumatology network in Mexico, built on ElevenLabs Agents.",
+    notes: "I'm Mel. This is a handoff of PoktaClinic: an ElevenLabs voice agent that runs pre-consultation calls for a Mexico City rheumatology network.",
   },
   {
     label: "The queue",
@@ -161,7 +161,7 @@ export const SLIDES: Slide[] = [
         </p>
       </>
     ),
-    notes: "Mexico has 0.58 rheumatologists per 100,000 people, about half the recommended minimum, and most are in three cities. At the national rehab institute the median wait for a first rheumatology pre-consultation is 24 months.",
+    notes: "Mexico has half the recommended rheumatologists; the median wait for a first pre-consultation is 24 months.",
   },
   {
     label: "Who pays",
@@ -174,7 +174,14 @@ export const SLIDES: Slide[] = [
         <Split>
           <Column
             heading="Today · Grupo Médico Articular (fictional, 3 branches)"
-            items={["Front desk answers every call", "Takes consent, registers the patient, books", "The specialist spends the first visit re-taking the history"]}
+            items={[
+              "Front desks answer every call, office hours only",
+              <>
+                Approx. MXN 9,670/month per receptionist, per branch <small>CDMX, Indeed MX</small>
+              </>,
+              "Takes consent, registers the patient, books",
+              "The specialist spends the first visit re-taking the history",
+            ]}
           />
           <Column
             brand
@@ -192,9 +199,12 @@ export const SLIDES: Slide[] = [
         <p className={s.metric}>
           <span>Success metric</span> specialist minutes saved per first visit <b>·</b> calls answered <b>·</b> no-shows
         </p>
+        <p className={s.sources}>
+          Source: <Source href="https://mx.indeed.com/career/recepcionista/salaries/Ciudad-de-M%C3%A9xico">Indeed MX, receptionist salaries in Mexico City (approx.)</Source>
+        </p>
       </>
     ),
-    notes: "The customer is a private rheumatology network, Grupo Médico Articular, fictional, three branches. Today they pay front desks to answer, take consent, register and book, and the specialist re-takes the history anyway. PoktaClinic does all of that on the call, and we measure specialist minutes saved, calls answered and no-shows.",
+    notes: "The buyer is the operations lead, paying front desks about 9,670 pesos a month per receptionist, office hours only, while specialists re-take the history. Metric: specialist minutes saved, calls answered, no-shows.",
   },
   {
     label: "Market proof",
@@ -215,7 +225,7 @@ export const SLIDES: Slide[] = [
         </Sequence>
       </>
     ),
-    notes: "This is a real market: Assort Health raised a $120M Series C at a $1.2B valuation, Hello Patient a $22.5M Series A, and Banner Health is live on ElevenAgents for scheduling.",
+    notes: "Buyers are paying: Assort Health is valued at 1.2 billion, and Banner Health runs on ElevenAgents.",
   },
   {
     label: "Beyond the reference build",
@@ -251,7 +261,7 @@ export const SLIDES: Slide[] = [
         </p>
       </>
     ),
-    notes: "ElevenLabs published a healthcare scheduling reference build. PoktaClinic goes further: Spanish first with English, a legal consent gate, a clinical FHIR questionnaire, red-flag escalation from any step, a RAG knowledge base, and every call scored.",
+    notes: "Beyond the ElevenLabs healthcare reference: Spanish first, legal consent, a clinical questionnaire, red-flag escalation and RAG.",
   },
   {
     label: "Architecture",
@@ -288,6 +298,6 @@ export const SLIDES: Slide[] = [
         <Prompt>Live demo next</Prompt>
       </>
     ),
-    notes: "The caller talks to an ElevenLabs agent with a five-node workflow, Gemini Flash with Claude Sonnet on the history step. It calls ten webhook tools on a Next.js API on Vercel, which writes to a FHIR R4 EHR, three branch calendars and email. Let's see it live.",
+    notes: "One workflow, ten webhook tools, writing to an EHR, branch calendars and email. Live demo next.",
   },
 ];
