@@ -106,7 +106,7 @@ export function Present({ all }: { all: boolean }) {
       <header className={d.topbar}>
         <div className={d.brand}>
           <Image src="/poktacare-logo.svg" alt="" width={28} height={28} priority />
-          <div className={d.brandCopy}>
+          <div className={`${d.brandCopy} ${s.brandCopy}`}>
             <strong>
               Pokta<b>Clinic</b>
             </strong>
