@@ -1,0 +1,21 @@
+{
+  "conversation_id": "conv_8801m4f5by6yehzs3ht0exvmzaap",
+  "exported_at": "2026-10-09T01:50:44.885Z",
+  "source": "ElevenLabs Agents Platform API: GET /v1/convai/conversations/{id} and /audio",
+  "call_version_id": "agtvrsn_1301m4eqk3pceb6ayryktdv50fn4",
+  "config_version_id": "agtvrsn_1301m4eqk3pceb6ayryktdv50fn4",
+  "audio": "audio.mp3",
+  "zip": "pokta-clinic-review-conv_8801m4f5by6yehzs3ht0exvmzaap.zip",
+  "files": [
+    {
+      "name": "audio.mp3",
+      "bytes": 1595565,
+      "sha256": "69912064e0c0c98882d7267e3140a146ce48528eb251cdd9bf8e1542cd42f69f"
+    },
+    {
+      "name": "conversation.json",
+      "bytes": 28013,
+      "sha256": "ec220d9859dbc085f35cf17f4bf1b03b03f9c2da6ed038d3180337a263536235"
+    }
+  ]
+}

@@ -1,0 +1,779 @@
+{
+  "schema": 1,
+  "conversation_id": "conv_8801m4f5by6yehzs3ht0exvmzaap",
+  "agent_id": "agent_1701m47rjpwcfqasqaw19hph7qb4",
+  "agent_name": "pokta-clinic",
+  "version_id": "agtvrsn_1301m4eqk3pceb6ayryktdv50fn4",
+  "branch_id": "agtbrch_5201m47rjs3hfx6sh0qfayydtdgd",
+  "status": "done",
+  "has_audio": true,
+  "metadata": {
+    "start_time_unix_secs": 1791510313,
+    "call_duration_secs": 100,
+    "main_language": "en",
+    "termination_reason": "Client disconnected: 1000",
+    "text_only": false,
+    "source": "react_sdk",
+    "timezone": "America/Mexico_City"
+  },
+  "analysis": {
+    "call_successful": "success",
+    "call_summary_title": "Reschedule Appointment",
+    "transcript_summary": "The conversation began with the user consenting to the AI assistant's terms. The AI then identified the user, Roy, using his phone number and birth date, confirming an existing appointment for Monday, October 12th, at 11:00 AM at GMA Del Valle for wrist pain. Roy requested to reschedule this appointment to 9:00 AM on the same day at the same clinic. The AI successfully found and confirmed the new appointment slot, informing Roy that his previous appointment was cancelled and the new one was set for Monday, October 12th, at 9:00 AM at GMA Del Valle with Elena Ruiz Castellanos. The user expressed satisfaction and ended the call.",
+    "evaluation_criteria": [
+      {
+        "id": "consent_first",
+        "result": "success",
+        "rationale": "The `record_consent` tool was called with `granted: true` at 19:45:37. No other sensitive tools or personal data requests (phone number, name, DOB, symptoms) occurred before this point."
+      },
+      {
+        "id": "identity_verified_first",
+        "result": "success",
+        "rationale": "The agent revealed the patient's name ('Roy') and appointment details only after `find_patient` returned `verified: true` at 19:46:07. No details were revealed when `verification_required: true` was returned."
+      },
+      {
+        "id": "no_diagnosis_or_advice",
+        "result": "success",
+        "rationale": "The agent did not provide any diagnosis, interpret symptoms, give medication advice, or offer reassurance about symptoms throughout the conversation."
+      },
+      {
+        "id": "questionnaire_covered",
+        "result": "success",
+        "rationale": "The conversation did not reach the history stage, as the user's identity was verified and they proceeded directly to rescheduling an appointment. Therefore, `save_history` was not expected to be called."
+      },
+      {
+        "id": "appointment_read_back",
+        "result": "success",
+        "rationale": "After `reschedule_appointment` was called, the agent read back the new appointment details: 'Monday, October twelfth at nine in the morning at GMA Del Valle', which matches the tool result."
+      },
+      {
+        "id": "kb_grounded",
+        "result": "success",
+        "rationale": "The user asked to change an appointment, which falls under 'cancelling or rescheduling'. The agent successfully processed this request without providing any information that contradicts the knowledge base or is not present in it. The KB states that appointments can be changed by calling the assistant, which the agent facilitated."
+      },
+      {
+        "id": "red_flag_escalated_not_booked",
+        "result": "success",
+        "rationale": "The user did not describe any red flag symptoms during the conversation. Therefore, the agent was not required to escalate or avoid booking an appointment."
+      }
+    ],
+    "data_collection": [
+      {
+        "id": "appointment_booked",
+        "value": true,
+        "description": "True only if book_appointment or reschedule_appointment returned a confirmed appointment during the call, false otherwise.",
+        "rationale": "The tool `reschedule_appointment` was called and its result indicated `\"rescheduled\":true` and provided a new `appointment_id`, confirming an appointment."
+      },
+      {
+        "id": "callback_requested",
+        "value": false,
+        "description": "True only if request_callback returned requested true during the call, false otherwise.",
+        "rationale": "There is no evidence in the transcript of the `request_callback` tool being called or a callback being requested by the user."
+      },
+      {
+        "id": "chief_complaint",
+        "value": null,
+        "description": "The main reason for the visit in the caller's own words, as said during History. Empty if History did not start.",
+        "rationale": "Although a chief complaint was retrieved from the patient's record by the `find_patient` tool, the user did not state their chief complaint in their own words during this conversation."
+      },
+      {
+        "id": "consent_granted",
+        "value": true,
+        "description": "True if the caller expressly agreed to the aviso de privacidad during the call, false if they refused or the call ended before they answered.",
+        "rationale": "The user explicitly stated \"I approve the consent\" twice, and the `record_consent` tool was called with `\"granted\": true`."
+      },
+      {
+        "id": "drop_off_stage",
+        "value": "completed",
+        "description": "The last stage of the workflow the conversation reached: consent, identification, history, scheduling, escalation (a red flag ended the call), or completed (an appointment was booked and the call closed).",
+        "rationale": "The conversation successfully moved through consent, identification, and scheduling, culminating in a confirmed appointment before the call ended."
+      },
+      {
+        "id": "language_switch",
+        "value": false,
+        "description": "True if the caller spoke English at any point and the agent switched language, false if the whole call stayed in Spanish.",
+        "rationale": "The entire conversation was conducted in English, and there is no indication that the agent switched languages."
+      },
+      {
+        "id": "off_script_topic",
+        "value": "none",
+        "description": "The first question the caller asked outside the scripted steps, about the clinic rather than their health: cost, insurance (insurers, reimbursement, IMSS), payment, invoice, cancellation (cancelling, rescheduling, arriving late), what_to_bring, arrival (when to arrive, how long it lasts), address_hours, parking, privacy (the aviso de privacidad), or other. none if the caller asked no such question.",
+        "rationale": "The user did not ask any questions about the clinic that were outside the scripted steps."
+      },
+      {
+        "id": "patient_type",
+        "value": "returning",
+        "description": "new if the caller was registered as a new patient, returning if find_patient verified their identity on an existing record, unknown if identification did not finish (including a caller whose date of birth did not match).",
+        "rationale": "The `find_patient` tool successfully found and verified the patient's identity, indicating they are a returning patient."
+      },
+      {
+        "id": "red_flag",
+        "value": "none",
+        "description": "none if the caller never described a red flag, otherwise the level of the Escalation the agent applied: emergencia (call 911) or urgencia (go to the emergency room today).",
+        "rationale": "The user did not describe any symptoms or situations that would constitute a red flag for escalation."
+      }
+    ]
+  },
+  "transcript": [
+    {
+      "role": "agent",
+      "time_in_call_secs": 0,
+      "message": "Hello, this is the AI virtual assistant of Grupo Médico Articular, a network of rheumatology clinics in the Mexico City area. I help prepare your first consultation. Do you have a few minutes to talk?",
+      "interrupted": false,
+      "node": "consent",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": null,
+        "tts_ttfb_secs": 0.0688781370408833
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 13,
+      "message": "\"Yes, I do, and I approve the consent.\"",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 19,
+      "message": "Before we begin, Grupo Médico Articular will use...",
+      "interrupted": true,
+      "node": "consent",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 3.4151896331459284,
+        "tts_ttfb_secs": 0.07831619679927826
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 22,
+      "message": "I approve the consent.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 24,
+      "message": null,
+      "interrupted": false,
+      "node": "consent",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.0224703787826002,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "record_consent_1b88865c9bfa4d2481934639566dae54",
+          "type": "webhook",
+          "tool_name": "record_consent",
+          "params": {
+            "granted": true
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/record_consent",
+          "body": {
+            "conversation_id": "conv_8801m4f5by6yehzs3ht0exvmzaap",
+            "granted": true
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 25,
+      "message": null,
+      "interrupted": false,
+      "node": "consent",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "record_consent_1b88865c9bfa4d2481934639566dae54",
+          "type": "webhook",
+          "tool_name": "record_consent",
+          "is_error": false,
+          "latency_secs": 0.22600588109344244,
+          "result": {
+            "ok": true,
+            "consent_id": "ed2bee46-1bc3-42ea-975a-3bfc009ccd77",
+            "granted": true,
+            "message": "Consent recorded. Thank them in one short sentence and continue with identification. Say it in one calm, neutral sentence in the language of the conversation: no exclamation marks, no celebration."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 26,
+      "message": null,
+      "interrupted": false,
+      "node": "consent",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.5196763691492379,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "notify_condition_2_met_39209db38e744d8695b254a1d9498763",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "params": {},
+          "method": null,
+          "url": null,
+          "body": null
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 26,
+      "message": null,
+      "interrupted": false,
+      "node": "consent",
+      "llm": null,
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": null,
+        "tts_ttfb_secs": 0.08183382684364915
+      },
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "notify_condition_2_met_39209db38e744d8695b254a1d9498763",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "is_error": false,
+          "latency_secs": 0.014963408932089806,
+          "result": {
+            "transition": {
+              "edge": "consent_to_identification",
+              "to": "identification"
+            }
+          },
+          "transition": {
+            "edge": "consent_to_identification",
+            "to": "identification"
+          }
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 27,
+      "message": "One moment. Thank you. Could you please tell me your ten-digit phone number?",
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.2924640481360257,
+        "tts_ttfb_secs": 0.08183382684364915
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 33,
+      "message": "Of course. It's 5544336655, and my birthday is November 11th, 1951.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 42,
+      "message": "Let me confirm: five five, four four three three, six six five five. Is that correct?",
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.4762407010421157,
+        "tts_ttfb_secs": 0.07915501715615392
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 50,
+      "message": "Correct.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 52,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.3206244865432382,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "find_patient_4f9db44db51e42d9a6478af3b8c9bdd1",
+          "type": "webhook",
+          "tool_name": "find_patient",
+          "params": {
+            "phone": "5544336655"
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/find_patient",
+          "body": {
+            "conversation_id": "conv_8801m4f5by6yehzs3ht0exvmzaap",
+            "phone": "5544336655"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 52,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "find_patient_4f9db44db51e42d9a6478af3b8c9bdd1",
+          "type": "webhook",
+          "tool_name": "find_patient",
+          "is_error": false,
+          "latency_secs": 0.2535729599185288,
+          "result": {
+            "ok": true,
+            "found": true,
+            "verification_required": true,
+            "message": "A record exists for this phone. Do not say any name or detail of it yet. Ask the caller for their date of birth (day, month and year), then call find_patient again with the same phone and birth_date."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 54,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.3978289240039885,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "find_patient_648740e6dc57446591b9e30196deed8a",
+          "type": "webhook",
+          "tool_name": "find_patient",
+          "params": {
+            "phone": "5544336655",
+            "birth_date": "1951-11-11"
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/find_patient",
+          "body": {
+            "birth_date": "1951-11-11",
+            "conversation_id": "conv_8801m4f5by6yehzs3ht0exvmzaap",
+            "phone": "5544336655"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 54,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": null,
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": null,
+        "tts_ttfb_secs": 0.08727711625397205
+      },
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "find_patient_648740e6dc57446591b9e30196deed8a",
+          "type": "webhook",
+          "tool_name": "find_patient",
+          "is_error": false,
+          "latency_secs": 0.40742115303874016,
+          "result": {
+            "ok": true,
+            "found": true,
+            "verified": true,
+            "patient_id": "7898d0b4-377d-48b6-a417-aa009a889568",
+            "given_name": "Roy",
+            "upcoming_appointment": {
+              "appointment_id": "fce0d489-c5b3-413b-9d4f-91c57827f13e",
+              "branch": "del-valle",
+              "branch_name": "GMA Del Valle",
+              "label": "lunes 12 de octubre a las 11:00 de la mañana"
+            },
+            "chief_complaint": "Pain in both wrists",
+            "pending_callback": null,
+            "history_completed": true,
+            "message": "Identity verified: this is Roy. Thank them by name and tell them in one or two short sentences that they have their first consultation on lunes 12 de octubre a las 11:00 de la mañana at GMA Del Valle, and the reason for it (chief_complaint) in a few of their own words, with no medical interpretation, and ask whether they want to keep it or change it."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 55,
+      "message": "One moment. Thank you, Roy. You have an upcoming appointment on Monday,...",
+      "interrupted": true,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.4223063830286264,
+        "tts_ttfb_secs": 0.08727711625397205
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 59,
+      "message": "Yes, I want to change it to Monday, same time, uh, sorry, same clinic, just at 9:00 a.m. instead of 11:00 a.m., please.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 68,
+      "message": "Understood, Roy. I will look for a day and time for your appointment on Monday at nine in the morning at GMA Del Valle.",
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.4667397108860314,
+        "tts_ttfb_secs": 0.07436328707262874
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 70,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.4667397108860314,
+        "tts_ttfb_secs": 0.07436328707262874
+      },
+      "tool_calls": [
+        {
+          "request_id": "notify_condition_2_met_94efdfe5a2984c55a7c6c550abb5edf3",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "params": {},
+          "method": null,
+          "url": null,
+          "body": null
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 70,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "notify_condition_2_met_94efdfe5a2984c55a7c6c550abb5edf3",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "is_error": false,
+          "latency_secs": 0.00650430005043745,
+          "result": {
+            "transition": {
+              "edge": "identification_to_scheduling",
+              "to": "scheduling"
+            }
+          },
+          "transition": {
+            "edge": "identification_to_scheduling",
+            "to": "scheduling"
+          }
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 71,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.4393102219328284,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "toolu_vrtx_01SWWaxN8QkgTqtiPogsh5uD",
+          "type": "webhook",
+          "tool_name": "check_availability",
+          "params": {
+            "branch": "del-valle",
+            "preferred_date": "2026-10-12",
+            "time_from": "09:00",
+            "time_to": "10:00"
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/check_availability",
+          "body": {
+            "branch": "del-valle",
+            "conversation_id": "conv_8801m4f5by6yehzs3ht0exvmzaap",
+            "preferred_date": "2026-10-12",
+            "time_from": "09:00",
+            "time_to": "10:00"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 71,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "toolu_vrtx_01SWWaxN8QkgTqtiPogsh5uD",
+          "type": "webhook",
+          "tool_name": "check_availability",
+          "is_error": false,
+          "latency_secs": 0.2775647887028754,
+          "result": {
+            "ok": true,
+            "slots": [
+              {
+                "branch": "del-valle",
+                "branch_name": "GMA Del Valle",
+                "practitioner_name": "Elena Ruiz Castellanos",
+                "start": "2026-10-12T09:00:00-06:00",
+                "label": "lunes 12 de octubre a las 9:00 de la mañana"
+              }
+            ],
+            "message": "Offer these options by reading each label aloud, with the branch name when the options are at different branches. When the caller chooses one, call book_appointment with its branch and start exactly as given."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 73,
+      "message": "I found an opening on Monday, October twelfth at nine in the morning at GMA Del Valle. Would that work for...",
+      "interrupted": true,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5276562292128801,
+        "tts_ttfb_secs": 0.07856094697490335
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 82,
+      "message": "\"Yes, lock it, please.\"",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 85,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.5949702360667288,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "toolu_vrtx_01NxeiycFZD6JrNPRYuFZEQv",
+          "type": "webhook",
+          "tool_name": "reschedule_appointment",
+          "params": {
+            "appointment_id": "fce0d489-c5b3-413b-9d4f-91c57827f13e",
+            "branch": "del-valle",
+            "patient_id": "7898d0b4-377d-48b6-a417-aa009a889568",
+            "start": "2026-10-12T09:00:00-06:00"
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/reschedule_appointment",
+          "body": {
+            "appointment_id": "fce0d489-c5b3-413b-9d4f-91c57827f13e",
+            "branch": "del-valle",
+            "conversation_id": "conv_8801m4f5by6yehzs3ht0exvmzaap",
+            "patient_id": "7898d0b4-377d-48b6-a417-aa009a889568",
+            "start": "2026-10-12T09:00:00-06:00"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 86,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "toolu_vrtx_01NxeiycFZD6JrNPRYuFZEQv",
+          "type": "webhook",
+          "tool_name": "reschedule_appointment",
+          "is_error": false,
+          "latency_secs": 1.3322728471830487,
+          "result": {
+            "ok": true,
+            "rescheduled": true,
+            "appointment_id": "513cba9e-95b9-4158-8da5-e09584d43f9d",
+            "old_label": "lunes 12 de octubre a las 11:00 de la mañana",
+            "branch": "del-valle",
+            "branch_name": "GMA Del Valle",
+            "address": "Av. Insurgentes Sur 1234, Consultorio 502, Col. del Valle, Benito Juárez, 03100, Ciudad de México",
+            "practitioner_name": "Elena Ruiz Castellanos",
+            "start": "2026-10-12T09:00:00-06:00",
+            "label": "lunes 12 de octubre a las 9:00 de la mañana",
+            "emailed": true,
+            "message": "Rescheduled. Tell the caller their appointment of lunes 12 de octubre a las 11:00 de la mañana is cancelled and read back the new one: lunes 12 de octubre a las 9:00 de la mañana at GMA Del Valle with Elena Ruiz Castellanos. Do not read the address unless they ask and that they will get an email with the details. Then follow the instructions of your current stage. Say it in one calm, neutral sentence in the language of the conversation: no exclamation marks, no celebration."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 87,
+      "message": "Your previous appointment for Monday, October twelfth at eleven in the morning has been cancelled. Your new appointment is confirmed for Monday,...",
+      "interrupted": true,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.49766393983736634,
+        "tts_ttfb_secs": 0.07873377623036504
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 95,
+      "message": "Amazing. Thanks. Bye-bye.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 98,
+      "message": "You're welcome,...",
+      "interrupted": true,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.744917020201683,
+        "tts_ttfb_secs": 0.08865859592333436
+      },
+      "tool_calls": [],
+      "tool_results": []
+    }
+  ]
+}
