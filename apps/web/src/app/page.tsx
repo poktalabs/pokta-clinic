@@ -37,6 +37,7 @@ const SECONDARY = [
   { href: "/review", label: "Call review", text: "Replay a recorded call" },
   { href: "/deck", label: "Scenario deck", text: "The brief and the build" },
   { href: "/decisions", label: "Decisions", text: "Why it is built this way" },
+  { href: "/gaps", label: "Gaps", text: "What production still needs" },
   { href: "/tools", label: "Tools", text: "The 10 webhook tools" },
 ];
 

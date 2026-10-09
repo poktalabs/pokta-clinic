@@ -9,7 +9,7 @@
 .primary { display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; font-size: 1.0625rem; text-decoration: none; }
 .secondary { display: grid; gap: 1px; margin-top: 28px; background: var(--rule); border: 1px solid var(--rule); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 560px) { .secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1000px) { .secondary { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .secondary { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .secLink { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; background: var(--surface); color: var(--foreground); text-decoration: none; transition: background 0.15s ease; }
 .secLink strong { color: var(--accent-text); font-size: 0.9375rem; }
 .secLink span { font-size: 0.8125rem; color: var(--muted-foreground); }

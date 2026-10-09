@@ -228,7 +228,7 @@ export default function DecisionsPage() {
             {DECISIONS.length} decisions ({superseded} superseded), each in one sentence with why; the {KEY_ORDER.length} marked Key come first. Open a card&apos;s details for the context, the alternatives, the trade-off and links to the code. Dates are commit dates.
           </p>
           <p className="small muted">
-            Present mode shows the {VIDEO.length} above, one per screen; <Link href="/decisions/present?all=1">all {DECISIONS.length}</Link> or <Link href="/decisions/present?key=1">the {KEY_ORDER.length} key ones</Link> are a click away. Related: <Link href="/tools">tools</Link>, <Link href="/explainer">live system view</Link>, <Link href="/testing">how it is tested →</Link>
+            Present mode shows the {VIDEO.length} above, one per screen; <Link href="/decisions/present?all=1">all {DECISIONS.length}</Link> or <Link href="/decisions/present?key=1">the {KEY_ORDER.length} key ones</Link> are a click away. Related: <Link href="/gaps">production gaps</Link>, <Link href="/tools">tools</Link>, <Link href="/explainer">live system view</Link>, <Link href="/testing">how it is tested →</Link>
           </p>
           <p role="note" className={styles.note}>
             The GitHub repository (poktalabs/pokta-clinic) is private: code links work for people with access.

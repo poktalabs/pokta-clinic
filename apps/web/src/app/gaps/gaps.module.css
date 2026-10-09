@@ -1,0 +1,8 @@
+/* /gaps: the layout and cards come from decisions.module.css; this file only adds the severity pills.
+   Semantic tokens from globals.css only, so light and dark both follow the theme. */
+
+.sevLaunch { background: color-mix(in srgb, var(--attn) 16%, transparent); color: var(--attn); }
+.sevScale { background: var(--primary-soft); color: var(--accent-text); }
+.sevHardening { background: var(--surface-2); color: var(--muted-foreground); }
+.fixLabel { color: var(--accent-text); }
+.tagMuted.tagMuted { color: var(--muted-foreground); }
