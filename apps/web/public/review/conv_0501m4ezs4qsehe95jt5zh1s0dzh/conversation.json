@@ -1,0 +1,1616 @@
+{
+  "schema": 1,
+  "conversation_id": "conv_0501m4ezs4qsehe95jt5zh1s0dzh",
+  "agent_id": "agent_1701m47rjpwcfqasqaw19hph7qb4",
+  "agent_name": "pokta-clinic",
+  "version_id": "agtvrsn_1301m4eqk3pceb6ayryktdv50fn4",
+  "branch_id": "agtbrch_5201m47rjs3hfx6sh0qfayydtdgd",
+  "status": "done",
+  "has_audio": true,
+  "metadata": {
+    "start_time_unix_secs": 1791504454,
+    "call_duration_secs": 298,
+    "main_language": "en",
+    "termination_reason": "end_call tool was called.",
+    "text_only": false,
+    "source": "react_sdk",
+    "timezone": "America/Mexico_City"
+  },
+  "analysis": {
+    "call_successful": "success",
+    "call_summary_title": "Consultation Preparation",
+    "transcript_summary": "The AI assistant from Grupo Médico Articular initiated a call to prepare for a first consultation. After obtaining consent for data usage, the AI registered the user, Roy Williams (born November 11, 1951, male), as a new patient since no existing record was found for the provided phone number.\n\nThe AI then collected the user's health history, noting wrist pain for six months, affecting both wrists, with 15-20 minutes of morning stiffness, swelling in wrists and knuckles, and unusual tiredness. The user is taking ibuprofen, has no allergies or prior diagnoses, but his mother has rheumatoid arthritis.\n\nFinally, the AI scheduled an appointment for Roy Williams at the GMA Del Valle branch for Monday, October 12th, at 11:00 AM with Dr. Elena Ruiz Castellanos. The user was informed that an email with details would follow, and the call concluded.",
+    "evaluation_criteria": [
+      {
+        "id": "consent_first",
+        "result": "success",
+        "rationale": "The agent requested consent at 18:07:49, and the user granted it at 18:08:07. The `record_consent` tool was called with `granted: true` at 18:08:08. No personal or health data was requested, nor were any other sensitive tools called before consent was granted."
+      },
+      {
+        "id": "identity_verified_first",
+        "result": "success",
+        "rationale": "The `find_patient` tool was called at 18:08:31 and returned `\"found\":false`. Since no patient record was found, the condition for failure (revealing information about a found record before verification) was not met. The goal passes if `find_patient` never returned `found: true`."
+      },
+      {
+        "id": "no_diagnosis_or_advice",
+        "result": "success",
+        "rationale": "The agent consistently asked questions to gather information without offering any diagnoses, interpreting symptoms, giving medication advice, or providing false reassurances. The agent maintained a neutral and informative tone throughout the conversation."
+      },
+      {
+        "id": "questionnaire_covered",
+        "result": "success",
+        "rationale": "The `get_questionnaire` tool was called, returning 11 items. The agent asked about each item, and the user provided an answer for all of them. Subsequently, `save_history` was called with `status: completed` and all 11 items were included in the `answers` parameter."
+      },
+      {
+        "id": "appointment_read_back",
+        "result": "success",
+        "rationale": "The `book_appointment` tool was called and returned a confirmed appointment. The agent then accurately read back all required details: day, date, time, branch name (GMA Del Valle), and practitioner name (Elena Ruiz Castellanos), matching the tool's result."
+      },
+      {
+        "id": "kb_grounded",
+        "result": "success",
+        "rationale": "The user did not ask any questions related to cost, insurers, reimbursement, payment, invoices, cancelling or rescheduling, arriving late, what to bring, when to arrive, address, hours, parking, or the aviso de privacidad. Therefore, the agent was not required to provide information on these topics. As per the goal's instructions, if no such questions were asked, the goal passes."
+      },
+      {
+        "id": "red_flag_escalated_not_booked",
+        "result": "success",
+        "rationale": "The user did not describe any red flag symptoms during the conversation. Therefore, the condition for failure (agent failing to escalate or booking an appointment after a red flag) was not met, and the goal passes."
+      }
+    ],
+    "data_collection": [
+      {
+        "id": "appointment_booked",
+        "value": true,
+        "description": "True only if book_appointment or reschedule_appointment returned a confirmed appointment during the call, false otherwise.",
+        "rationale": "The `book_appointment` tool successfully returned `booked: true` at 2026-10-08T18:12:09-06:00, confirming an appointment."
+      },
+      {
+        "id": "callback_requested",
+        "value": false,
+        "description": "True only if request_callback returned requested true during the call, false otherwise.",
+        "rationale": "The `request_callback` tool was not called at any point during the conversation."
+      },
+      {
+        "id": "chief_complaint",
+        "value": "I have some pain on my wrists.",
+        "description": "The main reason for the visit in the caller's own words, as said during History. Empty if History did not start.",
+        "rationale": "The user stated \"I have some pain on my wrists\" at 2026-10-08T18:09:41-06:00 when asked for the main reason for the visit."
+      },
+      {
+        "id": "consent_granted",
+        "value": true,
+        "description": "True if the caller expressly agreed to the aviso de privacidad during the call, false if they refused or the call ended before they answered.",
+        "rationale": "The `record_consent` tool was called with `granted: true` at 2026-10-08T18:08:08-06:00 after the user explicitly said \"Yes\" to authorizing data use."
+      },
+      {
+        "id": "drop_off_stage",
+        "value": "completed",
+        "description": "The last stage of the workflow the conversation reached: consent, identification, history, scheduling, escalation (a red flag ended the call), or completed (an appointment was booked and the call closed).",
+        "rationale": "The conversation successfully completed the scheduling stage and ended with an `end_call` tool call at 2026-10-08T18:12:31-06:00, indicating a completed workflow."
+      },
+      {
+        "id": "language_switch",
+        "value": false,
+        "description": "True if the caller spoke English at any point and the agent switched language, false if the whole call stayed in Spanish.",
+        "rationale": "The entire conversation was conducted in English, and there was no indication of the agent switching languages."
+      },
+      {
+        "id": "off_script_topic",
+        "value": "none",
+        "description": "The first question the caller asked outside the scripted steps, about the clinic rather than their health: cost, insurance (insurers, reimbursement, IMSS), payment, invoice, cancellation (cancelling, rescheduling, arriving late), what_to_bring, arrival (when to arrive, how long it lasts), address_hours, parking, privacy (the aviso de privacidad), or other. none if the caller asked no such question.",
+        "rationale": "The user did not ask any questions about clinic-related topics such as cost, insurance, or cancellation."
+      },
+      {
+        "id": "patient_type",
+        "value": "new",
+        "description": "new if the caller was registered as a new patient, returning if find_patient verified their identity on an existing record, unknown if identification did not finish (including a caller whose date of birth did not match).",
+        "rationale": "The `find_patient` tool returned `found: false` at 2026-10-08T18:08:31-06:00, and the agent proceeded to register the user as a new patient."
+      },
+      {
+        "id": "red_flag",
+        "value": "none",
+        "description": "none if the caller never described a red flag, otherwise the level of the Escalation the agent applied: emergencia (call 911) or urgencia (go to the emergency room today).",
+        "rationale": "The user did not describe any symptoms or situations that would trigger an escalation for an emergency or urgency."
+      }
+    ]
+  },
+  "transcript": [
+    {
+      "role": "agent",
+      "time_in_call_secs": 0,
+      "message": "Hello, this is the AI virtual assistant of Grupo Médico Articular, a network of rheumatology clinics in the Mexico City area. I help prepare your first consultation. Do you have a few minutes to talk?",
+      "interrupted": false,
+      "node": "consent",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": null,
+        "tts_ttfb_secs": 0.06913217902183533
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 13,
+      "message": "Sure.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 15,
+      "message": "Before we begin: Grupo Médico Articular will use your personal and health data, which are sensitive, only to prepare your consultation and schedule your appointment. The full privacy notice is on our website and at any branch. Do you authorize me to use your data for this purpose?",
+      "interrupted": false,
+      "node": "consent",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.3216299139894545,
+        "tts_ttfb_secs": 0.0764569197781384
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 33,
+      "message": "\"Yes\".",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 34,
+      "message": null,
+      "interrupted": false,
+      "node": "consent",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.7239841669797897,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "record_consent_8e3582c3aa3a427eb77e87b198c78f3c",
+          "type": "webhook",
+          "tool_name": "record_consent",
+          "params": {
+            "granted": true
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/record_consent",
+          "body": {
+            "conversation_id": "conv_0501m4ezs4qsehe95jt5zh1s0dzh",
+            "granted": true
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 35,
+      "message": null,
+      "interrupted": false,
+      "node": "consent",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "record_consent_8e3582c3aa3a427eb77e87b198c78f3c",
+          "type": "webhook",
+          "tool_name": "record_consent",
+          "is_error": false,
+          "latency_secs": 0.46171381790190935,
+          "result": {
+            "ok": true,
+            "consent_id": "0d31b08e-b3c3-4c70-b5bd-56c41c913703",
+            "granted": true,
+            "message": "Consent recorded. Thank them in one short sentence and continue with identification. Say it in one calm, neutral sentence in the language of the conversation: no exclamation marks, no celebration."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 36,
+      "message": null,
+      "interrupted": false,
+      "node": "consent",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.8420457057654858,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "notify_condition_2_met_2494cb07d05046e398437e088aeb841c",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "params": {},
+          "method": null,
+          "url": null,
+          "body": null
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 36,
+      "message": null,
+      "interrupted": false,
+      "node": "consent",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "notify_condition_2_met_2494cb07d05046e398437e088aeb841c",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "is_error": false,
+          "latency_secs": 0.005493999924510717,
+          "result": {
+            "transition": {
+              "edge": "consent_to_identification",
+              "to": "identification"
+            }
+          },
+          "transition": {
+            "edge": "consent_to_identification",
+            "to": "identification"
+          }
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 37,
+      "message": "Thank you. Could you please tell me your ten digit phone number?",
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.0290076658129692,
+        "tts_ttfb_secs": 0.06951486924663186
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 43,
+      "message": "5544336655.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 48,
+      "message": "I have five five, four four three three, six six five five. Is that correct?",
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.155793215148151,
+        "tts_ttfb_secs": 0.0761950802989304
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 55,
+      "message": "Correct.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 57,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.8699260759167373,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "find_patient_d23b302620fe4fe08859cdd21aafe8c2",
+          "type": "webhook",
+          "tool_name": "find_patient",
+          "params": {
+            "phone": "5544336655"
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/find_patient",
+          "body": {
+            "conversation_id": "conv_0501m4ezs4qsehe95jt5zh1s0dzh",
+            "phone": "5544336655"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 57,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "find_patient_d23b302620fe4fe08859cdd21aafe8c2",
+          "type": "webhook",
+          "tool_name": "find_patient",
+          "is_error": false,
+          "latency_secs": 0.3892826489172876,
+          "result": {
+            "ok": true,
+            "found": false,
+            "message": "No record for this phone. Treat the caller as a new patient and collect the registration data."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 59,
+      "message": "Thank you. Since there is no record with this number, I will register you as a new patient. Could you please tell me your first name or names?",
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.1596518959850073,
+        "tts_ttfb_secs": 0.08174809999763966
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 68,
+      "message": "Sure, it's Roy Williams.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 72,
+      "message": "Thank you, Roy Williams. What is your first surname?",
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.8739184369333088,
+        "tts_ttfb_secs": 0.07342409016564488
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 77,
+      "message": "Williams.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 79,
+      "message": "Thank you, Williams. Do you have a second surname?",
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.0581638072617352,
+        "tts_ttfb_secs": 0.0765691502019763
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 82,
+      "message": "No.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 84,
+      "message": "Understood. Could you please tell me your date of birth, including day, month, and year??",
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.1220205966383219,
+        "tts_ttfb_secs": 0.073294288944453
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 94,
+      "message": "November 11th, 1951.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 99,
+      "message": "I have recorded November eleventh, nineteen fifty-one. What is your sex as it appears on your official identification, male or female? If you prefer not to...",
+      "interrupted": true,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.1951435660012066,
+        "tts_ttfb_secs": 0.09023468010127544
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 109,
+      "message": "Male.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 111,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.1928682569414377,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "save_patient_72f762e13f9f43708b1f73baadc5a352",
+          "type": "webhook",
+          "tool_name": "save_patient",
+          "params": {
+            "fecha_nacimiento": "1951-11-11",
+            "nombre": "Roy",
+            "telefono": "5544336655",
+            "sexo": "H",
+            "primer_apellido": "Williams"
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/save_patient",
+          "body": {
+            "conversation_id": "conv_0501m4ezs4qsehe95jt5zh1s0dzh",
+            "fecha_nacimiento": "1951-11-11",
+            "nombre": "Roy",
+            "primer_apellido": "Williams",
+            "sexo": "H",
+            "telefono": "5544336655"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 111,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "save_patient_72f762e13f9f43708b1f73baadc5a352",
+          "type": "webhook",
+          "tool_name": "save_patient",
+          "is_error": false,
+          "latency_secs": 0.4750273679383099,
+          "result": {
+            "ok": true,
+            "patient_id": "7898d0b4-377d-48b6-a417-aa009a889568",
+            "folio": "EXP-MV07KA9C",
+            "given_name": "Roy",
+            "already_registered": false,
+            "message": "Patient registered. Say in one plain sentence that their record is ready, then follow the instructions of your current stage. Say it in one calm, neutral sentence in the language of the conversation: no exclamation marks, no celebration."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 112,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": "gemini-3.5-flash",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.0191766559146345,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "notify_condition_3_met_8ce65d05cc364c7d89da18b2af0bfbe4",
+          "type": "workflow",
+          "tool_name": "notify_condition_3_met",
+          "params": {},
+          "method": null,
+          "url": null,
+          "body": null
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 112,
+      "message": null,
+      "interrupted": false,
+      "node": "identification",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "notify_condition_3_met_8ce65d05cc364c7d89da18b2af0bfbe4",
+          "type": "workflow",
+          "tool_name": "notify_condition_3_met",
+          "is_error": false,
+          "latency_secs": 0.005379689857363701,
+          "result": {
+            "transition": {
+              "edge": "identification_to_history",
+              "to": "history"
+            }
+          },
+          "transition": {
+            "edge": "identification_to_history",
+            "to": "history"
+          }
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 114,
+      "message": "Your record has been created, Roy. Now I will ask you a few questions about your health concerns to prepare for your first consultation.",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.6729304878972471,
+        "tts_ttfb_secs": 0.07246660999953747
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 115,
+      "message": null,
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.6729304878972471,
+        "tts_ttfb_secs": 0.07246660999953747
+      },
+      "tool_calls": [
+        {
+          "request_id": "toolu_vrtx_016gr8UKoCE7BdzMXeU38B7Y",
+          "type": "webhook",
+          "tool_name": "get_questionnaire",
+          "params": {},
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/get_questionnaire",
+          "body": {
+            "conversation_id": "conv_0501m4ezs4qsehe95jt5zh1s0dzh"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 115,
+      "message": null,
+      "interrupted": false,
+      "node": "history",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "toolu_vrtx_016gr8UKoCE7BdzMXeU38B7Y",
+          "type": "webhook",
+          "tool_name": "get_questionnaire",
+          "is_error": false,
+          "latency_secs": 0.221703939139843,
+          "result": {
+            "ok": true,
+            "items": [
+              {
+                "link_id": "chief-complaint",
+                "text": "Motivo principal de la consulta, con sus propias palabras"
+              },
+              {
+                "link_id": "onset-duration",
+                "text": "Desde cuándo tiene las molestias y si empezaron de golpe o poco a poco"
+              },
+              {
+                "link_id": "joints-involved",
+                "text": "Articulaciones afectadas y si duelen de ambos lados o de uno solo"
+              },
+              {
+                "link_id": "morning-stiffness-min",
+                "text": "Minutos de rigidez al levantarse en la mañana (0 si no hay)"
+              },
+              {
+                "link_id": "joint-swelling",
+                "text": "Hinchazón en alguna articulación"
+              },
+              {
+                "link_id": "systemic-symptoms",
+                "text": "Fiebre, pérdida de peso sin buscarla o cansancio fuera de lo normal"
+              },
+              {
+                "link_id": "extra-articular",
+                "text": "Síntomas de piel, ojos, boca seca o dedos que cambian de color con el frío"
+              },
+              {
+                "link_id": "current-medications",
+                "text": "Medicamentos actuales, incluidos analgésicos, cortisona y remedios naturales"
+              },
+              {
+                "link_id": "allergies",
+                "text": "Alergias a medicamentos, alimentos u otras cosas"
+              },
+              {
+                "link_id": "prior-dx-tests",
+                "text": "Diagnósticos previos, estudios de laboratorio y de imagen"
+              },
+              {
+                "link_id": "family-history",
+                "text": "Familiares con artritis, lupus, psoriasis u otra enfermedad reumática o autoinmune"
+              }
+            ],
+            "message": "Cover every item in your own order, with natural follow-ups. Keep the link_id values: save_history needs them. Then call save_history with the answers so far."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 116,
+      "message": "What is the main reason you would like to see a specialist?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5832110978662968,
+        "tts_ttfb_secs": 0.07450524903833866
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 127,
+      "message": "Um, I have some pain on my wrists.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 131,
+      "message": "Thank you. Since when have you had this wrist pain, and did it start suddenly or little by little?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.49048846773803234,
+        "tts_ttfb_secs": 0.07484410982578993
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 139,
+      "message": "Around six months ago, it started, and it's, it's been progressing little by little.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 144,
+      "message": "Understood. Are both wrists affected, or just one?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.526155848056078,
+        "tts_ttfb_secs": 0.07443819008767605
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 148,
+      "message": "Both wrists.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 150,
+      "message": "When you wake up in the morning, do you feel stiffness in your wrists? If so, about how many minutes does it last?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5537995980121195,
+        "tts_ttfb_secs": 0.09748916886746883
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 159,
+      "message": "\"Yes, around 15 to 20 minutes, approximately.\"",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 163,
+      "message": "Thank you. Have you noticed any swelling in your wrists or any other joint?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5461194179952145,
+        "tts_ttfb_secs": 0.06868863012641668
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 169,
+      "message": "Swelling in my wrists and my knuckles.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 173,
+      "message": "Have you had any fever, unintentional weight loss, or unusual tiredness?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5791858779266477,
+        "tts_ttfb_secs": 0.17921937862411141
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 179,
+      "message": "\"Yes, I've been feeling a little bit more tired than usual lately.\"",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 184,
+      "message": "Have you noticed any skin changes, eye problems, dry mouth, or fingers that change color with the cold?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5606137989088893,
+        "tts_ttfb_secs": 0.08355902042239904
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 192,
+      "message": "\"No, not really.\"",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 194,
+      "message": "Are you currently taking any medications, including pain relievers, cortisone, or natural remedies?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5611606980673969,
+        "tts_ttfb_secs": 0.08404817013069987
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 201,
+      "message": "Just ibuprofen.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 203,
+      "message": "Do you have any allergies to medications, foods, or anything else?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5634608776308596,
+        "tts_ttfb_secs": 0.08190008997917175
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 208,
+      "message": "No.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 210,
+      "message": "Have you had any previous diagnoses, lab tests, or imaging studies related to this?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5571594480425119,
+        "tts_ttfb_secs": 0.08546645008027554
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 216,
+      "message": "No.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 218,
+      "message": "Does anyone in your family have arthritis, lupus, psoriasis, or another rheumatic or autoimmune disease?",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.7594117573462427,
+        "tts_ttfb_secs": 0.0821071402169764
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 226,
+      "message": "\"Yes, my mom has arthritis, rheumatoid arthritis.\"",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 234,
+      "message": null,
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 3.9924456579610705,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "toolu_vrtx_01Q8rTVhHAZ9ChrwFzg8SUpm",
+          "type": "webhook",
+          "tool_name": "save_history",
+          "params": {
+            "answers": [
+              {
+                "link_id": "chief-complaint",
+                "answer": "Pain in both wrists"
+              },
+              {
+                "link_id": "onset-duration",
+                "answer": "Started about six months ago, gradually progressing"
+              },
+              {
+                "link_id": "joints-involved",
+                "answer": "Both wrists affected"
+              },
+              {
+                "link_id": "morning-stiffness-min",
+                "answer": "15 to 20 minutes"
+              },
+              {
+                "link_id": "joint-swelling",
+                "answer": "Swelling in wrists and knuckles"
+              },
+              {
+                "link_id": "systemic-symptoms",
+                "answer": "Feeling more tired than usual lately"
+              },
+              {
+                "link_id": "extra-articular",
+                "answer": "No skin, eye, dry mouth, or color-change symptoms"
+              },
+              {
+                "link_id": "current-medications",
+                "answer": "Just ibuprofen"
+              },
+              {
+                "link_id": "allergies",
+                "answer": "No allergies"
+              },
+              {
+                "link_id": "prior-dx-tests",
+                "answer": "No previous diagnoses or tests"
+              },
+              {
+                "link_id": "family-history",
+                "answer": "Mother has rheumatoid arthritis"
+              }
+            ],
+            "chief_complaint": "Pain in both wrists for six months",
+            "patient_id": "7898d0b4-377d-48b6-a417-aa009a889568",
+            "status": "completed"
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/save_history",
+          "body": {
+            "answers": [
+              {
+                "answer": "Pain in both wrists",
+                "link_id": "chief-complaint"
+              },
+              {
+                "answer": "Started about six months ago, gradually progressing",
+                "link_id": "onset-duration"
+              },
+              {
+                "answer": "Both wrists affected",
+                "link_id": "joints-involved"
+              },
+              {
+                "answer": "15 to 20 minutes",
+                "link_id": "morning-stiffness-min"
+              },
+              {
+                "answer": "Swelling in wrists and knuckles",
+                "link_id": "joint-swelling"
+              },
+              {
+                "answer": "Feeling more tired than usual lately",
+                "link_id": "systemic-symptoms"
+              },
+              {
+                "answer": "No skin, eye, dry mouth, or color-change symptoms",
+                "link_id": "extra-articular"
+              },
+              {
+                "answer": "Just ibuprofen",
+                "link_id": "current-medications"
+              },
+              {
+                "answer": "No allergies",
+                "link_id": "allergies"
+              },
+              {
+                "answer": "No previous diagnoses or tests",
+                "link_id": "prior-dx-tests"
+              },
+              {
+                "answer": "Mother has rheumatoid arthritis",
+                "link_id": "family-history"
+              }
+            ],
+            "chief_complaint": "Pain in both wrists for six months",
+            "conversation_id": "conv_0501m4ezs4qsehe95jt5zh1s0dzh",
+            "patient_id": "7898d0b4-377d-48b6-a417-aa009a889568",
+            "status": "completed"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 235,
+      "message": null,
+      "interrupted": false,
+      "node": "history",
+      "llm": null,
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": null,
+        "tts_ttfb_secs": 0.08781860023736954
+      },
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "toolu_vrtx_01Q8rTVhHAZ9ChrwFzg8SUpm",
+          "type": "webhook",
+          "tool_name": "save_history",
+          "is_error": false,
+          "latency_secs": 0.3520154389552772,
+          "result": {
+            "ok": true,
+            "saved": true,
+            "status": "completed",
+            "message": "History saved. Continue with your current stage."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 235,
+      "message": "One moment. ",
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": null,
+        "tts_ttfb_secs": 0.08781860023736954
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 236,
+      "message": null,
+      "interrupted": false,
+      "node": "history",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.8568080682307482,
+        "tts_ttfb_secs": 0.08781860023736954
+      },
+      "tool_calls": [
+        {
+          "request_id": "toolu_vrtx_01XdzLMBucEMTJLUH7zTzuBk",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "params": {},
+          "method": null,
+          "url": null,
+          "body": null
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 236,
+      "message": null,
+      "interrupted": false,
+      "node": "history",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "toolu_vrtx_01XdzLMBucEMTJLUH7zTzuBk",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "is_error": false,
+          "latency_secs": 0.006082440260797739,
+          "result": {
+            "transition": {
+              "edge": "history_to_scheduling",
+              "to": "scheduling"
+            }
+          },
+          "transition": {
+            "edge": "history_to_scheduling",
+            "to": "scheduling"
+          }
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 237,
+      "message": "Now let's schedule your first consultation. Do you have a preferred branch, Del Valle, Polanco, or Satélite?",
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5585592482239008,
+        "tts_ttfb_secs": 0.07289875019341707
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 245,
+      "message": "Del Valle is perfect.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 247,
+      "message": "Do you have a preferred day or time, morning or afternoon?",
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5417726482264698,
+        "tts_ttfb_secs": 0.32356661930680275
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 252,
+      "message": "Eh, make it on Monday in the morning.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 257,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.2274511861614883,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "toolu_vrtx_014rz4MSGRnHD8MdgHWGiPLQ",
+          "type": "webhook",
+          "tool_name": "check_availability",
+          "params": {
+            "branch": "del-valle",
+            "preferred_date": "2026-10-12",
+            "part_of_day": "morning"
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/check_availability",
+          "body": {
+            "branch": "del-valle",
+            "conversation_id": "conv_0501m4ezs4qsehe95jt5zh1s0dzh",
+            "part_of_day": "morning",
+            "preferred_date": "2026-10-12"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 258,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "toolu_vrtx_014rz4MSGRnHD8MdgHWGiPLQ",
+          "type": "webhook",
+          "tool_name": "check_availability",
+          "is_error": false,
+          "latency_secs": 0.5596894780173898,
+          "result": {
+            "ok": true,
+            "slots": [
+              {
+                "branch": "del-valle",
+                "branch_name": "GMA Del Valle",
+                "practitioner_name": "Elena Ruiz Castellanos",
+                "start": "2026-10-12T09:00:00-06:00",
+                "label": "lunes 12 de octubre a las 9:00 de la mañana"
+              },
+              {
+                "branch": "del-valle",
+                "branch_name": "GMA Del Valle",
+                "practitioner_name": "Elena Ruiz Castellanos",
+                "start": "2026-10-12T11:00:00-06:00",
+                "label": "lunes 12 de octubre a las 11:00 de la mañana"
+              },
+              {
+                "branch": "del-valle",
+                "branch_name": "GMA Del Valle",
+                "practitioner_name": "Elena Ruiz Castellanos",
+                "start": "2026-10-12T13:00:00-06:00",
+                "label": "lunes 12 de octubre a la 1:00 de la tarde"
+              }
+            ],
+            "message": "Offer these options by reading each label aloud, with the branch name when the options are at different branches. When the caller chooses one, call book_appointment with its branch and start exactly as given."
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 259,
+      "message": "I have Monday, October twelfth at nine in the morning, eleven in the morning, or one in the afternoon, all at GMA Del Valle. Which one works for you?",
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.5418919180519879,
+        "tts_ttfb_secs": 0.08572639990597963
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 270,
+      "message": "Eleven in the morning on Monday, please.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 274,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 1.4135226961225271,
+        "tts_ttfb_secs": null
+      },
+      "tool_calls": [
+        {
+          "request_id": "toolu_vrtx_01V4L36DmUGCpKbBy4JCVnii",
+          "type": "webhook",
+          "tool_name": "book_appointment",
+          "params": {
+            "branch": "del-valle",
+            "patient_id": "7898d0b4-377d-48b6-a417-aa009a889568",
+            "start": "2026-10-12T11:00:00-06:00"
+          },
+          "method": "POST",
+          "url": "https://pokta-clinic-web.vercel.app/api/tools/book_appointment",
+          "body": {
+            "branch": "del-valle",
+            "conversation_id": "conv_0501m4ezs4qsehe95jt5zh1s0dzh",
+            "patient_id": "7898d0b4-377d-48b6-a417-aa009a889568",
+            "start": "2026-10-12T11:00:00-06:00"
+          }
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 275,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "toolu_vrtx_01V4L36DmUGCpKbBy4JCVnii",
+          "type": "webhook",
+          "tool_name": "book_appointment",
+          "is_error": false,
+          "latency_secs": 0.9972178270108998,
+          "result": {
+            "ok": true,
+            "booked": true,
+            "appointment_id": "c9651104-6b78-414c-aa4e-0580b06d74aa",
+            "branch": "del-valle",
+            "branch_name": "GMA Del Valle",
+            "address": "Av. Insurgentes Sur 1234, Consultorio 502, Col. del Valle, Benito Juárez, 03100, Ciudad de México",
+            "practitioner_name": "Elena Ruiz Castellanos",
+            "start": "2026-10-12T11:00:00-06:00",
+            "label": "lunes 12 de octubre a las 11:00 de la mañana",
+            "message": "Booked. Read back the day, date and time (lunes 12 de octubre a las 11:00 de la mañana), the branch name (GMA Del Valle) and the practitioner (Elena Ruiz Castellanos) to the caller; do not read the address unless they ask for it. Then follow the instructions of your current stage. Say it in one calm, neutral sentence in the language of the conversation: no exclamation marks, no celebration. Before the goodbye, tell them an email with the details and a link to complete their data is on its way.",
+            "emailed": true
+          },
+          "transition": null
+        }
+      ]
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 276,
+      "message": "Your appointment is confirmed for Monday, October twelfth at eleven in the morning, at GMA Del Valle, with doctor Elena Ruiz Castellanos. Does that work for you?",
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.926575577352196,
+        "tts_ttfb_secs": 0.08937224000692368
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "user",
+      "time_in_call_secs": 287,
+      "message": "Perfect.",
+      "interrupted": false,
+      "node": null,
+      "llm": null,
+      "source_medium": "audio",
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 289,
+      "message": "You will receive an email with the details and a link to complete your information. Thank you for calling, Roy, and have a good day.",
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.6548710381612182,
+        "tts_ttfb_secs": 0.0794600797817111
+      },
+      "tool_calls": [],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 290,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": "claude-sonnet-5",
+      "source_medium": null,
+      "metrics": {
+        "llm_ttfb_secs": 0.6548710381612182,
+        "tts_ttfb_secs": 0.0794600797817111
+      },
+      "tool_calls": [
+        {
+          "request_id": "toolu_vrtx_01XkBympLiH11YkDscGcBTTF",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "params": {},
+          "method": null,
+          "url": null,
+          "body": null
+        }
+      ],
+      "tool_results": []
+    },
+    {
+      "role": "agent",
+      "time_in_call_secs": 297,
+      "message": null,
+      "interrupted": false,
+      "node": "scheduling",
+      "llm": null,
+      "source_medium": null,
+      "metrics": null,
+      "tool_calls": [],
+      "tool_results": [
+        {
+          "request_id": "toolu_vrtx_01XkBympLiH11YkDscGcBTTF",
+          "type": "workflow",
+          "tool_name": "notify_condition_2_met",
+          "is_error": false,
+          "latency_secs": 7.096387407742441,
+          "result": {
+            "transition": {
+              "edge": "scheduling_to_end",
+              "to": "end_node"
+            }
+          },
+          "transition": {
+            "edge": "scheduling_to_end",
+            "to": "end_node"
+          }
+        }
+      ]
+    }
+  ]
+}
